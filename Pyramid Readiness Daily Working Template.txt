@@ -1,0 +1,611 @@
+PYRAMID READINESS DAILY WORKING TEMPLATE
+
+PURPOSE
+Use this file as the fast daily companion to the full execution guide.
+This file is optimized for doing the work, not for explaining the whole program.
+
+USE RULES
+1. At the start of the day, copy the DAILY WORK BLOCK into your note for the day.
+2. Fill in the block before starting work.
+3. Complete the checklist items for the matching day.
+4. End the day only after recording the evidence artifact and validation result.
+5. At the end of each week, complete the WEEKLY SCORECARD BLOCK.
+
+DAILY WORK BLOCK
+Day Number:
+Phase:
+Date:
+
+Readiness Summary:
+- Classification: Foundational / Developing / Operational / Ready For Codex Acceleration
+- Why this classification applies today:
+
+Immediate Next Step:
+- Single best task for today:
+- Why it comes before other work:
+- What successful completion looks like:
+
+Pyramid Surface Check:
+- If visual or presentation work: Discover / Illustrate / KPI / Matrix Grid / Tabular Grid / Raw Results / Map / Forecast / Custom Visual
+- If model or logic work: Model / Measure / Data Point / Member / List / Range List / Level / Parameter / KPI / Column Formulate / Hierarchy
+- Relevant visual, block, function family, or parameter type:
+- Why this surface is the correct one:
+
+Today's Objective:
+
+Today's Tasks:
+1.
+2.
+3.
+
+Required Artifact:
+
+Validation Check:
+- What was checked:
+- What passed:
+- What failed:
+- What remains open:
+
+End-of-Day Closeout:
+- What was completed:
+- What it proved:
+- Next narrow step:
+
+WEEKLY SCORECARD BLOCK
+Week Number:
+
+- Prompt discipline: Pass / Partial / Fail
+- Repo or workspace analysis: Pass / Partial / Fail
+- Change isolation: Pass / Partial / Fail
+- Validation order: Pass / Partial / Fail
+- Deployment awareness: Pass / Partial / Fail
+- Reviewer handoff: Pass / Partial / Fail
+- Reusability: Pass / Partial / Fail
+
+If two or more areas score Fail, repeat the same layer next week.
+
+CODEX GATE BLOCK
+Use this on checkpoint days only.
+
+- One end-to-end workflow completed manually or with standard Copilot support: Yes / No
+- Business-logic ownership understood: Yes / No
+- Validation evidence produced without help: Yes / No
+- Proof tasks completed: Yes / No
+- One clean reviewable change slice completed: Yes / No
+- One reusable team asset created: Yes / No
+
+Codex decision today:
+- Stay with standard Copilot workflows
+- Begin bounded Codex use
+
+If not ready, list the exact missing gates:
+
+PYRAMID SURFACE QUICK GUIDE
+
+Use these quick choices when you need to name the right Pyramid surface.
+
+For ranking and comparison:
+- Column Chart
+- Bar Chart
+- Stacked Column Chart
+- Stacked Bar Chart
+- Stacked 100% Column Chart
+- Stacked 100% Bar Chart
+- Tornado Chart
+- Matrix Grid
+
+For time behavior and trend:
+- Line Chart
+- Spline Chart
+- Step Line Chart
+- Point Chart
+- Lollipop Chart
+- Area Chart
+- Stacked Area Chart
+- Demand Forecast
+
+For contribution to change:
+- Waterfall
+- IBCS Waterfall Chart
+
+For target versus actual:
+- KPIs
+- Bullet Chart
+- Gauges
+- IBCS Column Chart
+- IBCS Line Chart
+
+For hierarchy and composition:
+- Tree Map Chart
+- Hierarchical Tree Map Chart
+- Circle Packing Chart
+- Hierarchical Circle Packing
+- Sunburst Chart
+
+For flow and stage movement:
+- Sankey Chart
+- Funnel Chart
+- Pyramid Chart
+
+For spread, outliers, and relationships:
+- Box and Whisker
+- Scatter Chart
+- Scatter Line Chart
+- Scatter Smooth Line Chart
+- Bubble Chart
+- Open High Low Close Chart
+
+For geography:
+- Bubble Map Chart
+- Shape Map
+- Geo Heat Map
+- Layered Map
+- Heat Grid
+
+For detailed validation over presentation:
+- Raw Results
+- Matrix Grid
+- Tabular Grid
+
+PYRAMID LOGIC QUICK GUIDE
+
+When the task is formula or model related, name the smallest owning surface first.
+
+Element blocks:
+- Data Point
+- Measure
+- Member
+- Standard List
+- Range List
+- Model Attribute
+- Numeric Parameter
+- Text Parameter
+- Binary Parameter
+- Level
+
+Common aggregation choices:
+- Aggregate
+- Average
+- Count
+- Maximum
+- Median
+- Minimum
+- Multiply
+- Sum
+- Variance
+- Standard Deviation
+
+Common data and time choices:
+- Current Period
+- Full Month
+- Full Week
+- Full Year
+- Month To Date
+- Parallel Periods
+- Quarter To Date
+- Week To Date
+- Year To Date
+
+Common operator choices:
+- Plus
+- Minus
+- Multiply
+- Divide
+- Equals
+- Smaller Than
+- Greater Than
+- And
+- Or
+- Not
+
+Common function families:
+- Date-Time
+- Financial
+- Formats
+- Geo
+- Identity
+- Logical
+- Math
+- Statistical
+- String
+- Aggregate
+- Hierarchical
+- List
+- Member
+
+Parameter choices:
+- Scope: Model or Global
+- Type: Text, Number, Binary
+- Member behavior: Discrete List, Free Input, Continuous
+- Values: Caption, Value
+
+KPI style choices:
+- Signs
+- Squares
+- Cylinder
+- Data Bars
+- Text
+- Reverse Signs
+- Circles
+- Dial
+- Bullet
+- Arcs
+
+FOUNDATION PHASE CHECKLIST
+
+DAY 1
+[ ] Write today's Readiness Summary.
+[ ] Explain Ask, Edit, Agent, and Plan mode usage.
+[ ] Write your note on prompt structure.
+[ ] Write your note on context-window limits and prompt bloat.
+[ ] Save the baseline note.
+
+DAY 2
+[ ] Create one workspace or repo analysis prompt.
+[ ] Create one model or formula validation prompt.
+[ ] Create one deployment or QC review prompt.
+[ ] Test each prompt on real material.
+[ ] Record what failed in the first attempt.
+[ ] Revise the prompts.
+
+DAY 3
+[ ] Select one narrow document or change slice.
+[ ] Define the scope boundary.
+[ ] Draft the review purpose.
+[ ] Draft the audience.
+[ ] Draft the review focus.
+[ ] Draft the reviewer questions.
+
+DAY 4
+[ ] Start from the data-shaping layer, not the front end.
+[ ] Trace source inputs.
+[ ] Trace transformation logic.
+[ ] Trace snapshot logic.
+[ ] Trace rollup logic.
+[ ] Trace QC position.
+[ ] Save the dependency map.
+
+DAY 5
+[ ] Write the connection setup checklist.
+[ ] Write the model migration checklist.
+[ ] Write the reporting artifact migration checklist.
+[ ] Write the security and reviewer-access checklist.
+[ ] Write the rerun and review-entrypoint checklist.
+[ ] Complete the week 1 scorecard.
+
+OPERATIONAL PHASE CHECKLIST
+
+DAY 6
+[ ] Inventory source inputs.
+[ ] Inventory reporting outputs.
+[ ] Record expected reporting grain.
+
+DAY 7
+[ ] Identify where current row sets are defined.
+[ ] Identify where deduplication is owned.
+[ ] Record where business history must be preserved.
+
+DAY 8
+[ ] Record where aggregation starts.
+[ ] Record where parent-level double counting can happen.
+[ ] Record what should never be rolled up blindly.
+
+DAY 9
+[ ] Complete Proof Task 1.
+[ ] Write business purpose.
+[ ] Write dependency order.
+[ ] Write key inputs and outputs.
+[ ] Write risk areas.
+[ ] Write the safest place for a simple change.
+
+DAY 10
+[ ] Recheck source inventory.
+[ ] Recheck deduplication note.
+[ ] Recheck aggregation note.
+[ ] Complete week 2 scorecard.
+[ ] Define next narrow step.
+
+DAY 11
+[ ] Record operational reporting grain.
+[ ] Record hierarchy levels.
+[ ] Record parent-child relationships.
+[ ] Record where goal evaluation should happen.
+
+DAY 12
+[ ] Record active-row rules.
+[ ] Record inactive-row rules.
+[ ] Record status behavior.
+[ ] Record cancellation and deletion behavior.
+[ ] Name the owning logic surface.
+
+DAY 13
+[ ] Record current-period logic.
+[ ] Record previous-period logic.
+[ ] Record MTD, QTD, WTD, YTD, Full Month, Full Week, Full Year, or Parallel Period behavior where relevant.
+[ ] Name the relevant Data blocks and Date-Time functions.
+
+DAY 14
+[ ] Test Standard List behavior if relevant.
+[ ] Test Range List behavior if relevant.
+[ ] Test Member behavior if relevant.
+[ ] Test parameter scope and type if relevant.
+[ ] Test level behavior if relevant.
+
+DAY 15
+[ ] Complete Proof Task 3.
+[ ] Record counting grain.
+[ ] Record active-row rules.
+[ ] Record current and previous definitions.
+[ ] Record calculation point.
+[ ] Record rollup path.
+[ ] Record first validation point.
+[ ] Complete week 3 scorecard.
+
+DAY 16
+[ ] Validate current snapshot behavior.
+[ ] Validate previous snapshot behavior.
+[ ] Confirm the correct date logic.
+
+DAY 17
+[ ] Validate the lowest reporting grain first.
+[ ] Validate summary behavior second.
+[ ] Record weighted, summed, or derived totals.
+
+DAY 18
+[ ] Start Proof Task 4.
+[ ] List the checks to run.
+[ ] List expected outcomes.
+[ ] Prepare the QC evidence template.
+
+DAY 19
+[ ] Complete Proof Task 4.
+[ ] Run the planned checks.
+[ ] Separate defects from limitations.
+[ ] Separate data issues from presentation issues.
+
+DAY 20
+[ ] Reconcile snapshot note.
+[ ] Reconcile rollup note.
+[ ] Reconcile QC evidence.
+[ ] Complete week 4 scorecard.
+
+DAY 21
+[ ] Write the preflight readiness assumptions.
+[ ] Record environment readiness.
+[ ] Record source readiness.
+[ ] Record access readiness.
+
+DAY 22
+[ ] Record who needs access.
+[ ] Record who should not get access.
+[ ] Record what must be direct versus shared.
+[ ] Record how reviewer access is confirmed.
+
+DAY 23
+[ ] Start Proof Task 5.
+[ ] Write the deployment sequence.
+[ ] Include preflight through post-deploy QC.
+[ ] Include access confirmation.
+[ ] Include rerun steps and failure points.
+
+DAY 24
+[ ] Complete Proof Task 5.
+[ ] Perform or shadow the dry run.
+[ ] Record dependencies.
+[ ] Record warnings and failures.
+[ ] Record final state.
+
+DAY 25
+[ ] Reconcile preflight note.
+[ ] Reconcile access note.
+[ ] Reconcile deployment record.
+[ ] Complete week 5 scorecard.
+
+DAY 26
+[ ] Record required connections.
+[ ] Record model content requirements.
+[ ] Record reporting artifact requirements.
+[ ] Record custom-visual or manual-setup requirements.
+[ ] Name the Pyramid presentation surface if relevant.
+
+DAY 27
+[ ] Draft the reviewer handoff package.
+[ ] Include environment target.
+[ ] Include artifact list.
+[ ] Include access notes.
+[ ] Include exact entrypoint.
+[ ] Include review expectations.
+[ ] Include known limitations.
+
+DAY 28
+[ ] Choose one business question.
+[ ] Name the best primary visual or output.
+[ ] Name one strong alternative.
+[ ] Record minimum data shape.
+[ ] Record minimum supporting logic.
+
+DAY 29
+[ ] Complete Proof Task 2.
+[ ] Complete Proof Task 6.
+[ ] Finalize the review workflow dry run.
+[ ] Finalize the reviewer handoff package.
+
+DAY 30
+[ ] Write the full Readiness Summary.
+[ ] Complete week 6 scorecard.
+[ ] Run the Codex Gate check.
+[ ] If not ready, list the missing gates exactly.
+
+CONTRIBUTION PHASE CHECKLIST
+
+DAY 31
+[ ] Choose one narrow change slice.
+[ ] Define the scope.
+[ ] Define the expected value of the change.
+
+DAY 32
+[ ] Record current behavior.
+[ ] Record expected behavior.
+[ ] Record scope boundaries.
+[ ] Record first validation check.
+
+DAY 33
+[ ] Identify the owning Pyramid surface.
+[ ] Name the narrowest surface that should change.
+
+DAY 34
+[ ] Write the smallest fix path.
+[ ] Separate required changes from optional cleanup.
+[ ] If visual, name the primary and alternative surfaces.
+[ ] If formula based, name the relevant blocks and function families.
+
+DAY 35
+[ ] Run the first validation cycle.
+[ ] Record the result.
+[ ] Complete week 7 scorecard.
+
+DAY 36
+[ ] Repair the same slice if the diagnosis still holds.
+[ ] Otherwise step one layer closer to the owning surface.
+[ ] Rerun the same validation.
+
+DAY 37
+[ ] Record before behavior.
+[ ] Record after behavior.
+[ ] Explain the change in plain language.
+
+DAY 38
+[ ] Write the change summary.
+[ ] Write review focus areas.
+[ ] Write validation evidence.
+[ ] Write known limitations.
+
+DAY 39
+[ ] Review the package from the reviewer perspective.
+[ ] Record missing or weak evidence.
+[ ] Fix those gaps.
+
+DAY 40
+[ ] Finalize the contribution slice package.
+[ ] Complete week 8 scorecard.
+
+DAY 41
+[ ] Choose one business question related to the change slice.
+[ ] Recommend the best output surface.
+[ ] Recommend one alternative.
+[ ] Record required grain.
+[ ] Record reviewer risk.
+
+DAY 42
+[ ] Validate parameter behavior if relevant.
+[ ] Validate list behavior if relevant.
+[ ] Validate hierarchy behavior if relevant.
+[ ] Record parameter scope, type, and member behavior where relevant.
+
+DAY 43
+[ ] Write the reviewer-facing explanation.
+[ ] State the question being answered.
+[ ] State what changed.
+[ ] State what was validated.
+[ ] State what remains a watch item.
+
+DAY 44
+[ ] Rehearse the final handoff.
+[ ] Confirm entrypoint.
+[ ] Confirm access note.
+[ ] Confirm expected checks.
+[ ] Confirm known limitations.
+
+DAY 45
+[ ] Write the new Readiness Summary.
+[ ] Complete week 9 scorecard.
+[ ] Run the second Codex Gate check.
+[ ] If still not ready, list the missing gates.
+
+DAY 46
+[ ] Choose one reusable team asset.
+[ ] Define why it matters.
+
+DAY 47
+[ ] Define the asset audience.
+[ ] Define the usage scope.
+[ ] Define the problem it should reduce.
+
+DAY 48
+[ ] Draft version 1 of the asset.
+[ ] Keep the instructions direct.
+[ ] Keep the boundaries clear.
+
+DAY 49
+[ ] Test the asset on one real case.
+[ ] Record where the asset fails.
+
+DAY 50
+[ ] Revise the asset after failure.
+[ ] Complete week 10 scorecard.
+
+DAY 51
+[ ] Add Pyramid-surface specificity where useful.
+[ ] Add visuals, grids, maps, KPIs, formula blocks, parameters, lists, or hierarchy guidance only where relevant.
+
+DAY 52
+[ ] Add one example use case.
+[ ] Show start-to-finish usage.
+
+DAY 53
+[ ] Review the asset as an outsider.
+[ ] Remove hidden assumptions.
+[ ] Add missing validation steps.
+
+DAY 54
+[ ] Tighten the wording.
+[ ] Make task boundaries explicit.
+[ ] Make pass conditions explicit.
+
+DAY 55
+[ ] Finalize the reusable asset.
+[ ] Complete week 11 scorecard.
+
+DAY 56
+[ ] Choose one bounded Codex candidate.
+[ ] Confirm it is safe and narrow.
+
+DAY 57
+[ ] Run Codex on the bounded task only.
+[ ] Do not let Codex redefine business logic or policy.
+
+DAY 58
+[ ] Compare manual and Codex paths.
+[ ] Record where Codex helped.
+[ ] Record where Codex drifted.
+[ ] Record what still required manual judgment.
+
+DAY 59
+[ ] Write the final Readiness Summary.
+[ ] Justify the classification with evidence.
+
+DAY 60
+[ ] Complete the final weekly scorecard.
+[ ] Complete the final Codex Gate decision.
+[ ] List completed proof tasks.
+[ ] List reusable assets created.
+[ ] Close the program.
+
+PROOF TASK CHECKPOINTS
+[ ] Proof Task 1 completed on day 9
+[ ] Proof Task 2 completed on day 29
+[ ] Proof Task 3 completed on day 15
+[ ] Proof Task 4 completed on days 18 to 19
+[ ] Proof Task 5 completed on days 23 to 24
+[ ] Proof Task 6 completed on day 29
+
+FINAL DAILY RULES
+[ ] Do not skip Readiness Summary.
+[ ] Do not skip Immediate Next Step.
+[ ] Do not skip evidence capture.
+[ ] Do not skip validation.
+[ ] Do not jump to a visual if the logic layer is unclear.
+[ ] Do not rewrite model logic if the issue is only parameter, list, format, or presentation behavior.
+[ ] Do not dump the full Pyramid catalog unless the task truly requires it.
+[ ] Do not widen scope after a failed validation until the current slice is repaired or reclassified.
+[ ] Do not rely on Codex to replace manual understanding of logic, deployment policy, or reviewer access.

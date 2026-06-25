@@ -1,0 +1,475 @@
+PYRAMID READINESS DAILY EXECUTION GUIDE
+
+PURPOSE
+This file turns the guidance in pyramid-readiness-coach.md into a complete working-day execution plan.
+Use it as a daily operating guide across three phases:
+
+- Foundation Phase
+- Operational Phase
+- Contribution Phase
+
+This is a working-day plan, not a calendar-day plan.
+It is designed to make you operationally reliable before you rely heavily on Codex.
+
+DAILY EXECUTION STANDARD
+Start every day with these steps before doing the day-specific work.
+
+1. Write a Readiness Summary.
+   Classify yourself as Foundational, Developing, Operational, or Ready For Codex Acceleration.
+   Explain the classification in 3 to 5 sentences.
+
+2. Define the Immediate Next Step.
+   Name the single most important task for the day.
+   State why it comes before other work.
+   State what successful completion looks like.
+
+3. Run a Pyramid Surface Check when relevant.
+   If the work is visual or presentation work, identify the Discover, Illustrate, KPI, grid, map, or forecast surface involved.
+   If the work is model or formula work, identify the owning logic surface such as model, measure, list, hierarchy, parameter, KPI, or column formulate.
+
+4. Produce one evidence artifact.
+   Every day must leave behind a note, prompt, checklist, validation record, review draft, handoff draft, proof task artifact, or reusable asset.
+
+5. Validate the day's output.
+   Do not treat the day as complete until you check the output against the success condition.
+
+6. End the day with a short closeout.
+   Record what you did, what it proved, what remains open, and what the next narrow step should be.
+
+WEEKLY SCORECARD STANDARD
+At the end of each working week, score these areas as Pass, Partial, or Fail:
+
+- prompt discipline
+- repo or workspace analysis
+- change isolation
+- validation order
+- deployment awareness
+- reviewer handoff
+- reusability
+
+If two or more areas score Fail, repeat the same layer the following week instead of expanding scope.
+
+PYRAMID SURFACE DECISION RULES
+Use these rules whenever the daily task touches design, logic, or presentation.
+
+VISUAL AND OUTPUT RULES
+- Use Matrix Grid, Tabular Grid, or Raw Results when detail validation matters more than presentation.
+- Use Column Chart, Bar Chart, Stacked variants, Tornado Chart, or Matrix Grid for ranking and categorical comparison.
+- Use Line Chart, Spline Chart, Step Line Chart, Lollipop Chart, Area Chart, or Demand Forecast for time behavior.
+- Use Waterfall or IBCS Waterfall when the business question is about contribution to change.
+- Use Bullet Chart, Gauges, KPIs, IBCS Column Chart, or IBCS Line Chart for target-versus-actual communication.
+- Use Tree Map Chart, Hierarchical Tree Map Chart, Circle Packing Chart, Hierarchical Circle Packing, or Sunburst Chart for hierarchical composition.
+- Use Sankey Chart, Funnel Chart, or Pyramid Chart for stage progression or flow.
+- Use Box and Whisker, Scatter Chart, Scatter Line Chart, Scatter Smooth Line Chart, Bubble Chart, or Open High Low Close Chart for spread, outliers, or relationships.
+- Use Bubble Map Chart, Shape Map, Geo Heat Map, Layered Map, or Heat Grid for geo concentration.
+- Use Pie Chart or Doughnut Chart only when category count is small and the part-to-whole story is simple.
+
+MODEL AND FORMULA RULES
+- Start by identifying the owning element block: Data Point, Measure, Member, Standard List, Range List, Model Attribute, Parameter, or Level.
+- Then identify the needed aggregation behavior: Aggregate, Average, Count, Maximum, Median, Minimum, Multiply, Sum, Variance, Standard Deviation, or correlation-style logic.
+- Then identify the needed time behavior: Current Period, Full Month, Full Week, Full Year, Month To Date, Parallel Periods, Quarter To Date, Week To Date, Year To Date, or semantic time functions.
+- Then identify whether the problem depends on operators, date-time functions, financial functions, formatting, geo logic, identity logic, logical functions, math functions, statistical functions, string functions, aggregate functions, hierarchical functions, list functions, or member functions.
+- If the issue is driven by user input, define whether the parameter should be model or global, and whether it should be Text, Number, or Binary with Discrete List, Free Input, or Continuous behavior.
+- If the output is KPI based, define whether the style should be Signs, Squares, Cylinder, Data Bars, Text, Reverse Signs, Circles, Dial, Bullet, or Arcs.
+
+CODEX GATE STANDARD
+Do not move to heavier Codex use until all of these are true:
+
+- you can complete one end-to-end workflow manually or with standard Copilot support
+- you can explain where business logic lives and where it does not
+- you can produce validation evidence without help
+- you have completed the proof tasks listed in this guide
+- you have delivered at least one clean, reviewable change slice
+- you have created one reusable team asset
+
+When the gate is met, use Codex only on bounded tasks first, such as QC query drafting, issue summarization, release-note drafting, handoff drafting, and troubleshooting runbook drafting.
+
+PHASE 1 - FOUNDATION
+Days 1 to 5
+
+DAY 1
+Objective: Establish your baseline and make the coach prompt actionable.
+Execute: Write your first Readiness Summary. Classify yourself. Create a one-page note explaining Ask, Edit, Agent, and Plan modes, prompt structure, and context-window limits.
+Artifact: Baseline readiness note and first-day classification.
+What it proves: You understand the operating model before touching Pyramid artifacts.
+
+DAY 2
+Objective: Build reusable prompting discipline.
+Execute: Create three reusable prompts for workspace analysis, model or formula validation, and deployment or QC review. Test each one on real material. Revise each prompt after the first failure.
+Artifact: Three working prompts plus a short revision log.
+What it proves: You can create operational prompts instead of one-off chats.
+
+DAY 3
+Objective: Learn narrow-scope review behavior.
+Execute: Take one small document or change slice. Isolate the scope. Draft a review request with purpose, audience, review focus, and review questions. Keep the scope intentionally tight.
+Artifact: Clean review draft and scope note.
+What it proves: You can separate one reviewable unit from unrelated work.
+
+DAY 4
+Objective: Understand model lineage before visual output.
+Execute: Trace the logic path from source inputs through transformation, snapshot logic, rollup logic, and QC. Do not start with the front end.
+Artifact: One-page dependency map.
+What it proves: You know where numbers are shaped before they appear in Pyramid.
+
+DAY 5
+Objective: Build an initial operations checklist.
+Execute: Write a checklist covering connection setup, model migration, reporting artifact migration, security setup, reviewer access, rerun steps, and review entrypoints. End the day with the first weekly scorecard.
+Artifact: Version 1 deployment and handoff checklist plus week 1 scorecard.
+What it proves: You can think beyond development and include delivery conditions.
+
+PHASE 2 - OPERATIONAL
+Days 6 to 30
+
+DAY 6
+Objective: Inventory the data foundation.
+Execute: List the current source inputs, the target reporting outputs, and the reporting grain expected at the end of the chain.
+Artifact: Source-to-output inventory.
+What it proves: You understand the basic shape of the workflow.
+
+DAY 7
+Objective: Identify row ownership and deduplication logic.
+Execute: Find where current row sets are defined and where deduplication is owned. Record where business history must be preserved.
+Artifact: Row ownership and deduplication note.
+What it proves: You know which layer controls the row set.
+
+DAY 8
+Objective: Identify aggregation boundaries.
+Execute: Record where aggregation starts, where parent-level double counting could happen, and what should never be rolled up blindly.
+Artifact: Aggregation boundary note.
+What it proves: You can protect rollups from upstream logic mistakes.
+
+DAY 9
+Objective: Complete Proof Task 1.
+Execute: Write a workspace or repository analysis brief that covers business purpose, dependency order, key inputs and outputs, risk areas, and the safest place to make a simple change.
+Artifact: Proof Task 1 brief.
+What it proves: You can orient yourself in a mature workspace without guessing.
+
+DAY 10
+Objective: Close the data-foundation layer cleanly.
+Execute: Recheck the source inventory, deduplication note, aggregation note, and proof brief. Write week 2 scorecard and define the next narrow step.
+Artifact: Week 2 scorecard and data-foundation closeout.
+What it proves: You can close one layer before expanding scope.
+
+DAY 11
+Objective: Validate hierarchy structure.
+Execute: Record the operational reporting grain, hierarchy levels, parent-child relationships, and where goal evaluation should happen.
+Artifact: Hierarchy validation note.
+What it proves: You understand structural ownership and level behavior.
+
+DAY 12
+Objective: Validate measure and service logic.
+Execute: Record how active and inactive records are determined, which statuses matter, and how cancellations or deletions affect counts.
+Surface check: Identify whether the logic belongs to Measure, Data Point, Member, List, or hierarchy behavior.
+Artifact: Active-row logic note.
+What it proves: You can explain why a number is counted or excluded.
+
+DAY 13
+Objective: Validate target and time logic.
+Execute: Record how current, previous, MTD, QTD, WTD, YTD, Full Month, Full Week, Full Year, or Parallel Period logic should behave in the current design.
+Surface check: Name the relevant Data blocks and Date-time functions.
+Artifact: Time and target logic note.
+What it proves: You can distinguish time semantics from simple date formatting.
+
+DAY 14
+Objective: Validate list, member, parameter, and level behavior.
+Execute: Test whether the logic depends on Standard List, Range List, Member behavior, parameter scope, parameter type, or level selection.
+Artifact: List and parameter behavior note.
+What it proves: You can locate problems that are not measure-only problems.
+
+DAY 15
+Objective: Complete Proof Task 3.
+Execute: Do a full metric lineage walkthrough for one KPI. Cover counting grain, active-row rules, current and previous definitions, calculation point, rollup path, and first validation point.
+Artifact: Proof Task 3 walkthrough and week 3 scorecard.
+What it proves: You understand one metric end to end before surfacing it.
+
+DAY 16
+Objective: Validate current versus previous snapshot behavior.
+Execute: Test the current and previous definitions and confirm which date logic drives each result.
+Artifact: Snapshot validation note.
+What it proves: You can tell whether a comparison issue is time logic or aggregation logic.
+
+DAY 17
+Objective: Validate rollup behavior from granular to summary outputs.
+Execute: Start at the lowest reporting grain. Confirm area-level behavior first, then summary behavior. Record where totals are weighted, summed, or derived.
+Artifact: Rollup behavior note.
+What it proves: You can defend a rollup path with evidence.
+
+DAY 18
+Objective: Start Proof Task 4.
+Execute: Write a QC plan listing what will be checked, expected outcomes, actual outcomes, and how anomalies will be classified.
+Artifact: QC evidence template filled for the first set of checks.
+What it proves: You can set QC up before reading the results.
+
+DAY 19
+Objective: Complete Proof Task 4.
+Execute: Run the planned checks. Separate true defects, data limitations, expected constraints, and presentation issues.
+Artifact: Proof Task 4 QC evidence pack.
+What it proves: You can build trust in the output instead of relying on intuition.
+
+DAY 20
+Objective: Close the snapshot and QC layer.
+Execute: Reconcile your snapshot note, rollup note, and QC evidence. Write week 4 scorecard and define the next narrow step.
+Artifact: Week 4 scorecard and QC closeout.
+What it proves: You can finish a validation layer with explicit evidence.
+
+DAY 21
+Objective: Map the deployment preflight.
+Execute: List the assumptions that must be true before deployment starts, including environment readiness, source readiness, and access readiness.
+Artifact: Preflight checklist.
+What it proves: You can detect deployment blockers before execution.
+
+DAY 22
+Objective: Map roles, access, and reviewer boundaries.
+Execute: Record who needs access, who should not get access, what must be direct versus shared, and how reviewer access should be confirmed.
+Artifact: Access and reviewer boundary note.
+What it proves: You understand delivery as controlled access, not just deployed content.
+
+DAY 23
+Objective: Start Proof Task 5.
+Execute: Write the deployment sequence from preflight through post-deploy QC and access confirmation. Include rerun steps and failure points.
+Artifact: Deployment rehearsal draft.
+What it proves: You can describe a repeatable deployment path.
+
+DAY 24
+Objective: Complete Proof Task 5.
+Execute: Perform or shadow the dry run. Record dependencies, warnings, failures, reruns, and final state.
+Artifact: Proof Task 5 deployment rehearsal record.
+What it proves: You can operate beyond model logic and support delivery.
+
+DAY 25
+Objective: Close the deployment-operations layer.
+Execute: Reconcile the preflight, access, and deployment records. Write week 5 scorecard.
+Artifact: Week 5 scorecard and deployment closeout.
+What it proves: You can close the operational layer with evidence, not memory.
+
+DAY 26
+Objective: Validate Pyramid-facing content movement.
+Execute: Record the required connections, model content, reporting artifacts, custom visuals, and manual setup items that must exist before review.
+Surface check: If a design or report question is involved, identify whether the answer belongs in Discover, Illustrate, KPIs, grids, maps, or forecast.
+Artifact: Content-movement checklist.
+What it proves: You understand the last mile before review.
+
+DAY 27
+Objective: Build the reviewer handoff path.
+Execute: Draft the handoff package with environment target, artifact list, access notes, exact entrypoint, review expectations, and known limitations.
+Artifact: Reviewer handoff draft.
+What it proves: Another person can consume the output without hunting for context.
+
+DAY 28
+Objective: Practice Pyramid surface recommendation.
+Execute: Take one business question and recommend the best primary visual or output, one strong alternative, the minimum data shape, and the minimum supporting logic. Consider only the relevant visual family from the full Pyramid catalog.
+Artifact: One visual recommendation note.
+What it proves: You can choose the right surface for the question instead of forcing a chart.
+
+DAY 29
+Objective: Complete Proof Task 2 and Proof Task 6.
+Execute: Run a review workflow dry run on one narrow slice and finalize the reviewer handoff package. Keep the scope tight and the reviewer instructions explicit.
+Artifact: Proof Task 2 review package and Proof Task 6 handoff test.
+What it proves: You can isolate work for review and deliver it cleanly.
+
+DAY 30
+Objective: Close the Operational Phase.
+Execute: Write a full Readiness Summary, week 6 scorecard, and first Codex Gate decision. If the gate is not met, list the missing gates exactly.
+Artifact: Operational-phase closeout and Codex Gate check.
+What it proves: You can judge readiness with evidence instead of optimism.
+
+PHASE 3 - CONTRIBUTION
+Days 31 to 60
+
+DAY 31
+Objective: Select one narrow change slice.
+Execute: Choose one scoped item such as a validation improvement, metric discrepancy investigation, model clarification, checklist improvement, parameter fix, formula fix, or handoff improvement.
+Artifact: Change-slice charter.
+What it proves: You can define bounded work instead of vague improvement.
+
+DAY 32
+Objective: Establish the baseline behavior.
+Execute: Record current behavior, expected behavior, scope boundaries, and first validation check.
+Artifact: Baseline behavior note.
+What it proves: You can define success before changing anything.
+
+DAY 33
+Objective: Identify the owning Pyramid surface.
+Execute: Decide whether the work belongs to model, measure, member, list, hierarchy, parameter, KPI, column formulate, or visual usage. Name the narrowest surface that should change.
+Artifact: Owning-surface note.
+What it proves: You do not solve the wrong problem in the wrong layer.
+
+DAY 34
+Objective: Draft the smallest fix path.
+Execute: Write the change path, including required logic, optional cleanup, and validation steps. If the work is visual, name the primary and alternative surfaces. If the work is formula based, name the relevant element blocks, data blocks, operators, and function families.
+Artifact: Fix-path draft.
+What it proves: You can define a controlled intervention.
+
+DAY 35
+Objective: Run the first validation cycle.
+Execute: Apply the narrowest change or simulate it in logic notes. Run the first focused validation. End with week 7 scorecard.
+Artifact: First validation record and week 7 scorecard.
+What it proves: You can test the hypothesis instead of widening scope.
+
+DAY 36
+Objective: Repair or confirm the same slice.
+Execute: If the first validation failed but the diagnosis still holds, repair the same slice and rerun the same validation. If the diagnosis was wrong, step one layer closer to the owning surface.
+Artifact: Validation iteration note.
+What it proves: You can correct locally without drifting.
+
+DAY 37
+Objective: Record before-and-after behavior.
+Execute: Capture the change in behavior, logic, or presentation in plain language that another reviewer can follow.
+Artifact: Before-and-after note.
+What it proves: You can explain the effect of your work.
+
+DAY 38
+Objective: Prepare the review package.
+Execute: Write a short change summary, review focus areas, validation evidence, and known limitations. Keep the review scope narrow.
+Artifact: Review package draft.
+What it proves: You can make your work reviewable.
+
+DAY 39
+Objective: Stress-test the review package.
+Execute: Critique your own package from a reviewer perspective. Ask what is missing, ambiguous, or unsupported. Fix those gaps.
+Artifact: Review gap list and revisions.
+What it proves: You can raise review quality before handing off the work.
+
+DAY 40
+Objective: Close the first contribution slice.
+Execute: Finalize the change summary, validation pack, and review package. Write week 8 scorecard.
+Artifact: Closed contribution package and week 8 scorecard.
+What it proves: You can carry one narrow slice from diagnosis to review.
+
+DAY 41
+Objective: Practice a second Pyramid surface recommendation.
+Execute: Choose a business question tied to your contribution slice. Recommend the best output surface, one alternative, the required grain, and the reviewer risk.
+Artifact: Surface recommendation note.
+What it proves: You can connect logic work to presentation quality.
+
+DAY 42
+Objective: Validate parameter, list, or hierarchy behavior when relevant.
+Execute: If your slice depends on user-driven logic, record whether the design needs model or global parameter scope, Text or Number or Binary type, Discrete List or Free Input or Continuous behavior, and Caption or Value usage.
+Artifact: Parameter or list behavior note.
+What it proves: You can handle interactive logic cleanly.
+
+DAY 43
+Objective: Build the reviewer-facing explanation.
+Execute: Write the explanation a reviewer should receive, including the exact question being answered, what changed, what was validated, and what is still a watch item.
+Artifact: Reviewer-facing summary.
+What it proves: You can communicate operationally, not just technically.
+
+DAY 44
+Objective: Final handoff rehearsal.
+Execute: Rehearse the handoff with explicit entrypoint, access note, expected checks, and known limitations.
+Artifact: Final handoff rehearsal note.
+What it proves: You can close the feedback loop cleanly.
+
+DAY 45
+Objective: Run the second Codex Gate decision.
+Execute: Write a new Readiness Summary, week 9 scorecard, and Codex Gate decision. If you are still not ready, list the exact missing gates.
+Artifact: Mid-contribution readiness checkpoint.
+What it proves: You can measure growth against explicit gates.
+
+DAY 46
+Objective: Choose one reusable team asset.
+Execute: Pick one reusable asset to create: prompt library, QC evidence template, deployment checklist, reviewer handoff template, troubleshooting guide, KPI guidance note, or surface-selection guide.
+Artifact: Asset charter.
+What it proves: You are shifting from personal learning to team leverage.
+
+DAY 47
+Objective: Define audience and usage scope.
+Execute: State who will use the asset, when they will use it, and what problem it should reduce.
+Artifact: Audience and scope note.
+What it proves: You are building for reuse, not for yourself only.
+
+DAY 48
+Objective: Draft version 1 of the asset.
+Execute: Write the asset with direct instructions, minimal ambiguity, and clear entry and exit conditions.
+Artifact: Asset draft v1.
+What it proves: You can externalize your working method.
+
+DAY 49
+Objective: Test the asset on one real case.
+Execute: Run the asset against one real scenario. Record where the wording, sequencing, or evidence requirements fail.
+Artifact: Asset test note.
+What it proves: You validate reusable assets instead of just publishing them.
+
+DAY 50
+Objective: Revise the asset after failure.
+Execute: Fix the gaps found on day 49. End with week 10 scorecard.
+Artifact: Asset draft v2 and week 10 scorecard.
+What it proves: You can iterate on reusable process, not just code or logic.
+
+DAY 51
+Objective: Add Pyramid-surface specificity where useful.
+Execute: If the asset touches design or troubleshooting, add the minimum relevant guidance on visuals, grids, maps, KPIs, formula blocks, parameters, lists, or hierarchy behavior.
+Artifact: Surface-aware asset revision.
+What it proves: The asset can support real Pyramid work, not generic BI work only.
+
+DAY 52
+Objective: Add one example use case.
+Execute: Include one worked example that shows how the asset should be used from start to finish.
+Artifact: Example usage note.
+What it proves: The asset is teachable and testable.
+
+DAY 53
+Objective: Review the asset from another person's perspective.
+Execute: Read the asset as if you had no prior context. Remove hidden assumptions, unexplained terms, and missing validation steps.
+Artifact: Assumption gap list.
+What it proves: You can raise clarity for others.
+
+DAY 54
+Objective: Tighten the asset language.
+Execute: Simplify wording, sharpen task boundaries, and make pass conditions explicit.
+Artifact: Asset draft v3.
+What it proves: You can turn rough guidance into operational guidance.
+
+DAY 55
+Objective: Publish the reusable asset.
+Execute: Finalize the asset and write week 11 scorecard.
+Artifact: Final reusable asset and week 11 scorecard.
+What it proves: You can leave behind something the team can use repeatedly.
+
+DAY 56
+Objective: Select a bounded Codex candidate.
+Execute: Choose one safe, bounded task such as QC query drafting, issue summarization, release-note drafting, handoff drafting, or troubleshooting-runbook drafting.
+Artifact: Codex candidate note.
+What it proves: You understand what should and should not be delegated.
+
+DAY 57
+Objective: Run Codex on the bounded task only.
+Execute: Use Codex on the selected task. Do not use it to redefine business logic, migration policy, or ownership boundaries.
+Artifact: Codex output and comparison note.
+What it proves: You can constrain Codex to proven workflows.
+
+DAY 58
+Objective: Compare manual and Codex paths.
+Execute: Record where Codex helped, where it drifted, and what still required manual judgment.
+Artifact: Manual-versus-Codex comparison note.
+What it proves: You can govern AI instead of following it blindly.
+
+DAY 59
+Objective: Write the final Readiness Summary.
+Execute: Reclassify yourself using the four readiness levels. Explain the evidence for the classification in 3 to 5 sentences.
+Artifact: Final readiness statement.
+What it proves: You can justify your state with evidence.
+
+DAY 60
+Objective: Close the guide and make the final gate decision.
+Execute: Complete the final weekly scorecard, the final Codex Gate decision, the list of completed proof tasks, and the list of reusable assets created.
+Artifact: Final readiness package.
+What it proves: You have either earned the right to use Codex as a multiplier or you know exactly what remains before that step.
+
+PROOF TASK MAPPING
+Use this mapping if you want explicit checkpoints.
+
+- Proof Task 1: Day 9
+- Proof Task 2: Day 29
+- Proof Task 3: Day 15
+- Proof Task 4: Days 18 to 19
+- Proof Task 5: Days 23 to 24
+- Proof Task 6: Day 29
+
+FINAL RULES
+- Do not skip Readiness Summary, Immediate Next Step, evidence capture, or validation.
+- Do not jump to a visual if the logic layer is still unclear.
+- Do not jump to a logic rewrite if the issue is only a parameter, list, format, or presentation issue.
+- Do not use the full Pyramid visual or function catalog unless the day's task actually requires it.
+- Do not widen scope after a failed validation until the current slice is either repaired or reclassified.
+- Do not rely on Codex to replace manual understanding of model logic, deployment policy, or reviewer access.
