@@ -1,4 +1,4 @@
-# Pyramid Expirienced User
+# Pyramid Experienced User
 
 This folder is a standalone, shareable document bundle for Pyramid operational readiness.
 
@@ -7,14 +7,16 @@ It is intended to be used as an independent repository folder that can be shared
 ## Contents
 
 - `Module 3 - Pyramid Operational Readiness Plan.md`
+- `Codex Productivity Training Handoff.md`
 - `Pyramid Readiness Daily Execution Guide.txt`
 - `Pyramid Readiness Daily Working Template.txt`
 
 ## Recommended Use Order
 
 1. Read `Module 3 - Pyramid Operational Readiness Plan.md` for the full readiness model.
-2. Use `Pyramid Readiness Daily Execution Guide.txt` for the complete day-by-day operating flow.
-3. Use `Pyramid Readiness Daily Working Template.txt` as the fast daily working sheet.
+2. Read `Codex Productivity Training Handoff.md` for the revision direction that separates Pyramid training, Codex productivity, and BI judgment.
+3. Use `Pyramid Readiness Daily Execution Guide.txt` for the complete day-by-day operating flow.
+4. Use `Pyramid Readiness Daily Working Template.txt` as the fast daily working sheet.
 
 ## Sharing Notes
 
