@@ -1,14 +1,14 @@
-# Copilot Reference for PEU
+# Copilot Reference for MUE
 
 ## Overview
 
-This guide brings the core Copilot concepts from the earlier AI workflow modules into the PEU learning context. The goal is not to treat Copilot as a replacement for business understanding, but as a practical accelerator for Pyramid work, Codex productivity, and BI judgment.
+This guide brings the core Copilot concepts from the earlier AI workflow modules into the MUE learning context. The goal is not to treat Copilot as a replacement for business understanding, but as a tool that can accelerate learning and handoff workflows when used within a clear frame.
 
 Use this document alongside the readiness plan when you want a quick reminder of how Copilot features should be used in real training and delivery work.
 
-## How This Fits the PEU Plan
+## How This Fits the MUE Plan
 
-The PEU plan is organized around three tracks:
+The MUE plan is organized around three tracks:
 
 - Pyramid training for platform-specific understanding and delivery
 - Codex productivity for workflow orientation, context synthesis, and handoffs
@@ -25,7 +25,7 @@ Use the right mode for the task:
 - Agent Mode: best for multi-step tasks that require several file or workspace actions
 - Plan Mode: best for mapping a workflow before acting on it
 
-### PEU guidance
+### MUE guidance
 
 - Use Ask Mode first when you are learning a model, a metric, or a workflow
 - Use Edit Mode when you need a narrowly-scoped change
@@ -34,7 +34,7 @@ Use the right mode for the task:
 
 ## Custom Instructions
 
-Custom instructions help Copilot apply the same standards every time. They are useful for keeping work aligned with PEU expectations such as:
+Custom instructions help Copilot apply the same standards every time. They are useful for keeping work aligned with MUE expectations such as:
 
 - explain the business purpose before the technical detail
 - validate logic before trusting the output
@@ -55,7 +55,7 @@ Example guidance:
 applyTo: '**'
 ---
 
-# PEU Working Standards
+# MUE Working Standards
 - Explain the business question before the technical detail.
 - Validate the logic before trusting the output.
 - Keep changes narrow and reviewable.
@@ -64,7 +64,7 @@ applyTo: '**'
 
 ## Prompt Files
 
-Prompt files are useful for repeated PEU workflows such as:
+Prompt files are useful for repeated MUE workflows such as:
 
 - repository analysis
 - validation review
@@ -92,7 +92,7 @@ Use tools to accelerate repeatable tasks, not to shortcut understanding.
 
 ## Context Management
 
-Good context leads to better answers. In PEU work, include:
+Good context leads to better answers. In MUE work, include:
 
 - the relevant file or selection
 - the business question being asked
@@ -105,7 +105,7 @@ Use targeted context such as:
 - #selection for a scoped section
 - #codebase when you need broader repository orientation
 
-## Practical PEU Checklist
+## Practical MUE Checklist
 
 Before using Copilot on a real task, confirm:
 
@@ -116,7 +116,7 @@ Before using Copilot on a real task, confirm:
 
 ## Quick Start
 
-A good PEU workflow is:
+A good MUE workflow is:
 
 1. Start with Ask Mode to frame the question and gather context
 2. Use Plan Mode if the task is larger or involves multiple steps
