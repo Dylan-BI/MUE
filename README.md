@@ -1,4 +1,4 @@
-# Pyramid Experienced User
+# Multifaceted Learning
 
 This folder is a standalone, shareable document bundle for Pyramid, Codex, and BI judgment readiness training.
 
