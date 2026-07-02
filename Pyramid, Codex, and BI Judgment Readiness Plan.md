@@ -1,8 +1,44 @@
-# Module 3 - Pyramid Operational Readiness Plan
+# Pyramid, Codex, and BI Judgment Readiness Plan
 
 ## Overview
 
 This module lays out a practical improvement path for becoming an experienced Pyramid contributor who can operate inside a mature BI team. The plan is intentionally broader than dashboard building. In this workspace, Pyramid work sits inside a larger delivery model that includes prompt discipline, repository analysis, change isolation, source validation, deployment sequencing, QC, security awareness, and reviewer handoff.
+
+This plan is organized across three complementary tracks:
+- Pyramid training for platform-specific modeling, deployment, and reviewer-ready delivery.
+- Codex productivity training for workflow orientation, context synthesis, handoff fluency, and targeted follow-up.
+- BI judgment training for tool-agnostic reasoning about business questions, metrics, grain, validation evidence, and trusted delivery.
+
+This plan is intended to be used as a four-week learning cycle. In week 1, the learner establishes the frame and the Copilot habits. In week 2, the learner practices reusable workflows. In week 3, the learner applies the readiness model in a more structured way. In week 4, the learner uses daily execution and reflection to build fluency.
+
+### Four-Week Structure With Day-By-Day Goals
+
+- Week 1: Learn the structure, the three tracks, and the basic Copilot habits. Each day should produce one small artifact such as a note, prompt, handoff draft, or summary.
+- Week 2: Practice repository orientation, review behavior, and handoff drafting. Each day should answer: what did I learn, what should I be able to do tomorrow, and what evidence did I produce?
+- Week 3: Apply the readiness model to a real or sample work item. Each day should include one concrete validation or review activity and one short report of findings.
+- Week 4: Convert the plan into a repeatable daily rhythm. Each day should close with a short report that captures the outcome, the next action, and the evidence that supports the result.
+
+### Daily and Weekly Reporting Standard
+
+Each day should end with a short report covering:
+- What I learned today
+- What I should be able to do tomorrow
+- What evidence I produced
+- What remains open
+
+Each week should end with a short review covering:
+- What improved this week
+- What still needs more practice
+- Which track advanced the most
+- What the next week should focus on
+
+### How to use the tracks
+
+- Use Pyramid training when the work is about Pyramid platform mechanics, artifact movement, model logic, deployment, or reviewer access.
+- Use Codex productivity training when the work is about pulling context, summarizing current state, identifying next steps, creating handoffs, or asking targeted clarification questions.
+- Use BI judgment training when the work is about defining business questions, choosing the right metric, understanding grain and exclusions, selecting the right output, or producing evidence a reviewer needs.
+
+Each day should be tagged with the primary track it advances, and each unit should use short-cycle outcomes.
 
 The goal is to become operationally reliable before using Codex as a force multiplier. That means learning the workflow well enough to explain it, validate it, and hand it off cleanly without depending on AI to invent the missing logic.
 
@@ -16,6 +52,21 @@ By the end of this plan, you should be able to:
 - move Pyramid artifacts through an environment with the right connections, access, and reviewer path
 - provide QC evidence with a direct review entrypoint
 - use Codex to speed up proven workflows instead of replacing understanding
+- orient work quickly with Codex, summarize current state, identify next actions, and hand off progress clearly
+- apply BI judgment to decide what business question is being answered, what metrics are appropriate, and what evidence a reviewer needs to trust the output
+
+## How This Plan Is Structured
+
+Each learning unit is intentionally short and outcome-focused. Use this format across daily and weekly work:
+
+- Today we are learning this.
+- By tomorrow, the learner should be able to do this.
+- This is the acceptance criteria.
+- This week the goal is this.
+- This week the acceptance criteria is this.
+- At this point in time, the acceptance criteria will be measured.
+
+Each day should also be tagged with the primary track it advances: Pyramid operations, Codex productivity, or BI judgment.
 
 ## Operating Principles
 
@@ -25,24 +76,30 @@ By the end of this plan, you should be able to:
 4. Keep changes narrow enough for fast review.
 5. Treat deployment, access, and reviewer handoff as part of delivery.
 6. Leave behind reusable prompts, checklists, or runbooks.
+7. Treat Pyramid as one useful platform context, Codex as a bounded accelerator, and BI judgment as the core decision layer.
+8. Learn to separate platform mechanics from business reasoning.
 
 ## Day-By-Day Plan
 
 The first five working days should build a stable foundation.
 
-| Day | Focus | Work To Perform | Evidence Of Completion |
-|---|---|---|---|
-| 1 | AI operating discipline | Learn when to use Ask, Edit, Agent, and Plan modes. Practice writing prompts with persona, objective, constraints, context, format, and quality bar. Write down the limits of context windows and why prompt bloat causes drift. | A one-page note that explains mode choice, prompt structure, and context limits in your own words. |
-| 2 | Reusable prompt setup | Create three reusable prompt templates: one for repository analysis, one for SQL or model validation, and one for deployment or QC review. Test each prompt on real material and revise them after failures. | Three working prompts plus a short note describing what failed in the first version and what you changed. |
-| 3 | Review discipline | Practice isolating one narrow change. Use a document or a small change slice, stage only that scope, and write a review request that states purpose, audience, review focus, and questions for reviewers. | A clean change set with a focused commit message and a draft review description. |
-| 4 | Model lineage understanding | Trace the current BI model from source-load logic through hierarchy and service modeling into snapshot logic and rollups. Do not start in the front end. Start where the data is shaped. | A one-page dependency map that names the load layer, transformation layer, snapshot layer, area rollup, market rollup, total rollup, and QC layer. |
-| 5 | Pyramid operations baseline | Build a deployment checklist that covers connection setup, model migration, reporting artifact migration, security setup, reviewer access, rerun steps, and direct preview entrypoints. Include fonts, themes, or manual configuration items if they are not versioned. | A checklist that another developer could follow without a meeting. |
+| Day | Track | Today we are learning | Tomorrow you should be able to do | Acceptance criteria | Measurement point |
+|---|---|---|---|---|---|
+| 1 | Codex productivity | Learn when to use Ask, Edit, Agent, and Plan modes, and how to write structured prompts. | Write a baseline note explaining mode choice, prompt structure, context limits, and why prompt bloat causes drift. | A one-page readiness note exists and explains each mode, prompt structure, and context limits in your own words. | End of day |
+| 2 | Codex productivity | Build reusable prompts for repository analysis, model validation, and deployment or QC review. | Create and test three working prompt templates on real material. | Three reusable prompts exist with notes describing the first failure and the revision made. | End of day |
+| 3 | BI judgment | Practice narrow-scope review behavior and change isolation. | Isolate one reviewable change slice and draft a focused review request. | A clean review draft includes purpose, audience, review focus, and reviewer questions. | End of day |
+| 4 | Pyramid operations | Trace the BI model lineage from source load through transformation, snapshot, and rollup logic. | Create a dependency map that starts at the data source and ends at QC. | A one-page map names load, transformation, snapshot, rollup, and QC layers. | End of day |
+| 5 | Pyramid operations | Build an operations checklist for deployment, migration, security, and reviewer access. | Produce a deployment and handoff checklist another developer can follow. | The checklist covers connection setup, model migration, reporting artifact migration, security setup, reviewer access, rerun steps, and preview entrypoints. | End of day |
 
 ## Week-By-Week Plan
 
 After the first week, the next month should focus on repeated operational reps.
 
 ### Week 2: Validate The Data Foundation
+
+This week the goal is to confirm the source and row-level foundation for reporting.
+
+This week the acceptance criteria is that you can name the ownership of row selection, deduplication, and aggregation without opening the front end.
 
 Focus on source-load logic, deduplication, grain, and row ownership.
 
@@ -61,6 +118,10 @@ Pass criteria:
 
 ### Week 3: Validate The Core Model Layer
 
+This week the goal is to verify the business model structure and active-row logic behind the metrics.
+
+This week the acceptance criteria is that you can explain who owns each model layer and where active/inactive row decisions are made.
+
 Focus on the hierarchy, service model, base logic, and goal logic.
 
 Tasks:
@@ -77,6 +138,10 @@ Pass criteria:
 - you can explain why goals must be evaluated at the lowest operational grain before rollup
 
 ### Week 4: Validate Snapshot And Rollup Logic
+
+This week the goal is to confirm the behavior of current and previous snapshots and the transition from granular outputs to summaries.
+
+This week the acceptance criteria is that you can explain whether an issue belongs to source data, transformation logic, snapshot logic, rollup logic, or presentation.
 
 Focus on current versus previous logic and the transition from granular outputs to summaries.
 

@@ -2,11 +2,13 @@ PYRAMID READINESS DAILY EXECUTION GUIDE
 
 PURPOSE
 This file turns the guidance in pyramid-readiness-coach.md into a complete working-day execution plan.
-Use it as a daily operating guide across three phases:
+Use it as a daily operating guide across three phases and three training tracks:
 
 - Foundation Phase
 - Operational Phase
 - Contribution Phase
+
+The tracks are Pyramid operations, Codex productivity, and BI judgment.
 
 This is a working-day plan, not a calendar-day plan.
 It is designed to make you operationally reliable before you rely heavily on Codex.
@@ -35,6 +37,14 @@ Start every day with these steps before doing the day-specific work.
 
 6. End the day with a short closeout.
    Record what you did, what it proved, what remains open, and what the next narrow step should be.
+
+7. Record whether the day primarily advanced Pyramid operations, Codex productivity, or BI judgment.
+
+8. End each day with a short daily report using this structure:
+   - What I learned today
+   - What I should be able to do tomorrow
+   - What evidence I produced
+   - What remains open
 
 WEEKLY SCORECARD STANDARD
 At the end of each working week, score these areas as Pass, Partial, or Fail:
