@@ -1,8 +1,8 @@
-# Custom Workflows for PEU
+# Custom Workflows for MUE
 
 ## Overview
 
-This document adapts the earlier custom workflow ideas to the PEU learning environment. The focus is on practical workflows that support Pyramid work, Codex productivity, and BI judgment rather than generic automation.
+This document adapts the earlier custom workflow ideas to the MUE learning environment. The focus is on practical workflows that support Pyramid work, Codex productivity, and BI judgment rather than generic Copilot use cases.
 
 ## Workflow 1: Repository Orientation and Analysis
 
@@ -27,7 +27,7 @@ Create a prompt file such as `.vscode/copilot-prompts/repo-analysis.md` with gui
 ```yaml
 ---
 name: repo-analysis
-description: Analyze a repository or logic chain for PEU readiness
+description: Analyze a repository or logic chain for MUE readiness
 ---
 
 # Repository Analysis
@@ -88,7 +88,7 @@ A good handoff should include:
 - next action
 - any relevant context or reviewer note
 
-This aligns directly with the Codex productivity track in PEU.
+This aligns directly with the Codex productivity track in MUE.
 
 ## Workflow 4: Daily Learning Workflow
 
@@ -107,7 +107,7 @@ Each session should answer:
 
 This helps keep learning practical and measurable.
 
-## Practical PEU Use Cases
+## Practical MUE Use Cases
 
 These workflows are especially useful for:
 
