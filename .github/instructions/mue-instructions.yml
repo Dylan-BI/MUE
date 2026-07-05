@@ -1,0 +1,9 @@
+---
+applyTo: '**'
+---
+
+# MUE Working Standards
+- Explain the business question before the technical detail.
+- Validate the logic before trusting the output.
+- Keep changes narrow and reviewable.
+- Leave behind a handoff note or evidence artifact.
