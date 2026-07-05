@@ -1,50 +1,130 @@
-# Multifaceted Learning
+# Multifaceted User Education (MUE)
 
-This folder is a standalone, shareable document bundle for Pyramid, Codex, and BI judgment readiness training.
+A **maximum 4-week** training bundle for Pyramid, Codex, and BI judgment readiness — with evidence-backed results, retention learning, and a standard equipped team contributor outcome.
 
-It is intended to be used as an independent repository folder that can be shared with multiple remote users without requiring the original workspace structure.
+> **Hard constraint:** This program must not exceed 28 calendar days. See `CONTRIBUTING.md` for extension rules.
+
+---
+
+## Quick Start — The 4-Week Path
+
+**Start here.** The full day-by-day plan is in [`4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md).
+
+| Week | Focus | Proof Tasks Due | Evidence |
+|------|-------|-----------------|----------|
+| **1** | Foundation — tracks, Copilot habits, baseline readiness | — | Readiness note, 3 prompts, dependency map, ops checklist |
+| **2** | Data foundation & model layer validation | PT1 (Repo Analysis), PT3 (Metric Lineage) | Source inventory, row ownership, hierarchy/measure notes |
+| **3** | Snapshots, rollups, QC, deployment rehearsal | PT4 (QC Evidence), PT5 (Deployment Rehearsal) | QC pack, snapshot/rollup notes, preflight checklist |
+| **4** | Contribution, handoff, reusable asset, Codex Gate | PT2 (Review Dry Run), PT6 (Handoff Test) | Change slice, handoff package, reusable asset, readiness package |
+
+---
 
 ## Contents
 
-- `Pyramid, Codex, and BI Judgment Readiness Plan.md`
-- `Codex Productivity Training Handoff.md`
-- `Copilot Reference for MUE.md`
-- `Custom Workflows for MUE.md`
-- `Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`
-- `Pyramid, Codex, and BI Judgment Daily Working Template.txt`
+| File | Purpose |
+|------|---------|
+| [`4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md) | **Start here** — condensed daily/weekly plan with evidence tracking, retention checks, and contributor readiness definition |
+| [`Codex Productivity Training Handoff.md`](./Codex%20Productivity%20Training%20Handoff.md) | Vision document — explains the three-track rationale (Pyramid, Codex, BI Judgment) |
+| [`Copilot Reference for MUE.md`](./Copilot%20Reference%20for%20MUE.md) | Copilot modes, custom instructions, prompt files, context management |
+| [`Custom Workflows for MUE.md`](./Custom%20Workflows%20for%20MUE.md) | Four operational workflows (repo analysis, review/validation, handoff, daily learning) |
+| [`Pyramid, Codex, and BI Judgment Readiness Plan.md`](./Pyramid%2C%20Codex%2C%20and%20BI%20Judgment%20Readiness%20Plan.md) | Full day-by-day and week-by-week readiness plan |
+| [`Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`](./Pyramid%2C%20Codex%2C%20and%20BI%20Judgment%20Daily%20Execution%20Guide.txt) | 60-day execution guide (reference; use the 4-Week Map for scheduling) |
+| [`Pyramid, Codex, and BI Judgment Daily Working Template.txt`](./Pyramid%2C%20Codex%2C%20and%20BI%20Judgment%20Daily%20Working%20Template.txt) | Daily work blocks, checklists, scorecards (copy into daily notes) |
 
-## Suggested 4-Week Learning Flow
+## Supporting Files
 
-This bundle is designed to work as a short, practical four-week learning path (maximum 4 weeks):
+| File | Purpose |
+|------|---------|
+| [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Contribution rules, evidence layout, 28-day enforcement |
+| [`templates/retention-review.md`](./templates/retention-review.md) | Weekly retention review — use at start of Weeks 2, 3, 4 |
+| [`templates/contributor-readiness-check.md`](./templates/contributor-readiness-check.md) | End-of-program certification checklist |
+| [`scripts/create_daily_note.py`](./scripts/create_daily_note.py) | Creates daily notes from template (enforces day ≤ 28) |
+| [`scripts/aggregate_weekly.py`](./scripts/aggregate_weekly.py) | Aggregates weekly notes into `reports/` |
+| [`scripts/generate_readiness_report.py`](./scripts/generate_readiness_report.py) | Parses notes and generates structured readiness reports with scorecards |
 
-1. Week 1: Read `Codex Productivity Training Handoff.md` and `Copilot Reference for MUE.md` to frame the three learning tracks and the core Copilot behaviors.
-2. Week 2: Use `Custom Workflows for MUE.md` to practice repository orientation, validation review, and handoff workflows.
-3. Week 3: Work through `Pyramid, Codex, and BI Judgment Readiness Plan.md` to apply the readiness model and build practical outcomes across Pyramid, Codex, and BI judgment.
-4. Week 4: Use `Pyramid, Codex, and BI Judgment Daily Execution Guide.txt` and `Pyramid, Codex, and BI Judgment Daily Working Template.txt` to turn the plan into daily action, evidence, and reflection. Training programs using this bundle should not exceed four calendar weeks.
+## Evidence & Reporting
+
+Every day must produce **one evidence artifact** saved under `notes/` or `evidence/`.
+
+### Directory Layout
+```
+notes/              # Daily notes (created by create_daily_note.py)
+  YYYY-MM-DD.md
+evidence/           # Proof task artifacts, validation records
+  YYYY-WW/          # Weekly evidence collections
+reports/            # Aggregated reports (generated by scripts)
+  weekly-YYYY-WW.md
+  readiness-YYYY-WW.md
+templates/          # Reusable templates
+  retention-review.md
+  contributor-readiness-check.md
+```
+
+### Automated Reporting
+```bash
+# Create a daily note
+python3 scripts/create_daily_note.py --date YYYY-MM-DD --day-number N
+
+# Aggregate notes for a week
+python3 scripts/aggregate_weekly.py --year YYYY --week WW
+
+# Generate structured readiness report (parses scorecards + evidence)
+python3 scripts/generate_readiness_report.py              # latest week
+python3 scripts/generate_readiness_report.py --full        # all notes
+```
+
+A GitHub Actions workflow (`.github/workflows/weekly-aggregator.yml`) runs automatically every Sunday.
+
+---
+
+## Retention Learning
+
+Retention is built into the program via:
+1. **Daily retention checks** — each day in the 4-Week Map includes a recall question from prior material
+2. **Weekly retention review** — use `templates/retention-review.md` at the start of Weeks 2, 3, and 4
+3. **Cumulative proof task tracking** — all 6 proof tasks must be complete before Codex Gate
+
+---
+
+## Standard Equipped Team Contributor
+
+The end state is a contributor who can:
+
+| Capability | Evidence |
+|------------|----------|
+| Understand dependency order source → reporting | Dependency map, lineage walkthrough |
+| Validate model logic before trusting numbers | PT3 (Metric Lineage), PT4 (QC Evidence) |
+| Move artifacts through environments correctly | PT5 (Deployment Rehearsal), ops checklist |
+| Produce QC evidence with review entrypoint | PT4 (QC Evidence Pack) |
+| Hand off work cleanly to reviewers | PT6 (Reviewer Handoff Test) |
+| Use Codex to accelerate proven workflows | Codex Gate pass, manual-vs-Codex comparison |
+| Apply BI judgment independent of tool | PT1 (Repo Analysis), PT2 (Review Dry Run) |
+| Create reusable team assets | Published prompt library, checklist, or template |
+
+See [`templates/contributor-readiness-check.md`](./templates/contributor-readiness-check.md) for the full certification checklist.
+
+---
 
 ## Recommended Use Order
 
-1. Read `Codex Productivity Training Handoff.md` first to understand the intent behind the PEU structure.
-2. Read `Copilot Reference for MUE.md` next to learn the Copilot habits that support the program.
-3. Use `Custom Workflows for MUE.md` to build practical workflow patterns.
-4. Work through `Pyramid, Codex, and BI Judgment Readiness Plan.md` to apply the model in a realistic learning sequence.
-5. Use `Pyramid, Codex, and BI Judgment Daily Execution Guide.txt` for the day-by-day operating flow.
-6. Use `Pyramid, Codex, and BI Judgment Daily Working Template.txt` as the fast daily working sheet.
+1. Read [`4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md) first — gets you oriented and shows the full 28-day path
+2. Read [`Codex Productivity Training Handoff.md`](./Codex%20Productivity%20Training%20Handoff.md) — understand the three-track intent
+3. Read [`Copilot Reference for MUE.md`](./Copilot%20Reference%20for%20MUE.md) — learn the Copilot habits
+4. Use [`Custom Workflows for MUE.md`](./Custom%20Workflows%20for%20MUE.md) — build practical workflow patterns
+5. Work through [`Pyramid, Codex, and BI Judgment Readiness Plan.md`](./Pyramid%2C%20Codex%2C%20and%20BI%20Judgment%20Readiness%20Plan.md) — detailed day-by-day guidance
+6. Use [`Pyramid, Codex, and BI Judgment Daily Working Template.txt`](./Pyramid%2C%20Codex%2C%20and%20BI%20Judgment%20Daily%20Working%20Template.txt) — fast daily working sheet
+7. Reference [`Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`](./Pyramid%2C%20Codex%2C%20and%20BI%20Judgment%20Daily%20Execution%20Guide.txt) — original 60-day detail (use the 4-Week Map for scheduling)
 
 ## Sharing Notes
 
 - This folder is self-contained for document sharing.
-- The source files were copied into this folder; the originals were not modified.
-- Keep the filenames stable so all remote users can follow the same sequence.
+- Keep filenames stable so all remote users can follow the same sequence.
 - This folder can be committed to its own remote repository as-is.
+- New contributors should clone and follow the 4-Week Onboarding Map.
 
 ## Quick Publish Steps
 
 1. Create an empty remote repository on your Git host.
 2. Rename the default branch to `main` if needed.
 3. Add the remote: `git remote add origin <remote-url>`
-4. Push the initial content: `git push -u origin main`
-
-## Suggested Next Step
-
-Publish this folder to its own remote repository and share the remote URL with the users who need it.
+4. Push: `git push -u origin main`

@@ -20,14 +20,19 @@ jobs:
           WEEK=$(date -d "last sunday" +%V)
           YEAR=$(date -d "last sunday" +%Y)
           python3 scripts/aggregate_weekly.py --year $YEAR --week $WEEK
+      - name: Generate readiness report
+        run: |
+          WEEK=$(date -d "last sunday" +%V)
+          YEAR=$(date -d "last sunday" +%Y)
+          python3 scripts/generate_readiness_report.py --year $YEAR --week $WEEK || echo "Readiness report skipped (no notes found)"
       - name: Commit reports
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/ || true
+          git add reports/ evidence/ || true
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: update weekly report for ${YEAR}-W${WEEK}"
+            git commit -m "chore: update weekly report and readiness summary for ${YEAR}-W${WEEK}"
             git push
           fi
