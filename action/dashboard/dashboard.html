@@ -34,7 +34,7 @@
   .update-banner.show { display: flex; }
   .update-banner button { background: #fff; color: #6c63ff; border: none; padding: 4px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
   .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
-  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #333; }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #333; display: flex; align-items: center; gap: 6px; }
   .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; }
   .metric { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.06); text-align: center; }
   .metric .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
@@ -54,7 +54,7 @@
   .timeline-item .day-details { display: none; margin-top: 6px; padding: 10px 14px; background: #f8f9fa; border-radius: 8px; font-size: 13px; line-height: 1.5; }
   .timeline-item .day-details.open { display: block; }
   .score-chip { display: inline-block; width: 26px; height: 26px; border-radius: 6px; text-align: center; line-height: 26px; font-size: 10px; font-weight: 700; color: #fff; margin: 1px; }
-  .score-pass { background: #198754; } .score-partial { background: #ffc107; color: #333; } .score-fail { background: #dc3545; }
+  .score-pass { background: #198754; color:#fff; } .score-partial { background: #ffc107; color: #333; } .score-fail { background: #dc3545; color:#fff; }
   .pt-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
   .pt-row:last-child { border-bottom: none; }
   .pt-icon { font-size: 18px; width: 24px; text-align: center; }
@@ -78,6 +78,8 @@
   .prog-fill { height: 100%; border-radius: 4px; transition: width .5s; }
   .flex-between { display: flex; justify-content: space-between; align-items: center; }
   .caption { color: #888; font-size: 12px; }
+  .changed-badge { display: inline-block; background: #fff3cd; color: #856404; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; border: 1px solid #ffeeba; }
+  .synced-badge { display: inline-block; background: #d1e7dd; color: #0f5132; font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; border: 1px solid #badbcc; }
   .alert { padding: 14px 18px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; }
   .alert-info { background: #e8f4fd; color: #0c5460; border: 1px solid #bee5eb; }
   .alert-success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
@@ -113,7 +115,7 @@
   .review-item .r-rating { font-size: 11px; padding: 1px 8px; border-radius: 8px; color: #fff; }
   .review-item .r-date { font-size: 10px; color: #aaa; }
   .review-item .r-text { color: #555; font-size: 12px; }
-  .export-btn { background: #6c63ff; color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; margin-bottom: 16px; }
+  .export-btn { background: #6c63ff; color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; }
   .export-btn:hover { background: #5a52e0; }
   .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
   .filter-bar input, .filter-bar select { padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; }
@@ -124,6 +126,9 @@
   .preview-box .close-btn { position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer; color: #888; background: none; border: none; }
   .preview-box .close-btn:hover { color: #333; }
   .preview-box pre { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+  .third-party-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .third-party-card h3 { color: #166534; }
+  .changed-row { border-left: 3px solid #ffc107; }
   @media (max-width: 768px) {
     body { flex-direction: column; }
     .sidebar { width: 100%; height: auto; position: static; max-height: 260px; }
@@ -147,7 +152,7 @@
 <div class="sidebar">
   <div class="sidebar-header">
     <h1>📊 MUE Review</h1>
-    <span>Dashboard &amp; Artifact Review Tool</span>
+    <span>Review Tool — Reviews in every section</span>
   </div>
   <div class="nav" id="nav">
     <a class="active" data-page="overview"        onclick="showPage('overview')">📋 Overview</a>
@@ -158,14 +163,15 @@
     <a data-page="classification"  onclick="showPage('classification')">📈 Classification</a>
     <a data-page="codex-gate"      onclick="showPage('codex-gate')">🚪 Codex Gate</a>
     <div class="nav-divider"></div>
-    <div class="nav-label">Review Tools</div>
+    <div class="nav-label">Review &amp; Sync</div>
     <a data-page="artifacts"       onclick="showPage('artifacts')">📂 All Artifacts</a>
-    <a data-page="review-board"    onclick="showPage('review-board')">💬 Review Board</a>
+    <a data-page="third-party"     onclick="showPage('third-party')">🔍 Third Party Review</a>
   </div>
   <div class="sidebar-footer">
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
     <div class="meta"><span id="autoRefreshStatus">⏱ Auto-refresh inactive</span></div>
+    <div class="meta" id="agentChangesMeta"></div>
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
   </div>
 </div>
@@ -191,6 +197,7 @@ const SCORE_COLORS = { 'Pass': '#198754', 'Partial': '#ffc107', 'Fail': '#dc3545
 const TRACK_COLORS = { 'Pyramid operations': '#0d6efd', 'Codex productivity': '#6f42c1', 'BI judgment': '#fd7e14' };
 const CLS_ORDER = ['Foundational','Developing','Operational','Ready for Codex Acceleration'];
 const REVIEWS_KEY = 'mue_reviews';
+const REVIEWER_NAME_KEY = 'mue_reviewer_name';
 
 function getReviews() { try { return JSON.parse(localStorage.getItem(REVIEWS_KEY)) || {}; } catch { return {}; } }
 function saveReview(artifactPath, review) {
@@ -233,11 +240,22 @@ async function loadData() {
 
 function updateSidebar() {
   const s = DATA.summary;
+  const cf = DATA.changed_files || [];
+  const rd = DATA.review_data || {};
+  const rtc = Object.values(rd).reduce((a,b)=>a+b.length,0);
   const info = document.getElementById('sidebarInfo');
   info.innerHTML = '<strong>' + s.total_days + '</strong> / 28 days (' + Math.min(Math.round(s.total_days/28*100),100) + '%)' +
     '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(s.total_days/28*100,100) + '%;background:#6c63ff"></div></div>' +
     'Classification: <strong>' + s.latest_classification + '</strong><br>Evidence: ' + s.evidence_count + ' files';
   document.getElementById('sidebarMeta').textContent = 'Data: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
+  const acEl = document.getElementById('agentChangesMeta');
+  if (cf.length) {
+    acEl.textContent = '✏️ ' + cf.length + ' file(s) changed by agent';
+    acEl.style.color = '#ffc107';
+  } else {
+    acEl.textContent = rtc ? '✅ ' + rtc + ' file(s) synced to review/' : 'ℹ️ No recent agent changes';
+    acEl.style.color = '#888';
+  }
 }
 
 let refreshInterval = null;
@@ -277,15 +295,19 @@ function addPage(id, html) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RENDER ALL PAGES
+   RENDER ALL PAGES — reviews integrated into every section
    ═══════════════════════════════════════════════════════════════════════════ */
 function renderAll() {
   document.getElementById('main').innerHTML = '';
   const s = DATA.summary;
   const notes = DATA.notes || [];
+  const pa = DATA.page_artifacts || {};
+  const cf = DATA.changed_files || [];
+  const rd = DATA.review_data || {};
+  const ev = DATA.evidence || [];
 
   // ── PAGE 1: OVERVIEW ──
-  addPage('overview', '<h2>📋 Overview</h2><p class="subtitle">High-level summary of MUE training progress</p>' +
+  addPage('overview', '<h2>📋 Overview</h2><p class="subtitle">High-level summary of MUE training progress with review</p>' +
     '<div class="metric-row">' +
     '<div class="metric"><div class="value">' + s.total_days + '</div><div class="label">Days Completed</div><div class="sublabel">' + (28-s.total_days) + ' remaining</div></div>' +
     '<div class="metric"><div class="value">' + s.unique_weeks + '</div><div class="label">Weeks Active</div></div>' +
@@ -293,6 +315,8 @@ function renderAll() {
     '<div class="metric"><div class="value">' + s.latest_classification + '</div><div class="label">Classification</div></div></div>' +
     '<div class="card"><h3>📆 Program Progress</h3><div class="day-grid" id="dayGrid"></div><p class="caption">Green = completed | Grey = not yet done</p></div>' +
     '<div class="card"><h3>🎯 Track Distribution</h3><div class="chart-container"><canvas id="chartTracks"></canvas></div><div class="track-legend" id="trackLegend"></div></div>' +
+    (cf.length ? '<div class="card"><h3>✏️ Recent Agent Changes <span class="changed-badge">' + cf.length + ' changed</span></h3><ul style="font-size:12px;line-height:1.8">'+cf.map(f=>'<li><code>'+escHtml(f)+'</code></li>').join('')+'</ul></div>' : '') +
+    '<div class="card"><h3>💬 Program-Level Review</h3>' + renderReviewSection('overview_review', 'Program Overview', 'MUE Program - Overall', 'overview') + '</div>' +
     '<div class="card"><h3>🔗 Quick Links</h3><p><a class="link-icon" href="../source/4-Week%20Onboarding%20Map.md" target="_blank">📖 4-Week Onboarding Map</a></p></div>');
   const dayNums = notes.filter(n=>n.day_number).map(n=>n.day_number);
   const grid = document.getElementById('dayGrid');
@@ -304,43 +328,68 @@ function renderAll() {
     tkL.forEach((t,i)=>{const p=document.createElement('div');p.className='track-legend-item';p.innerHTML='<span class="track-dot" style="background:'+(TRACK_COLORS[t]||'#888')+'"></span> '+t+': '+tkV[i]+' days ('+Math.round(tkV[i]/tot*100)+'%)';leg.appendChild(p);});
   }
 
-  // ── PAGE 2: DAILY PROGRESS (with review) ──
-  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day training breakdown — add review comments on each day</p>';
+  // ── PAGE 2: DAILY PROGRESS + review + agent changes ──
+  const dailyArts = pa.daily || [];
+  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day training breakdown — add review on each day and its artifacts</p>';
   if (!notes.length) dh += '<div class="alert alert-info">No notes found yet.</div>';
   else [...notes].sort((a,b)=>(a.day_number||0)-(b.day_number||0)).forEach(n => {
     const se=Object.entries(n.scorecard||{}), sh=se.length?se.map(([k,v])=>'<span class="score-chip score-'+v.toLowerCase()+'">'+v[0]+'</span> '+k.replace(/_/g,' ')).join(' | '):'';
-    dh += '<div class="timeline-item"><div class="day-title" onclick="this.nextElementSibling.nextElementSibling.classList.toggle(\'open\')">Day '+(n.day_number||'?')+' — '+(n.date||'')+' · '+(n.classification||'—')+'</div>' +
+    const noteChanged = dailyArts.filter(a=>a.filename === n.filename)[0];
+    const changedBadge = (noteChanged && noteChanged.was_changed) ? ' <span class="changed-badge">✏️ Changed</span>' : '';
+    dh += '<div class="timeline-item"><div class="day-title" onclick="this.nextElementSibling.nextElementSibling.classList.toggle(\'open\')">Day '+(n.day_number||'?')+' — '+(n.date||'')+' · '+(n.classification||'—')+changedBadge+'</div>' +
       '<div class="day-meta">Track: '+(n.primary_track||'—')+' | Evidence: '+(n.required_artifact||'—')+'</div>' +
       '<div class="day-details"><strong>What I learned:</strong> '+escHtml(n.what_learned||'—')+'<br><strong>Next step:</strong> '+escHtml(n.next_step||'—')+'<br>'+(sh?'<br><strong>Scorecard:</strong><br>'+sh:'') +
       renderReviewSection('note_'+n.id,'Daily Note','Day '+(n.day_number||'?')+' ('+(n.date||'')+')',n.filename)+'</div></div>';
   });
+  // Show action/notes artifacts below
+  if (dailyArts.length) {
+    dh += '<div class="card"><h3>📝 Note Artifacts in action/notes/</h3><table class="artifact-table"><thead><tr><th>File</th><th style="width:80px">Size</th><th style="width:100px">Status</th><th style="width:80px">Review</th></tr></thead><tbody>';
+    dailyArts.forEach(a=>{
+      const sz=a.size>1024?(a.size/1024).toFixed(1)+' KB':a.size+' B';
+      const st=a.was_changed ? '<span class="changed-badge">✏️ Agent</span>' : '<span class="caption">Base</span>';
+      dh += '<tr><td class="fp">'+escHtml(a.path)+'</td><td class="caption">'+sz+'</td><td>'+st+'</td><td>' + reviewToggleInline('pa_'+a.path.replace(/[^a-zA-Z0-9]/g,'_'), 'Note Artifact', a.path, a.path) + '</td></tr>';
+    });
+    dh += '</tbody></table></div>';
+  }
   addPage('daily', dh);
 
-  // ── PAGE 3: SCORECARD ──
+  // ── PAGE 3: SCORECARD + review per area ──
   const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
-  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Competency scores across all 7 areas</p>';
+  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Competency scores across all 7 areas — review each area below</p>';
   if (!trK.length) sh2 += '<div class="alert alert-info">No scorecard data yet.</div>';
   else {
-    trK.forEach(a=>{const e=tr[a]||[];sh2+='<div class="card"><h3>'+a.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+'</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';e.forEach(v=>{sh2+='<span class="score-chip" style="background:'+(SCORE_COLORS[v.score]||'#888')+'">'+v.score[0]+'</span>';});sh2+='</div><p class="caption">';const vl=e.map(v=>({'Pass':2,'Partial':1,'Fail':0}[v.score]||0));if(vl.length>=2){if(vl[vl.length-1]>vl[0])sh2+='📈 Improving';else if(vl[vl.length-1]<vl[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}sh2+='</p></div>';});
+    trK.forEach(a=>{
+      const e=tr[a]||[];
+      const safe = a.replace(/[^a-zA-Z0-9]/g,'_');
+      sh2+='<div class="card"><h3>'+a.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+'</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';
+      e.forEach(v=>{sh2+='<span class="score-chip" style="background:'+(SCORE_COLORS[v.score]||'#888')+'">'+v.score[0]+'</span>';});
+      sh2+='</div><p class="caption">';
+      const vl=e.map(v=>({'Pass':2,'Partial':1,'Fail':0}[v.score]||0));
+      if(vl.length>=2){if(vl[vl.length-1]>vl[0])sh2+='📈 Improving';else if(vl[vl.length-1]<vl[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}
+      sh2+='</p>'+renderReviewSection('score_'+safe,'Scorecard Area',a.replace(/_/g,' '),'scorecard/'+a)+'</div>';
+    });
     const fa=trK.filter(k=>{const e=tr[k];return e&&e.length&&e[e.length-1].score==='Fail';});
     if (fa.length>=2) sh2+='<div class="alert alert-warning">⚠️ '+fa.length+' areas scored <strong>Fail</strong>. Repeat this layer.</div>';
   }
   addPage('scorecard', sh2);
 
-  // ── PAGE 4: PROOF TASKS ──
+  // ── PAGE 4: PROOF TASKS + review per task ──
   const pt = s.proof_tasks||{}, ptK=Object.keys(pt);
-  let pth = '<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks required before passing the Codex Gate</p>';
+  let pth = '<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks — review each task</p>';
   if (!ptK.length) pth += '<div class="alert alert-info">No proof task data yet.</div>';
   else {
     let cmp=0;
-    ptK.forEach(id=>{const p=pt[id], d=p.found;if(d)cmp++;pth+='<div class="pt-row"><div class="pt-icon">'+(d?'✅':'⬜')+'</div><div class="pt-info"><div class="pt-title">'+id+': '+escHtml(p.description)+'</div><div class="pt-days">'+(p.days&&p.days.length?'(found on days '+p.days.join(', ')+')':'')+'</div></div></div>';});
+    ptK.forEach(id=>{const p=pt[id], d=p.found;if(d)cmp++;
+      pth+='<div class="pt-row"><div class="pt-icon">'+(d?'✅':'⬜')+'</div><div class="pt-info"><div class="pt-title">'+id+': '+escHtml(p.description)+'</div><div class="pt-days">'+(p.days&&p.days.length?'(found on days '+p.days.join(', ')+')':'')+'</div></div></div>';
+      pth+=renderReviewSection('pt_'+id,'Proof Task',id+': '+p.description,id);
+    });
     pth += '<div class="card" style="margin-top:12px"><div class="flex-between"><strong>Progress: '+cmp+'/'+ptK.length+'</strong><span>'+Math.round(cmp/ptK.length*100)+'%</span></div><div class="prog-bar"><div class="prog-fill" style="width:'+cmp/ptK.length*100+'%;background:#198754"></div></div>'+(cmp===ptK.length?'<div class="alert alert-success" style="margin-top:6px">🎉 All proof tasks completed!</div>':'<p class="caption">'+(ptK.length-cmp)+' remaining.</p>')+'</div>';
   }
   addPage('proof-tasks', pth);
 
-  // ── PAGE 5: EVIDENCE (with review) ──
-  const ev = DATA.evidence||[];
-  let ehtml = '<h2>📁 Evidence Gallery</h2><p class="subtitle">Browse evidence artifacts — add review comments on each file</p>';
+  // ── PAGE 5: EVIDENCE + review per file + agent changes ──
+  const evArts = pa.evidence || [];
+  let ehtml = '<h2>📁 Evidence Gallery</h2><p class="subtitle">Browse evidence artifacts — review per file. <span class="changed-badge">✏️ Agent-changed</span> files highlighted.</p>';
   if (!ev.length) ehtml += '<div class="alert alert-info">No evidence files yet.</div>';
   else {
     ehtml += '<p class="caption"><strong>'+ev.length+'</strong> artifacts in action/evidence/</p>';
@@ -348,24 +397,30 @@ function renderAll() {
     ev.forEach(e=>{const d=new Date(e.modified),s=new Date(d.getFullYear(),0,1),df=(d-s+(s.getTimezoneOffset()-d.getTimezoneOffset())*60000)/86400000,wk=d.getFullYear()+'-W'+String(Math.ceil((df+s.getDay()+1)/7)).padStart(2,'0');if(!grp[wk])grp[wk]=[];grp[wk].push(e);});
     Object.keys(grp).sort().reverse().forEach(wk=>{
       ehtml+='<div class="ev-group"><h4>'+wk+' ('+grp[wk].length+')</h4>';
-      grp[wk].forEach(e=>{const d=new Date(e.modified),sz=(e.size/1024).toFixed(1),aid='ev_'+e.path.replace(/[^a-zA-Z0-9]/g,'_');ehtml+='<div class="ev-item">📄 <code>'+escHtml(e.path)+'</code> <span class="ev-meta">('+sz+' KB, '+d.toLocaleDateString()+')</span>'+renderReviewSection(aid,'Evidence',e.path,e.path)+'</div>';});
+      grp[wk].forEach(e=>{
+        const d=new Date(e.modified),sz=(e.size/1024).toFixed(1),aid='ev_'+e.path.replace(/[^a-zA-Z0-9]/g,'_');
+        const changed = evArts.some(a=>a.filename===e.path || a.path===e.path) || false;
+        const badge = changed ? ' <span class="changed-badge">✏️ Agent</span>' : '';
+        ehtml+='<div class="ev-item">📄 <code>'+escHtml(e.path)+'</code> '+badge+'<span class="ev-meta"> ('+sz+' KB, '+d.toLocaleDateString()+')</span>'+renderReviewSection(aid,'Evidence',e.path,e.path)+'</div>';
+      });
       ehtml+='</div>';
     });
   }
   addPage('evidence', ehtml);
 
-  // ── PAGE 6: CLASSIFICATION ──
+  // ── PAGE 6: CLASSIFICATION + review ──
   const cs = s.classification_sequence||[];
-  let chtml = '<h2>📈 Readiness Classification Trend</h2><p class="subtitle">How readiness level evolved over time</p>';
+  let chtml = '<h2>📈 Readiness Classification Trend</h2><p class="subtitle">How readiness level evolved over time — add review</p>';
   if (!cs.length) chtml += '<div class="alert alert-info">No classification data yet.</div>';
   else {
     chtml += '<div class="card"><div class="chart-container"><canvas id="chartClassification"></canvas></div></div><p class="caption">1=Foundational → 4=Ready for Codex Acceleration</p>';
     cs.forEach(e=>{const cl=CLS_COLORS[e.classification.toLowerCase()]||'#888',lv=CLS_ORDER.indexOf(e.classification)+1;chtml+='<div class="cls-bar" style="background:'+cl+';width:'+lv/4*100+'%;min-width:80px">Day '+e.day+' ('+(e.date||'')+') — '+e.classification+'</div>';});
+    chtml += '<div class="card"><h3>💬 Classification Review</h3>'+renderReviewSection('classification_review','Classification Trend','Readiness Classification Trend','classification')+'</div>';
     setTimeout(()=>{const c=document.getElementById('chartClassification');if(!c)return;new Chart(c,{type:'line',data:{labels:cs.map(e=>'Day '+e.day),datasets:[{label:'Level',data:cs.map(e=>CLS_ORDER.indexOf(e.classification)+1),borderColor:'#6c63ff',backgroundColor:'rgba(108,99,255,.1)',fill:true,tension:.3,pointBackgroundColor:cs.map(e=>CLS_COLORS[e.classification.toLowerCase()]||'#888'),pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:.5,max:4.5,ticks:{stepSize:1,callback:v=>CLS_ORDER[v-1]||''}},x:{grid:{display:false}}}}});},50);
   }
   addPage('classification', chtml);
 
-  // ── PAGE 7: CODEX GATE ──
+  // ── PAGE 7: CODEX GATE + review ──
   const gs = s.codex_gate_status||{}, gK = Object.keys(gs);
   let ghtml = '<h2>🚪 Codex Gate Status</h2><p class="subtitle">Final checkpoint — all 6 gates must be Yes</p>';
   if (!gK.length) ghtml += '<div class="alert alert-info">No Codex Gate data yet. Checked on Day 28.</div>';
@@ -374,23 +429,24 @@ function renderAll() {
     let ay=true;
     gK.forEach(k=>{const lb=gl[k]||k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),st=gs[k]||'—';if(st!=='Yes')ay=false;ghtml+='<div class="gate-item"><div class="gate-icon">'+(st==='Yes'?'✅':(st==='No'?'❌':'⬜'))+'</div><div class="gate-label">'+lb+'</div><strong>'+st+'</strong></div>';});
     ghtml += '<div class="card" style="margin-top:12px">'+(ay?'<div class="alert alert-success" style="margin-bottom:0">🎉 <strong>Codex Gate: PASSED</strong></div>':'<div class="alert alert-warning" style="margin-bottom:0"><strong>Codex Gate: NOT YET</strong><br>Missing: '+gK.filter(k=>gs[k]!=='Yes').map(k=>gl[k]||k).join(', ')+'</div>')+'</div>';
+    ghtml += '<div class="card"><h3>💬 Codex Gate Review</h3>'+renderReviewSection('codexgate_review','Codex Gate','Codex Gate Status','codex-gate')+'</div>';
   }
   addPage('codex-gate', ghtml);
 
-  // ── PAGE 8: ALL ARTIFACTS ──
+  // ── PAGE 8: ALL ARTIFACTS (with review, agent status, sync status) ──
   const arts = DATA.artifacts||{};
-  addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Complete file listing of <code>action/</code> — click the eye icon to preview</p>' +
+  addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Complete file listing of <code>action/</code> — review per file. <span class="changed-badge">✏️ Agent</span> = changed, <span class="synced-badge">✅ Synced</span> = synced to review/</p>' +
     '<div class="filter-bar"><input id="artSearch" placeholder="Search files..." onkeyup="filterArtifacts()">' +
     '<select id="artCatFilter" onchange="filterArtifacts()"><option value="">All categories</option><option value="notes">📝 Notes</option><option value="evidence">📁 Evidence</option><option value="reports">📊 Reports</option><option value="templates">📋 Templates</option><option value="scripts">⚙️ Scripts</option><option value="dashboard">📈 Dashboard</option><option value="other">📦 Other</option></select></div>' +
     '<div id="artifactContainer"></div>');
-  renderArtifacts(arts);
+  renderArtifacts(arts, cf, rd);
 
-  // ── PAGE 9: REVIEW BOARD ──
-  renderReviewBoard(notes, ev);
+  // ── PAGE 9: THIRD PARTY REVIEW (sync-from-action integration) ──
+  renderThirdPartyReview(rd, cf);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   REVIEW SECTION (embedded on each artifact)
+   REVIEW SECTION (embedded on every artifact, page, and section)
    ═══════════════════════════════════════════════════════════════════════════ */
 function renderReviewSection(aid, type, label, filename) {
   const saved = getReviews(), itemRev = saved[aid]||[];
@@ -408,27 +464,39 @@ function renderReviewSection(aid, type, label, filename) {
   return html;
 }
 
+function reviewToggleInline(aid, type, label, filename) {
+  return '<span class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rif_'+aid+'\').classList.toggle(\'open\')">💬 Review</span>' +
+    '<div class="review-form" id="rif_'+aid+'" style="display:none">' +
+    '<label>Reviewer</label><input id="rin_'+aid+'" placeholder="Your name" value="'+escHtml(getReviewerName())+'">' +
+    '<label>Rating</label><div class="rating-group" id="rig_'+aid+'">' +
+    ['👍 Pass','⚡ Needs Work','❌ Rework'].map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
+    '</div><label>Comments</label><textarea id="ric_'+aid+'" placeholder="Write your review..."></textarea>' +
+    '<div><button class="submit-btn" onclick="submitReview(\''+aid+'\',\''+escHtml(type)+'\',\''+escHtml(label)+'\',\''+escHtml(filename)+'\')">✉️ Send</button></div>' +
+    '<div class="review-list" id="ril_'+aid+'">'+renderReviewList(aid)+'</div></div>';
+}
+
 function selectRating(aid, idx) {
-  const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn');
+  const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn, #rig_'+aid+' .rating-btn');
   btns.forEach(b=>b.classList.remove('selected'));
   if (btns[idx]) btns[idx].classList.add('selected');
 }
 
-function getReviewerName() { try { return localStorage.getItem('mue_reviewer_name')||''; } catch { return ''; } }
-function setReviewerName(n) { try { localStorage.setItem('mue_reviewer_name', n); } catch {} }
+function getReviewerName() { try { return localStorage.getItem(REVIEWER_NAME_KEY)||''; } catch { return ''; } }
+function setReviewerName(n) { try { localStorage.setItem(REVIEWER_NAME_KEY, n); } catch {} }
 
 function submitReview(aid, type, label, filename) {
-  const nInput = document.getElementById('rn_'+aid), tInput = document.getElementById('rc_'+aid);
+  const nInput = document.getElementById('rn_'+aid) || document.getElementById('rin_'+aid);
+  const tInput = document.getElementById('rc_'+aid) || document.getElementById('ric_'+aid);
   const name = (nInput ? nInput.value : 'Anonymous').trim();
   const text = tInput ? tInput.value.trim() : '';
   if (!text) { alert('Please write a comment before submitting.'); return; }
   setReviewerName(name);
   let rating = 'No rating';
-  const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn');
+  const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn, #rig_'+aid+' .rating-btn');
   btns.forEach((b,i)=>{if(b.classList.contains('selected'))rating=b.textContent.trim();});
   const review = {name,rating,text,type,label,filename};
   saveReview(aid, review);
-  const list = document.getElementById('rl_'+aid);
+  const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   const subj = encodeURIComponent('[MUE Review] '+type+': '+label);
   const body = encodeURIComponent('Reviewer: '+name+'\nArtifact: '+type+'\nFile: '+filename+'\nLabel: '+label+'\nRating: '+rating+'\n---\n'+text+'\n---\n\nSubmitted via MUE Dashboard Review Tool');
@@ -450,26 +518,40 @@ function renderReviewList(aid) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ARTIFACT BROWSER
+   ARTIFACT BROWSER (with agent-change & sync-status columns)
    ═══════════════════════════════════════════════════════════════════════════ */
-function renderArtifacts(artifacts) {
+function renderArtifacts(artifacts, changedFiles, reviewData) {
   const c = document.getElementById('artifactContainer');
   if (!c) return;
   const catOrder = ['notes','evidence','reports','templates','scripts','dashboard','other'];
   const catLabels = {notes:'📝 Notes',evidence:'📁 Evidence',reports:'📊 Reports',templates:'📋 Templates',scripts:'⚙️ Scripts',dashboard:'📈 Dashboard',other:'📦 Other'};
   const total = catOrder.reduce((a,k)=>a+(artifacts[k]||[]).length,0);
   if (!total) { c.innerHTML = '<div class="alert alert-info">No artifacts found.</div>'; return; }
+  // Build lookup for changed files and synced files
+  const changedSet = new Set((changedFiles||[]).map(f=>f.replace(/\\/g,'/')));
+  const syncedPaths = new Set();
+  Object.values(reviewData||{}).forEach(arr=>arr.forEach(f=>{
+    const p = f.path.replace(/\\/g,'/');
+    const match = p.match(/^(?:action\/)?(notes|evidence|reports)\/(.+)/);
+    if (match) syncedPaths.add(match[1]+'/'+match[2]);
+    else syncedPaths.add(p.replace(/^review\//,''));
+  }));
   let h = '<p><strong>'+total+'</strong> total files across action/</p>';
   catOrder.forEach(cat=>{
     const items = artifacts[cat]||[];
     if (!items.length) return;
-    h += '<div class="artifact-cat" data-cat="'+cat+'"><h3>'+(catLabels[cat]||cat)+' ('+items.length+')</h3><table class="artifact-table"><thead><tr><th style="width:24px"></th><th>Path</th><th style="width:80px">Size</th><th style="width:140px">Modified</th><th style="width:80px;text-align:center">View</th></tr></thead><tbody>';
+    h += '<div class="artifact-cat" data-cat="'+cat+'"><h3>'+(catLabels[cat]||cat)+' ('+items.length+')</h3><table class="artifact-table"><thead><tr><th style="width:24px"></th><th>Path</th><th style="width:60px">Size</th><th style="width:100px">Modified</th><th style="width:50px">Status</th><th style="width:50px">Sync</th><th style="width:60px">Review</th></tr></thead><tbody>';
     items.forEach(f=>{
       const icon=f.filename.endsWith('.md')?'📄':(f.filename.endsWith('.py')?'🐍':(f.filename.endsWith('.ps1')?'⚡':(f.filename.endsWith('.json')?'📋':(f.filename.endsWith('.url')?'🔗':(f.filename.endsWith('.html')?'🌐':'📄')))));
       const sz=f.size>1024?(f.size/1024).toFixed(1)+' KB':f.size+' B';
       const md=new Date(f.modified), aid='art_'+f.path.replace(/[^a-zA-Z0-9]/g,'_');
       const rv=getReviews(), rc=(rv[aid]||[]).length;
-      h += '<tr><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td style="text-align:center"><span style="font-size:13px;color:#6c63ff;cursor:pointer" onclick="showArtifactPreview(\''+aid+'\',\''+escHtml(f.path).replace(/'/g,"\\'")+'\',\''+escHtml(f.preview?f.preview.substring(0,500).replace(/'/g,"\\'").replace(/\n/g,'\\n'):'').replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:#888">'+rc+'</span>':'')+'</td></tr>';
+      const actionPath = 'action/'+f.path.replace(/\\/g,'/');
+      const isChanged = changedSet.has(actionPath);
+      const isSynced = syncedPaths.has(f.path.replace(/\\/g,'/'));
+      const status = isChanged ? '<span class="changed-badge">✏️</span>' : '<span class="caption">—</span>';
+      const syncBadge = isSynced ? '<span class="synced-badge">✅</span>' : '<span class="caption">—</span>';
+      h += '<tr class="'+(isChanged?'changed-row':'')+'"><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td>'+status+'</td><td>'+syncBadge+'</td><td style="text-align:center"><span style="font-size:13px;color:#6c63ff;cursor:pointer" onclick="showArtifactPreview(\''+aid+'\',\''+escHtml(f.path).replace(/'/g,"\\'")+'\',\''+escHtml(f.preview?f.preview.substring(0,500).replace(/'/g,"\\'").replace(/\n/g,'\\n'):'').replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:#888">'+rc+'</span>':'')+'</td></tr>';
     });
     h += '</tbody></table></div>';
   });
@@ -496,45 +578,63 @@ function showArtifactPreview(aid, path, preview) {
 function closePreview() { document.getElementById('previewOverlay').classList.remove('open'); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   REVIEW BOARD
+   THIRD PARTY REVIEW — sync-from-action.py integration
    ═══════════════════════════════════════════════════════════════════════════ */
-function renderReviewBoard(notes, evidence) {
+function renderThirdPartyReview(reviewData, changedFiles) {
   const allRv = getAllReviews();
   const rvCnt = Object.keys(allRv).reduce((a,k)=>a+allRv[k].length,0);
-  let items = [];
-  notes.forEach(n=>{const aid='note_'+n.id,s=allRv[aid]||[];items.push({id:aid,type:'note',label:'Day '+(n.day_number||'?')+' — '+(n.date||''),path:n.filename,subtype:'📝 Daily Note',reviews:s,rc:s.length});});
-  evidence.forEach(e=>{const aid='ev_'+e.path.replace(/[^a-zA-Z0-9]/g,'_'),s=allRv[aid]||[];items.push({id:aid,type:'evidence',label:e.path,path:e.path,subtype:'📁 Evidence',reviews:s,rc:s.length});});
+  const rtc = Object.values(reviewData).reduce((a,b)=>a+b.length,0);
+  const changedSet = new Set((changedFiles||[]).map(f=>f.replace(/\\/g,'/')));
 
-  let h = '<h2>💬 Review Board</h2><p class="subtitle">All review comments across every artifact</p>' +
+  let h = '<h2>🔍 Third Party Review</h2>' +
+    '<p class="subtitle">Files synced from <code>action/</code> → <code>review/</code> by <code>sync-from-action.py</code>. ' +
+    'Third-party reviewers can review synced artifacts and track what the action agent has changed.</p>' +
     '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">' +
-    '<span class="caption"><strong>'+rvCnt+'</strong> total reviews</span>' +
+    '<span class="caption"><strong>' + rvCnt + '</strong> total reviews across all sections</span>' +
+    '<span class="caption"><strong>' + rtc + '</strong> files synced to review/</span>' +
     '<button class="export-btn" onclick="exportReviews()">📤 Export All Reviews</button>' +
-    '<button class="export-btn" style="background:#dc3545" onclick="clearAllReviews()">🗑️ Clear Local</button></div>' +
-    '<div class="card"><h3>📋 Items Available for Review</h3>' +
-    '<div class="filter-bar"><input id="reviewSearch" placeholder="Search reviews..." onkeyup="filterReviewBoard()" style="flex:1">' +
-    '<select id="reviewTypeFilter" onchange="filterReviewBoard()"><option value="">All types</option><option value="note">📝 Notes</option><option value="evidence">📁 Evidence</option></select></div>' +
-    '<div id="reviewBoardList"></div></div>';
-  addPage('review-board', h);
-  const bl = document.getElementById('reviewBoardList');
-  if (!bl) return;
-  if (!items.length) { bl.innerHTML = '<div class="alert alert-info">No items available for review.</div>'; return; }
-  let bh = '';
-  items.forEach(item=>{
-    const badge = item.rc ? '<span style="background:#6c63ff;color:#fff;padding:1px 8px;border-radius:8px;font-size:10px">'+item.rc+' review'+(item.rc>1?'s':'')+'</span>' : '';
-    bh += '<div class="review-board-item" data-id="'+item.id+'" data-type="'+item.type+'" style="padding:8px 0;border-bottom:1px solid #f0f0f0">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center"><div><strong style="font-size:13px">'+item.subtype+': '+escHtml(item.label)+'</strong> '+badge+'<div style="font-size:11px;color:#888;font-family:monospace">'+item.path+'</div></div></div>' +
-      '<div class="review-list" id="rbl_'+item.id+'">'+renderReviewList(item.id)+'</div>' +
-      renderReviewSection(item.id, item.subtype, item.label, item.path)+'</div>';
-  });
-  bl.innerHTML = bh;
-}
+    '<button class="export-btn" style="background:#dc3545" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>';
 
-function filterReviewBoard() {
-  const q = (document.getElementById('reviewSearch').value||'').toLowerCase();
-  const type = document.getElementById('reviewTypeFilter').value;
-  document.querySelectorAll('.review-board-item').forEach(el=>{
-    el.style.display = (!type||el.dataset.type===type) && (!q||el.textContent.toLowerCase().includes(q)) ? '' : 'none';
-  });
+  if (!rtc && !changedFiles.length) {
+    h += '<div class="alert alert-info">No files synced yet. Run <code>python review/scripts/sync-from-action.py</code> to sync learner work.</div>';
+  } else {
+    // Section 1: Agent-changed files (from git diff)
+    if (changedFiles.length) {
+      h += '<div class="card"><h3>✏️ Agent-Changed Files <span class="changed-badge">' + changedFiles.length + ' changed</span></h3>' +
+        '<p class="caption">Files modified by the action agent (from git diff since last commit). These are the actual changes made, not base files.</p>' +
+        '<table class="artifact-table"><thead><tr><th>File</th><th style="width:80px">Review</th></tr></thead><tbody>';
+      changedFiles.forEach(f => {
+        const aid = 'cf_' + f.replace(/[^a-zA-Z0-9]/g, '_');
+        h += '<tr><td class="fp">' + escHtml(f) + '</td><td>' + reviewToggleInline(aid, 'Agent Change', f, f) + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+
+    // Section 2: Synced files per category
+    const catLabels = {notes:'📝 Notes',evidence:'📁 Evidence',reports:'📊 Reports'};
+    Object.keys(catLabels).forEach(cat => {
+      const items = reviewData[cat] || [];
+      if (!items.length) return;
+      h += '<div class="third-party-card"><h3>🔍 ' + catLabels[cat] + ' — Synced to review/</h3>' +
+        '<p class="caption">' + items.length + ' file(s) ready for third-party assessment</p>' +
+        '<table class="artifact-table"><thead><tr><th>Path</th><th style="width:60px">Size</th><th style="width:100px">Synced</th><th style="width:80px">Review</th></tr></thead><tbody>';
+      items.forEach(f => {
+        const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
+        const md = new Date(f.modified);
+        const aid = 'sync_' + f.path.replace(/[^a-zA-Z0-9]/g, '_');
+        h += '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td class="caption">' + md.toLocaleDateString() + '</td><td>' + reviewToggleInline(aid, 'Synced Artifact', f.path, f.path) + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    });
+
+    // Section 3: Run sync command instruction
+    h += '<div class="card"><h3>⚙️ Sync from action/ to review/</h3>' +
+      '<p class="caption">Run the sync script to copy completed learner work for third-party review:</p>' +
+      '<pre style="background:#f8f9fa;padding:10px;border-radius:6px;margin:8px 0;font-size:12px">python review/scripts/sync-from-action.py</pre>' +
+      '<p class="caption">This copies notes, evidence, and reports from <code>action/</code> to <code>review/</code> for independent assessment.</p></div>';
+  }
+
+  addPage('third-party', h);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

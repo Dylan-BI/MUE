@@ -1,7 +1,8 @@
 """
 action/dashboard/build_data.py
-Scans action/notes/, action/evidence/, and action/reports/ then
+Scans action/notes/, action/evidence/, action/reports/, and review/ then
 generates a static data.json that the HTML dashboard can consume.
+Tracks agent-changed files via git diff for "changes by the agent" display.
 
 Usage:
     python action/dashboard/build_data.py
@@ -11,6 +12,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 from collections import defaultdict
 from datetime import date, datetime
 
@@ -20,6 +22,10 @@ NOTES_DIR = os.path.join(ACTION_DIR, 'notes')
 EVIDENCE_DIR = os.path.join(ACTION_DIR, 'evidence')
 REPORTS_DIR = os.path.join(ACTION_DIR, 'reports')
 OUTPUT_PATH = os.path.join(DASHBOARD_DIR, 'data.json')
+
+# Parent repo root (for review/ dir and git root)
+REPO_ROOT = os.path.abspath(os.path.join(ACTION_DIR, '..'))
+REVIEW_DIR = os.path.join(REPO_ROOT, 'review')
 
 # ── Regex patterns ──────────────────────────────────────────────────────────
 PAT_CLASSIFICATION = re.compile(
@@ -178,6 +184,43 @@ def scan_reports():
     return files
 
 
+def get_git_changed_files():
+    """Run git diff --name-only HEAD to find files changed by the agent since last commit."""
+    try:
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', 'HEAD'],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+        )
+        if result.returncode == 0:
+            changed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            return changed
+    except Exception:
+        pass
+    return []
+
+
+def classify_changed_file(rel_path):
+    """Classify a file path into a page/section category."""
+    p = rel_path.replace('\\', '/')
+    if 'action/notes/' in p or p.startswith('notes/'):
+        return 'daily'
+    if 'action/evidence/' in p or p.startswith('evidence/'):
+        return 'evidence'
+    if 'action/reports/' in p or p.startswith('reports/'):
+        return 'reports'
+    if 'action/templates/' in p or p.startswith('templates/'):
+        return 'templates'
+    if 'action/scripts/' in p or p.startswith('scripts/'):
+        return 'scripts'
+    if 'action/dashboard/' in p or p.startswith('dashboard/'):
+        return 'dashboard'
+    if 'review/' in p:
+        return 'review'
+    if 'source/' in p:
+        return 'source'
+    return 'other'
+
+
 def compute_summary(notes):
     if not notes:
         return {
@@ -240,8 +283,12 @@ def compute_summary(notes):
             'days': [],
         }
     for n in notes:
-        with open(n['filepath' if 'filepath' in n else 'id'], 'r', encoding='utf-8') as f:
-            content = f.read()
+        fpath = n.get('filepath', n.get('id', ''))
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception:
+            content = ''
         for pt_id, pt_desc in PROOF_TASKS:
             if re.search(f'{pt_id}|{re.escape(pt_desc)}', content, re.IGNORECASE):
                 proof_tasks[pt_id]['found'] = True
@@ -307,6 +354,7 @@ def scan_all_artifacts():
                 'modified': mtime,
                 'preview': preview,
                 'is_markdown': is_markdown,
+                'page_category': classify_changed_file(rel),
             }
 
             # Categorize
@@ -326,6 +374,56 @@ def scan_all_artifacts():
                 categories['other'].append(entry)
 
     return categories
+
+
+def scan_review_dir():
+    """Scan the review/ directory for files synced from action/."""
+    synced = {'notes': [], 'evidence': [], 'reports': []}
+    if not os.path.isdir(REVIEW_DIR):
+        return synced
+    for sub in ['notes', 'evidence', 'reports']:
+        subdir = os.path.join(REVIEW_DIR, sub)
+        if not os.path.isdir(subdir):
+            continue
+        for root, dirs, fnames in os.walk(subdir):
+            for f in fnames:
+                if f == '.gitkeep':
+                    continue
+                fp = os.path.join(root, f)
+                rel = os.path.relpath(fp, REVIEW_DIR)
+                synced[sub].append({
+                    'path': rel,
+                    'filename': f,
+                    'size': os.path.getsize(fp),
+                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                })
+    return synced
+
+
+def build_page_artifacts(artifacts, changed_set):
+    """Group artifacts by dashboard page category for per-page review sections."""
+    page_map = {
+        'daily': [],
+        'evidence': [],
+        'reports': [],
+        'templates': [],
+        'scripts': [],
+        'dashboard': [],
+        'other': [],
+    }
+    for cat, items in artifacts.items():
+        for item in items:
+            pc = item.get('page_category', 'other')
+            item['action_cat'] = cat
+            item['was_changed'] = (
+                'action/' + item['path'].replace('\\', '/') in changed_set
+                or item['path'].replace('\\', '/') in changed_set
+            )
+            if pc in page_map:
+                page_map[pc].append(item)
+            else:
+                page_map['other'].append(item)
+    return page_map
 
 
 def main():
@@ -357,6 +455,19 @@ def main():
     total_artifacts = sum(len(v) for v in artifacts.values())
     print(f'  Found {total_artifacts} total artifacts across action/')
 
+    print('Tracking agent changes (git diff)...')
+    changed_files = get_git_changed_files()
+    changed_set = set(changed_files)
+    print(f'  Found {len(changed_set)} changed file(s) since last commit')
+
+    print('Building page-categorized artifacts...')
+    page_artifacts = build_page_artifacts(artifacts, changed_set)
+
+    print('Scanning review/ directory...')
+    review_data = scan_review_dir()
+    review_total = sum(len(v) for v in review_data.values())
+    print(f'  Found {review_total} synced file(s) in review/')
+
     # Strip filepath from notes for clean JSON
     notes_clean = []
     for n in notes:
@@ -368,6 +479,9 @@ def main():
         'evidence': evidence,
         'reports': reports,
         'artifacts': artifacts,
+        'page_artifacts': page_artifacts,
+        'changed_files': changed_files,
+        'review_data': review_data,
         'summary': summary,
     }
 
