@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MUE Learner Dashboard</title>
+<title>MUE Dashboard Review Tool</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,135 +11,127 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: #f0f2f5; color: #1a1a2e; display: flex; min-height: 100vh;
   }
-
-  /* ── Sidebar ── */
-  .sidebar {
-    width: 260px; background: #1a1a2e; color: #e0e0e0; display: flex;
-    flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
-  }
-  .sidebar-header { padding: 24px 20px 16px; border-bottom: 1px solid #2a2a4a; }
-  .sidebar-header h1 { font-size: 20px; font-weight: 700; color: #fff; }
-  .sidebar-header span { font-size: 13px; color: #aaa; }
-  .sidebar .nav { flex: 1; padding: 12px 0; }
-  .sidebar .nav a {
-    display: block; padding: 10px 20px; color: #b0b0c8; text-decoration: none;
-    font-size: 14px; transition: all .15s; border-left: 3px solid transparent;
-    cursor: pointer;
-  }
+  .sidebar { width: 260px; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 10; }
+  .sidebar-header { padding: 20px 20px 12px; border-bottom: 1px solid #2a2a4a; }
+  .sidebar-header h1 { font-size: 18px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px; }
+  .sidebar-header span { font-size: 12px; color: #aaa; }
+  .sidebar .nav { flex: 1; padding: 8px 0; }
+  .sidebar .nav a { display: block; padding: 8px 20px; color: #b0b0c8; text-decoration: none; font-size: 13px; transition: all .15s; border-left: 3px solid transparent; cursor: pointer; }
   .sidebar .nav a:hover { background: rgba(255,255,255,.04); color: #fff; }
   .sidebar .nav a.active { background: rgba(255,255,255,.08); color: #fff; border-left-color: #6c63ff; font-weight: 600; }
-  .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #888; }
-  .sidebar-footer .meta { margin-top: 4px; color: #666; }
-  .sidebar-footer .refresh-btn {
-    margin-top: 8px; background: #6c63ff; color: #fff; border: none;
-    padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: background .15s;
-  }
+  .sidebar .nav .nav-divider { border-top: 1px solid #2a2a4a; margin: 8px 16px; }
+  .sidebar .nav .nav-label { padding: 6px 20px 2px; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+  .sidebar-footer { padding: 12px 20px; border-top: 1px solid #2a2a4a; font-size: 11px; color: #888; }
+  .sidebar-footer .meta { margin-top: 2px; color: #666; font-size: 10px; }
+  .sidebar-footer .refresh-btn { margin-top: 6px; background: #6c63ff; color: #fff; border: none; padding: 5px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; }
   .sidebar-footer .refresh-btn:hover { background: #5a52e0; }
-
-  /* ── Main ── */
-  .main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 1200px; }
+  .main { flex: 1; padding: 28px 36px; overflow-y: auto; max-width: 1260px; }
   .page { display: none; }
   .page.active { display: block; }
-  h2 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
-  .subtitle { color: #666; font-size: 15px; margin-bottom: 28px; }
-
-  /* Cards */
-  .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 20px; }
-  .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333; }
-  .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .metric { background: #fff; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); text-align: center; }
-  .metric .value { font-size: 32px; font-weight: 700; color: #1a1a2e; }
-  .metric .label { font-size: 13px; color: #888; margin-top: 2px; }
-  .metric .sublabel { font-size: 11px; color: #aaa; margin-top: 0; }
-
-  /* Day grid */
-  .day-grid { display: grid; grid-template-columns: repeat(28, 1fr); gap: 3px; margin-bottom: 8px; }
-  .day-cell { border-radius: 4px; text-align: center; padding: 6px 0; font-size: 11px; font-weight: 600; transition: transform .1s; }
+  h2 { font-size: 24px; font-weight: 700; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+  .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+  .update-banner { display: none; background: #6c63ff; color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 16px; font-size: 13px; align-items: center; justify-content: space-between; }
+  .update-banner.show { display: flex; }
+  .update-banner button { background: #fff; color: #6c63ff; border: none; padding: 4px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 16px; }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: #333; }
+  .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .metric { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.06); text-align: center; }
+  .metric .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+  .metric .label { font-size: 12px; color: #888; margin-top: 2px; }
+  .metric .sublabel { font-size: 11px; color: #aaa; }
+  .day-grid { display: grid; grid-template-columns: repeat(28, 1fr); gap: 3px; margin-bottom: 6px; }
+  .day-cell { border-radius: 4px; text-align: center; padding: 5px 0; font-size: 10px; font-weight: 600; transition: transform .1s; cursor: default; }
   .day-cell.done { background: #198754; color: #fff; }
   .day-cell.pending { background: #e9ecef; color: #888; }
   .day-cell:hover { transform: scale(1.2); }
-
-  /* Bar chart container */
-  .chart-container { position: relative; height: 220px; width: 100%; margin-bottom: 12px; }
-
-  /* Timeline */
-  .timeline-item { border-left: 3px solid #6c63ff; padding: 12px 0 12px 20px; margin-bottom: 8px; position: relative; }
-  .timeline-item::before { content: ''; position: absolute; left: -7px; top: 18px; width: 11px; height: 11px; background: #6c63ff; border-radius: 50%; }
-  .timeline-item .day-title { font-weight: 600; font-size: 15px; cursor: pointer; color: #1a1a2e; }
+  .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 10px; }
+  .timeline-item { border-left: 3px solid #6c63ff; padding: 10px 0 10px 18px; margin-bottom: 6px; position: relative; }
+  .timeline-item::before { content: ''; position: absolute; left: -7px; top: 16px; width: 11px; height: 11px; background: #6c63ff; border-radius: 50%; }
+  .timeline-item .day-title { font-weight: 600; font-size: 14px; cursor: pointer; color: #1a1a2e; }
   .timeline-item .day-title:hover { color: #6c63ff; }
-  .timeline-item .day-meta { font-size: 13px; color: #888; margin: 2px 0 6px; }
-  .timeline-item .day-details { display: none; margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 8px; font-size: 14px; line-height: 1.5; }
+  .timeline-item .day-meta { font-size: 12px; color: #888; margin: 2px 0 6px; }
+  .timeline-item .day-details { display: none; margin-top: 6px; padding: 10px 14px; background: #f8f9fa; border-radius: 8px; font-size: 13px; line-height: 1.5; }
   .timeline-item .day-details.open { display: block; }
-  .timeline-item .day-details strong { color: #333; }
-
-  /* Score grid */
-  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; }
-  .score-card { background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); text-align: center; }
-  .score-card .area-label { font-size: 12px; color: #666; margin-bottom: 6px; }
-  .score-card .score-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; }
+  .score-chip { display: inline-block; width: 26px; height: 26px; border-radius: 6px; text-align: center; line-height: 26px; font-size: 10px; font-weight: 700; color: #fff; margin: 1px; }
   .score-pass { background: #198754; } .score-partial { background: #ffc107; color: #333; } .score-fail { background: #dc3545; }
-  .score-chip { display: inline-block; width: 28px; height: 28px; border-radius: 6px; text-align: center; line-height: 28px; font-size: 11px; font-weight: 700; color: #fff; margin: 1px; }
-
-  /* Proof tasks */
-  .pt-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+  .pt-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
   .pt-row:last-child { border-bottom: none; }
-  .pt-icon { font-size: 20px; width: 28px; text-align: center; }
+  .pt-icon { font-size: 18px; width: 24px; text-align: center; }
   .pt-info { flex: 1; }
-  .pt-info .pt-title { font-weight: 600; font-size: 14px; }
-  .pt-info .pt-desc { font-size: 13px; color: #888; }
-  .pt-info .pt-days { font-size: 12px; color: #6c63ff; }
-
-  /* Evidence list */
-  .ev-group { margin-bottom: 16px; }
-  .ev-group h4 { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
-  .ev-item { padding: 6px 0; font-size: 13px; color: #333; font-family: 'SF Mono', 'Consolas', monospace; }
+  .pt-info .pt-title { font-weight: 600; font-size: 13px; }
+  .pt-info .pt-desc { font-size: 12px; color: #888; }
+  .pt-info .pt-days { font-size: 11px; color: #6c63ff; }
+  .ev-group { margin-bottom: 14px; }
+  .ev-group h4 { font-size: 13px; font-weight: 600; color: #555; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+  .ev-item { padding: 4px 0; font-size: 12px; color: #333; font-family: 'SF Mono', 'Consolas', monospace; }
   .ev-item .ev-meta { font-size: 11px; color: #999; }
-
-  /* Classification trend */
-  .cls-bar { height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 4px; transition: transform .1s; }
-  .cls-bar:hover { transform: scaleY(1.05); }
-
-  /* Gate list */
-  .gate-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+  .cls-bar { height: 34px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; margin-bottom: 4px; }
+  .gate-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
   .gate-item:last-child { border-bottom: none; }
-  .gate-icon { font-size: 18px; width: 24px; text-align: center; }
-  .gate-label { flex: 1; font-size: 14px; }
-
-  /* Track legend */
-  .track-legend { display: flex; gap: 20px; flex-wrap: wrap; margin: 8px 0 16px; }
-  .track-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-  .track-dot { width: 12px; height: 12px; border-radius: 3px; }
-
-  /* Progress bar */
-  .prog-bar { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 4px 0 8px; }
+  .gate-icon { font-size: 16px; width: 22px; text-align: center; }
+  .gate-label { flex: 1; font-size: 13px; }
+  .track-legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 6px 0 12px; }
+  .track-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+  .track-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .prog-bar { height: 6px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 4px 0 6px; }
   .prog-fill { height: 100%; border-radius: 4px; transition: width .5s; }
-
-  /* Utility */
   .flex-between { display: flex; justify-content: space-between; align-items: center; }
-  .gap-8 { gap: 8px; }
-  .mt-8 { margin-top: 8px; }
-  .mb-8 { margin-bottom: 8px; }
-  .text-center { text-align: center; }
-  .caption { color: #888; font-size: 13px; }
-
-  /* Alert */
-  .alert { padding: 16px 20px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; }
+  .caption { color: #888; font-size: 12px; }
+  .alert { padding: 14px 18px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; }
   .alert-info { background: #e8f4fd; color: #0c5460; border: 1px solid #bee5eb; }
   .alert-success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
   .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-
-  /* Link icon */
-  .link-icon { color: #6c63ff; text-decoration: none; }
+  .link-icon { color: #6c63ff; text-decoration: none; font-size: 13px; }
   .link-icon:hover { text-decoration: underline; }
-
-  /* Responsive */
+  .artifact-cat { margin-bottom: 16px; }
+  .artifact-cat h3 { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #6c63ff; display: flex; align-items: center; gap: 6px; }
+  .artifact-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .artifact-table th { text-align: left; padding: 6px 8px; background: #f8f9fa; color: #555; font-weight: 600; font-size: 11px; }
+  .artifact-table td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; }
+  .artifact-table tr:hover { background: #f8f9fa; }
+  .artifact-table .fp { font-family: 'SF Mono', 'Consolas', monospace; font-size: 11px; color: #333; }
+  .review-section { margin-top: 10px; border-top: 1px dashed #ddd; padding-top: 10px; }
+  .review-toggle { font-size: 12px; color: #6c63ff; cursor: pointer; font-weight: 600; }
+  .review-toggle:hover { text-decoration: underline; }
+  .review-form { display: none; margin-top: 8px; background: #f8f9fa; border-radius: 8px; padding: 12px; }
+  .review-form.open { display: block; }
+  .review-form label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 2px; }
+  .review-form input, .review-form textarea, .review-form select { width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; margin-bottom: 8px; font-family: inherit; }
+  .review-form textarea { min-height: 60px; resize: vertical; }
+  .review-form .rating-group { display: flex; gap: 8px; margin-bottom: 8px; }
+  .review-form .rating-btn { flex: 1; padding: 5px; border: 1px solid #ddd; border-radius: 6px; text-align: center; cursor: pointer; font-size: 12px; background: #fff; transition: all .15s; }
+  .review-form .rating-btn:hover { border-color: #6c63ff; }
+  .review-form .rating-btn.selected { border-color: #6c63ff; background: #eef0ff; font-weight: 600; }
+  .review-form .submit-btn { background: #6c63ff; color: #fff; border: none; padding: 7px 18px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
+  .review-form .submit-btn:hover { background: #5a52e0; }
+  .review-form .mailto-note { font-size: 11px; color: #888; margin-top: 4px; }
+  .review-list { margin-top: 6px; }
+  .review-item { padding: 6px 8px; margin-bottom: 4px; background: #fff; border-radius: 6px; border: 1px solid #eee; font-size: 12px; }
+  .review-item .r-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .review-item .r-name { font-weight: 600; color: #333; }
+  .review-item .r-rating { font-size: 11px; padding: 1px 8px; border-radius: 8px; color: #fff; }
+  .review-item .r-date { font-size: 10px; color: #aaa; }
+  .review-item .r-text { color: #555; font-size: 12px; }
+  .export-btn { background: #6c63ff; color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; margin-bottom: 16px; }
+  .export-btn:hover { background: #5a52e0; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-bar input, .filter-bar select { padding: 6px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; }
+  .filter-bar input { flex: 1; min-width: 150px; }
+  .preview-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; justify-content: center; align-items: center; }
+  .preview-overlay.open { display: flex; }
+  .preview-box { background: #fff; border-radius: 12px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 24px; position: relative; }
+  .preview-box .close-btn { position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer; color: #888; background: none; border: none; }
+  .preview-box .close-btn:hover { color: #333; }
+  .preview-box pre { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
   @media (max-width: 768px) {
     body { flex-direction: column; }
-    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; }
-    .sidebar .nav { display: flex; flex-wrap: wrap; padding: 8px; }
-    .sidebar .nav a { padding: 8px 12px; font-size: 13px; border-left: none; border-bottom: 2px solid transparent; }
+    .sidebar { width: 100%; height: auto; position: static; max-height: 260px; }
+    .sidebar .nav { display: flex; flex-wrap: wrap; gap: 0; padding: 4px; }
+    .sidebar .nav a { padding: 6px 10px; font-size: 12px; border-left: none; border-bottom: 2px solid transparent; }
     .sidebar .nav a.active { border-left: none; border-bottom-color: #6c63ff; }
-    .main { padding: 20px; }
+    .sidebar .nav .nav-divider, .sidebar .nav .nav-label { display: none; }
+    .main { padding: 16px; }
     .day-grid { grid-template-columns: repeat(14, 1fr); }
     .metric-row { grid-template-columns: repeat(2, 1fr); }
   }
@@ -147,11 +139,15 @@
 </head>
 <body>
 
-<!-- ═══ SIDEBAR ═══ -->
+<div class="update-banner" id="updateBanner">
+  <span>📢 New data available in the action folder.</span>
+  <button onclick="location.reload()">Refresh Now</button>
+</div>
+
 <div class="sidebar">
   <div class="sidebar-header">
-    <h1>📊 MUE Dashboard</h1>
-    <span>Multifaceted User Education</span>
+    <h1>📊 MUE Review</h1>
+    <span>Dashboard &amp; Artifact Review Tool</span>
   </div>
   <div class="nav" id="nav">
     <a class="active" data-page="overview"        onclick="showPage('overview')">📋 Overview</a>
@@ -161,17 +157,26 @@
     <a data-page="evidence"        onclick="showPage('evidence')">📁 Evidence</a>
     <a data-page="classification"  onclick="showPage('classification')">📈 Classification</a>
     <a data-page="codex-gate"      onclick="showPage('codex-gate')">🚪 Codex Gate</a>
+    <div class="nav-divider"></div>
+    <div class="nav-label">Review Tools</div>
+    <a data-page="artifacts"       onclick="showPage('artifacts')">📂 All Artifacts</a>
+    <a data-page="review-board"    onclick="showPage('review-board')">💬 Review Board</a>
   </div>
   <div class="sidebar-footer">
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
-    <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+    <div class="meta"><span id="autoRefreshStatus">⏱ Auto-refresh inactive</span></div>
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
   </div>
 </div>
 
-<!-- ═══ MAIN ═══ -->
-<div class="main" id="main">
-  <!-- Each page is toggled by showPage() -->
+<div class="main" id="main"></div>
+
+<div class="preview-overlay" id="previewOverlay" onclick="if(event.target===this)closePreview()">
+  <div class="preview-box">
+    <button class="close-btn" onclick="closePreview()">&times;</button>
+    <div id="previewContent"></div>
+  </div>
 </div>
 
 <script>
@@ -179,30 +184,31 @@
    STATE
    ═══════════════════════════════════════════════════════════════════════════ */
 let DATA = null;
-const CLS_COLORS = {
-  'foundational': '#6c757d',
-  'developing': '#ffc107',
-  'operational': '#0d6efd',
-  'ready for codex acceleration': '#198754',
-};
+let LAST_GENERATED = null;
+const REVIEW_EMAIL = 'dylan@bicyclebi.com';
+const CLS_COLORS = { 'foundational': '#6c757d', 'developing': '#ffc107', 'operational': '#0d6efd', 'ready for codex acceleration': '#198754' };
 const SCORE_COLORS = { 'Pass': '#198754', 'Partial': '#ffc107', 'Fail': '#dc3545' };
-const TRACK_COLORS = {
-  'Pyramid operations': '#0d6efd',
-  'Codex productivity': '#6f42c1',
-  'BI judgment': '#fd7e14',
-};
+const TRACK_COLORS = { 'Pyramid operations': '#0d6efd', 'Codex productivity': '#6f42c1', 'BI judgment': '#fd7e14' };
 const CLS_ORDER = ['Foundational','Developing','Operational','Ready for Codex Acceleration'];
+const REVIEWS_KEY = 'mue_reviews';
+
+function getReviews() { try { return JSON.parse(localStorage.getItem(REVIEWS_KEY)) || {}; } catch { return {}; } }
+function saveReview(artifactPath, review) {
+  const all = getReviews();
+  if (!all[artifactPath]) all[artifactPath] = [];
+  review.timestamp = new Date().toISOString();
+  review.id = Date.now() + Math.random().toString(36).slice(2,6);
+  all[artifactPath].push(review);
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  return all;
+}
+function getAllReviews() { return getReviews(); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LOAD DATA
+   LOAD DATA & AUTO-REFRESH (30 min polling)
    ═══════════════════════════════════════════════════════════════════════════ */
 async function loadData() {
-  const sidebarInfo = document.getElementById('sidebarInfo');
-  const sidebarMeta = document.getElementById('sidebarMeta');
-  sidebarInfo.textContent = 'Loading…';
-
-  // Try to fetch data.json — works when served via GitHub Pages or file://
-  // Falls back to GitHub raw if not found (for repo browsing)
+  document.getElementById('sidebarInfo').textContent = 'Loading…';
   let url = 'data.json';
   try {
     const resp = await fetch(url + '?t=' + Date.now());
@@ -210,376 +216,350 @@ async function loadData() {
     DATA = await resp.json();
   } catch (e1) {
     try {
-      // Fallback: GitHub raw content
-      const fallback = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json';
-      const resp2 = await fetch(fallback + '?t=' + Date.now());
+      const resp2 = await fetch('https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json?t=' + Date.now());
       if (!resp2.ok) throw new Error('GitHub raw failed');
       DATA = await resp2.json();
     } catch (e2) {
-      sidebarInfo.innerHTML = '❌ Could not load data. Run <code>python action/dashboard/build_data.py</code> first.';
-      sidebarMeta.textContent = '';
-      document.getElementById('main').innerHTML = `
-        <div class="alert alert-warning">
-          <strong>No data found.</strong> The dashboard requires a <code>data.json</code> file.
-          Generate it by running:<br><br>
-          <code>python action/dashboard/build_data.py</code>
-        </div>`;
+      document.getElementById('sidebarInfo').innerHTML = '❌ No data. Run build_data.py.';
+      document.getElementById('main').innerHTML = '<div class="alert alert-warning"><strong>No data found.</strong> Run <code>python action/dashboard/build_data.py</code>.</div>';
       return;
     }
   }
-
-  // Update sidebar
-  const s = DATA.summary;
-  sidebarInfo.innerHTML = `
-    <strong>${s.total_days}</strong> / 28 days (${Math.min(Math.round(s.total_days/28*100),100)}%)
-    <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(s.total_days/28*100,100)}%;background:#6c63ff"></div></div>
-    Classification: <strong>${s.latest_classification}</strong><br>
-    Evidence: ${s.evidence_count} files
-  `;
-  sidebarMeta.textContent = `Refreshed: ${new Date().toLocaleTimeString()}`;
-
+  LAST_GENERATED = DATA.generated;
+  updateSidebar();
   renderAll();
+  startAutoRefresh();
+}
+
+function updateSidebar() {
+  const s = DATA.summary;
+  const info = document.getElementById('sidebarInfo');
+  info.innerHTML = '<strong>' + s.total_days + '</strong> / 28 days (' + Math.min(Math.round(s.total_days/28*100),100) + '%)' +
+    '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(s.total_days/28*100,100) + '%;background:#6c63ff"></div></div>' +
+    'Classification: <strong>' + s.latest_classification + '</strong><br>Evidence: ' + s.evidence_count + ' files';
+  document.getElementById('sidebarMeta').textContent = 'Data: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
+}
+
+let refreshInterval = null;
+function startAutoRefresh() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-refresh active (30 min)';
+  refreshInterval = setInterval(async () => {
+    try {
+      const resp = await fetch('data.json?t=' + Date.now());
+      if (!resp.ok) return;
+      const fresh = await resp.json();
+      if (fresh.generated && fresh.generated !== LAST_GENERATED) {
+        document.getElementById('updateBanner').classList.add('show');
+        LAST_GENERATED = fresh.generated;
+      }
+    } catch (e) {}
+  }, 30 * 60 * 1000);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PAGE NAVIGATION
+   NAVIGATION
    ═══════════════════════════════════════════════════════════════════════════ */
 function showPage(name) {
   document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
-  document.querySelector(`.nav a[data-page="${name}"]`).classList.add('active');
+  const link = document.querySelector('.nav a[data-page="' + name + '"]');
+  if (link) link.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('page-' + name);
   if (el) el.classList.add('active');
 }
-
 function addPage(id, html) {
-  const main = document.getElementById('main');
   const div = document.createElement('div');
   div.id = 'page-' + id;
   div.className = 'page' + (id === 'overview' ? ' active' : '');
   div.innerHTML = html;
-  main.appendChild(div);
+  document.getElementById('main').appendChild(div);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RENDER ALL PAGES
    ═══════════════════════════════════════════════════════════════════════════ */
 function renderAll() {
-  const main = document.getElementById('main');
-  main.innerHTML = '';
+  document.getElementById('main').innerHTML = '';
   const s = DATA.summary;
   const notes = DATA.notes || [];
 
-  // ── OVERVIEW ──
-  addPage('overview', `
-    <h2>📋 Overview</h2>
-    <p class="subtitle">High-level summary of your MUE training progress</p>
-
-    <div class="metric-row">
-      <div class="metric"><div class="value">${s.total_days}</div><div class="label">Days Completed</div><div class="sublabel">${28-s.total_days} remaining</div></div>
-      <div class="metric"><div class="value">${s.unique_weeks}</div><div class="label">Weeks Active</div></div>
-      <div class="metric"><div class="value">${s.evidence_count}</div><div class="label">Evidence Artifacts</div></div>
-      <div class="metric"><div class="value">${s.latest_classification}</div><div class="label">Classification</div></div>
-    </div>
-
-    <div class="card">
-      <h3>📆 Program Progress</h3>
-      <div class="day-grid" id="dayGrid"></div>
-      <p class="caption">Green = completed &nbsp;|&nbsp; Grey = not yet done</p>
-    </div>
-
-    <div class="card">
-      <h3>🎯 Track Distribution</h3>
-      <div class="chart-container"><canvas id="chartTracks"></canvas></div>
-      <div class="track-legend" id="trackLegend"></div>
-    </div>
-
-    <div class="card">
-      <h3>🔗 Quick Links</h3>
-      <p><a class="link-icon" href="../source/4-Week%20Onboarding%20Map.md" target="_blank">📖 4-Week Onboarding Map</a></p>
-    </div>
-  `);
-
-  // Day grid
-  const dayNums = notes.filter(n => n.day_number).map(n => n.day_number);
+  // ── PAGE 1: OVERVIEW ──
+  addPage('overview', '<h2>📋 Overview</h2><p class="subtitle">High-level summary of MUE training progress</p>' +
+    '<div class="metric-row">' +
+    '<div class="metric"><div class="value">' + s.total_days + '</div><div class="label">Days Completed</div><div class="sublabel">' + (28-s.total_days) + ' remaining</div></div>' +
+    '<div class="metric"><div class="value">' + s.unique_weeks + '</div><div class="label">Weeks Active</div></div>' +
+    '<div class="metric"><div class="value">' + s.evidence_count + '</div><div class="label">Evidence Artifacts</div></div>' +
+    '<div class="metric"><div class="value">' + s.latest_classification + '</div><div class="label">Classification</div></div></div>' +
+    '<div class="card"><h3>📆 Program Progress</h3><div class="day-grid" id="dayGrid"></div><p class="caption">Green = completed | Grey = not yet done</p></div>' +
+    '<div class="card"><h3>🎯 Track Distribution</h3><div class="chart-container"><canvas id="chartTracks"></canvas></div><div class="track-legend" id="trackLegend"></div></div>' +
+    '<div class="card"><h3>🔗 Quick Links</h3><p><a class="link-icon" href="../source/4-Week%20Onboarding%20Map.md" target="_blank">📖 4-Week Onboarding Map</a></p></div>');
+  const dayNums = notes.filter(n=>n.day_number).map(n=>n.day_number);
   const grid = document.getElementById('dayGrid');
-  for (let d = 1; d <= 28; d++) {
-    const done = dayNums.includes(d);
-    const cell = document.createElement('div');
-    cell.className = 'day-cell ' + (done ? 'done' : 'pending');
-    cell.textContent = d;
-    grid.appendChild(cell);
+  for (let d=1; d<=28; d++) { const c=document.createElement('div'); c.className='day-cell '+(dayNums.includes(d)?'done':'pending'); c.textContent=d; grid.appendChild(c); }
+  const tks = s.completed_tracks||{}, tkL=Object.keys(tks), tkV=Object.values(tks);
+  if (tkL.length) {
+    new Chart(document.getElementById('chartTracks'),{type:'bar',data:{labels:tkL,datasets:[{data:tkV,backgroundColor:tkL.map(t=>TRACK_COLORS[t]||'#888'),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{grid:{display:false}}}}});
+    const leg=document.getElementById('trackLegend'), tot=tkV.reduce((a,b)=>a+b,0);
+    tkL.forEach((t,i)=>{const p=document.createElement('div');p.className='track-legend-item';p.innerHTML='<span class="track-dot" style="background:'+(TRACK_COLORS[t]||'#888')+'"></span> '+t+': '+tkV[i]+' days ('+Math.round(tkV[i]/tot*100)+'%)';leg.appendChild(p);});
   }
 
-  // Track chart
-  const tracks = s.completed_tracks || {};
-  const trackLabels = Object.keys(tracks);
-  const trackValues = Object.values(tracks);
-  if (trackLabels.length) {
-    new Chart(document.getElementById('chartTracks'), {
-      type: 'bar',
-      data: {
-        labels: trackLabels,
-        datasets: [{
-          data: trackValues,
-          backgroundColor: trackLabels.map(t => TRACK_COLORS[t] || '#888'),
-          borderRadius: 6,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, ticks: { stepSize: 1 } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-    const legend = document.getElementById('trackLegend');
-    const total = trackValues.reduce((a,b) => a+b, 0);
-    trackLabels.forEach((t, i) => {
-      const pct = Math.round(trackValues[i] / total * 100);
-      const item = document.createElement('div');
-      item.className = 'track-legend-item';
-      item.innerHTML = `<span class="track-dot" style="background:${TRACK_COLORS[t] || '#888'}"></span> ${t}: ${trackValues[i]} days (${pct}%)`;
-      legend.appendChild(item);
+  // ── PAGE 2: DAILY PROGRESS (with review) ──
+  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day training breakdown — add review comments on each day</p>';
+  if (!notes.length) dh += '<div class="alert alert-info">No notes found yet.</div>';
+  else [...notes].sort((a,b)=>(a.day_number||0)-(b.day_number||0)).forEach(n => {
+    const se=Object.entries(n.scorecard||{}), sh=se.length?se.map(([k,v])=>'<span class="score-chip score-'+v.toLowerCase()+'">'+v[0]+'</span> '+k.replace(/_/g,' ')).join(' | '):'';
+    dh += '<div class="timeline-item"><div class="day-title" onclick="this.nextElementSibling.nextElementSibling.classList.toggle(\'open\')">Day '+(n.day_number||'?')+' — '+(n.date||'')+' · '+(n.classification||'—')+'</div>' +
+      '<div class="day-meta">Track: '+(n.primary_track||'—')+' | Evidence: '+(n.required_artifact||'—')+'</div>' +
+      '<div class="day-details"><strong>What I learned:</strong> '+escHtml(n.what_learned||'—')+'<br><strong>Next step:</strong> '+escHtml(n.next_step||'—')+'<br>'+(sh?'<br><strong>Scorecard:</strong><br>'+sh:'') +
+      renderReviewSection('note_'+n.id,'Daily Note','Day '+(n.day_number||'?')+' ('+(n.date||'')+')',n.filename)+'</div></div>';
+  });
+  addPage('daily', dh);
+
+  // ── PAGE 3: SCORECARD ──
+  const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
+  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Competency scores across all 7 areas</p>';
+  if (!trK.length) sh2 += '<div class="alert alert-info">No scorecard data yet.</div>';
+  else {
+    trK.forEach(a=>{const e=tr[a]||[];sh2+='<div class="card"><h3>'+a.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+'</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';e.forEach(v=>{sh2+='<span class="score-chip" style="background:'+(SCORE_COLORS[v.score]||'#888')+'">'+v.score[0]+'</span>';});sh2+='</div><p class="caption">';const vl=e.map(v=>({'Pass':2,'Partial':1,'Fail':0}[v.score]||0));if(vl.length>=2){if(vl[vl.length-1]>vl[0])sh2+='📈 Improving';else if(vl[vl.length-1]<vl[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}sh2+='</p></div>';});
+    const fa=trK.filter(k=>{const e=tr[k];return e&&e.length&&e[e.length-1].score==='Fail';});
+    if (fa.length>=2) sh2+='<div class="alert alert-warning">⚠️ '+fa.length+' areas scored <strong>Fail</strong>. Repeat this layer.</div>';
+  }
+  addPage('scorecard', sh2);
+
+  // ── PAGE 4: PROOF TASKS ──
+  const pt = s.proof_tasks||{}, ptK=Object.keys(pt);
+  let pth = '<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks required before passing the Codex Gate</p>';
+  if (!ptK.length) pth += '<div class="alert alert-info">No proof task data yet.</div>';
+  else {
+    let cmp=0;
+    ptK.forEach(id=>{const p=pt[id], d=p.found;if(d)cmp++;pth+='<div class="pt-row"><div class="pt-icon">'+(d?'✅':'⬜')+'</div><div class="pt-info"><div class="pt-title">'+id+': '+escHtml(p.description)+'</div><div class="pt-days">'+(p.days&&p.days.length?'(found on days '+p.days.join(', ')+')':'')+'</div></div></div>';});
+    pth += '<div class="card" style="margin-top:12px"><div class="flex-between"><strong>Progress: '+cmp+'/'+ptK.length+'</strong><span>'+Math.round(cmp/ptK.length*100)+'%</span></div><div class="prog-bar"><div class="prog-fill" style="width:'+cmp/ptK.length*100+'%;background:#198754"></div></div>'+(cmp===ptK.length?'<div class="alert alert-success" style="margin-top:6px">🎉 All proof tasks completed!</div>':'<p class="caption">'+(ptK.length-cmp)+' remaining.</p>')+'</div>';
+  }
+  addPage('proof-tasks', pth);
+
+  // ── PAGE 5: EVIDENCE (with review) ──
+  const ev = DATA.evidence||[];
+  let ehtml = '<h2>📁 Evidence Gallery</h2><p class="subtitle">Browse evidence artifacts — add review comments on each file</p>';
+  if (!ev.length) ehtml += '<div class="alert alert-info">No evidence files yet.</div>';
+  else {
+    ehtml += '<p class="caption"><strong>'+ev.length+'</strong> artifacts in action/evidence/</p>';
+    const grp={};
+    ev.forEach(e=>{const d=new Date(e.modified),s=new Date(d.getFullYear(),0,1),df=(d-s+(s.getTimezoneOffset()-d.getTimezoneOffset())*60000)/86400000,wk=d.getFullYear()+'-W'+String(Math.ceil((df+s.getDay()+1)/7)).padStart(2,'0');if(!grp[wk])grp[wk]=[];grp[wk].push(e);});
+    Object.keys(grp).sort().reverse().forEach(wk=>{
+      ehtml+='<div class="ev-group"><h4>'+wk+' ('+grp[wk].length+')</h4>';
+      grp[wk].forEach(e=>{const d=new Date(e.modified),sz=(e.size/1024).toFixed(1),aid='ev_'+e.path.replace(/[^a-zA-Z0-9]/g,'_');ehtml+='<div class="ev-item">📄 <code>'+escHtml(e.path)+'</code> <span class="ev-meta">('+sz+' KB, '+d.toLocaleDateString()+')</span>'+renderReviewSection(aid,'Evidence',e.path,e.path)+'</div>';});
+      ehtml+='</div>';
     });
   }
+  addPage('evidence', ehtml);
 
-  // ── DAILY PROGRESS ──
-  let dailyHtml = `<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day breakdown of your training journey</p>`;
-  if (!notes.length) {
-    dailyHtml += `<div class="alert alert-info">No notes found yet. Create your first daily note!</div>`;
-  } else {
-    const sorted = [...notes].sort((a,b) => (a.day_number||0) - (b.day_number||0));
-    sorted.forEach(n => {
-      const day = n.day_number || '?';
-      const date = n.date || '—';
-      const cls = n.classification || '—';
-      const track = n.primary_track || '—';
-      const artifact = n.required_artifact || '—';
-      const scoreEntries = Object.entries(n.scorecard || {});
-      const scoresHtml = scoreEntries.length
-        ? scoreEntries.map(([k,v]) => `<span class="score-chip score-${v.toLowerCase()}">${v[0]}</span> ${k.replace(/_/g,' ')}`).join(' &nbsp;|&nbsp; ')
-        : '';
-
-      dailyHtml += `
-        <div class="timeline-item">
-          <div class="day-title" onclick="this.nextElementSibling.nextElementSibling.classList.toggle('open')">
-            Day ${day} — ${date} &middot; ${cls}
-          </div>
-          <div class="day-meta">Track: ${track} &middot; Evidence: ${artifact}</div>
-          <div class="day-details">
-            <strong>What I learned:</strong> ${escHtml(n.what_learned || '—')}<br>
-            <strong>Next step:</strong> ${escHtml(n.next_step || '—')}<br>
-            ${scoresHtml ? '<br><strong>Scorecard:</strong><br>' + scoresHtml : ''}
-          </div>
-        </div>`;
-    });
+  // ── PAGE 6: CLASSIFICATION ──
+  const cs = s.classification_sequence||[];
+  let chtml = '<h2>📈 Readiness Classification Trend</h2><p class="subtitle">How readiness level evolved over time</p>';
+  if (!cs.length) chtml += '<div class="alert alert-info">No classification data yet.</div>';
+  else {
+    chtml += '<div class="card"><div class="chart-container"><canvas id="chartClassification"></canvas></div></div><p class="caption">1=Foundational → 4=Ready for Codex Acceleration</p>';
+    cs.forEach(e=>{const cl=CLS_COLORS[e.classification.toLowerCase()]||'#888',lv=CLS_ORDER.indexOf(e.classification)+1;chtml+='<div class="cls-bar" style="background:'+cl+';width:'+lv/4*100+'%;min-width:80px">Day '+e.day+' ('+(e.date||'')+') — '+e.classification+'</div>';});
+    setTimeout(()=>{const c=document.getElementById('chartClassification');if(!c)return;new Chart(c,{type:'line',data:{labels:cs.map(e=>'Day '+e.day),datasets:[{label:'Level',data:cs.map(e=>CLS_ORDER.indexOf(e.classification)+1),borderColor:'#6c63ff',backgroundColor:'rgba(108,99,255,.1)',fill:true,tension:.3,pointBackgroundColor:cs.map(e=>CLS_COLORS[e.classification.toLowerCase()]||'#888'),pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:.5,max:4.5,ticks:{stepSize:1,callback:v=>CLS_ORDER[v-1]||''}},x:{grid:{display:false}}}}});},50);
   }
-  addPage('daily', dailyHtml);
+  addPage('classification', chtml);
 
-  // ── SCORECARD ──
-  const trend = s.scorecard_trend || {};
-  const trendKeys = Object.keys(trend);
-  let scoreHtml = `<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Weekly scores across all 7 competency areas</p>`;
-  if (!trendKeys.length) {
-    scoreHtml += `<div class="alert alert-info">No scorecard data yet. Complete your first week to see scores.</div>`;
-  } else {
-    trendKeys.forEach(area => {
-      const entries = trend[area] || [];
-      const label = area.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      scoreHtml += `<div class="card"><h3>${label}</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">`;
-      entries.forEach(e => {
-        const color = SCORE_COLORS[e.score] || '#888';
-        scoreHtml += `<span class="score-chip" style="background:${color}">${e.score[0]}</span>`;
-      });
-      scoreHtml += `</div><p class="caption">`;
-
-      // Trend direction
-      const vals = entries.map(e => ({'Pass':2,'Partial':1,'Fail':0}[e.score] || 0));
-      if (vals.length >= 2) {
-        if (vals[vals.length-1] > vals[0]) scoreHtml += '📈 Improving';
-        else if (vals[vals.length-1] < vals[0]) scoreHtml += '📉 Declining — needs attention';
-        else scoreHtml += '➡️ Steady';
-      }
-      scoreHtml += '</p></div>';
-    });
-
-    // Fail warning
-    const failAreas = trendKeys.filter(k => {
-      const e = trend[k];
-      return e && e.length && e[e.length-1].score === 'Fail';
-    });
-    if (failAreas.length >= 2) {
-      scoreHtml += `<div class="alert alert-warning">⚠️ ${failAreas.length} areas scored <strong>Fail</strong> in the latest week. Repeat this layer before expanding scope.</div>`;
-    }
+  // ── PAGE 7: CODEX GATE ──
+  const gs = s.codex_gate_status||{}, gK = Object.keys(gs);
+  let ghtml = '<h2>🚪 Codex Gate Status</h2><p class="subtitle">Final checkpoint — all 6 gates must be Yes</p>';
+  if (!gK.length) ghtml += '<div class="alert alert-info">No Codex Gate data yet. Checked on Day 28.</div>';
+  else {
+    const gl={'one_end_to_end_workflow_completed':'End-to-end workflow completed','business_logic_ownership_understood':'Business-logic ownership understood','validation_evidence_produced_without_help':'Validation evidence without help','proof_tasks_completed':'All 6 proof tasks completed','one_clean_reviewable_change_slice':'Clean change slice delivered','one_reusable_team_asset_created':'Reusable asset created'};
+    let ay=true;
+    gK.forEach(k=>{const lb=gl[k]||k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),st=gs[k]||'—';if(st!=='Yes')ay=false;ghtml+='<div class="gate-item"><div class="gate-icon">'+(st==='Yes'?'✅':(st==='No'?'❌':'⬜'))+'</div><div class="gate-label">'+lb+'</div><strong>'+st+'</strong></div>';});
+    ghtml += '<div class="card" style="margin-top:12px">'+(ay?'<div class="alert alert-success" style="margin-bottom:0">🎉 <strong>Codex Gate: PASSED</strong></div>':'<div class="alert alert-warning" style="margin-bottom:0"><strong>Codex Gate: NOT YET</strong><br>Missing: '+gK.filter(k=>gs[k]!=='Yes').map(k=>gl[k]||k).join(', ')+'</div>')+'</div>';
   }
-  addPage('scorecard', scoreHtml);
+  addPage('codex-gate', ghtml);
 
-  // ── PROOF TASKS ──
-  const pts = s.proof_tasks || {};
-  const ptIds = Object.keys(pts);
-  let ptHtml = `<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks required before passing the Codex Gate</p>`;
-  if (!ptIds.length) {
-    ptHtml += `<div class="alert alert-info">No proof task data yet.</div>`;
-  } else {
-    let completed = 0;
-    ptIds.forEach(id => {
-      const pt = pts[id];
-      const done = pt.found;
-      if (done) completed++;
-      const daysStr = pt.days && pt.days.length ? `(found on days ${pt.days.join(', ')})` : '';
-      ptHtml += `
-        <div class="pt-row">
-          <div class="pt-icon">${done ? '✅' : '⬜'}</div>
-          <div class="pt-info">
-            <div class="pt-title">${id}: ${escHtml(pt.description)}</div>
-            <div class="pt-days">${daysStr}</div>
-          </div>
-        </div>`;
-    });
-    ptHtml += `
-      <div class="card" style="margin-top:16px">
-        <div class="flex-between">
-          <strong>Progress: ${completed}/${ptIds.length} proof tasks complete</strong>
-          <span>${Math.round(completed/ptIds.length*100)}%</span>
-        </div>
-        <div class="prog-bar"><div class="prog-fill" style="width:${completed/ptIds.length*100}%;background:#198754"></div></div>
-        ${completed === ptIds.length
-          ? '<div class="alert alert-success" style="margin-top:8px">🎉 All proof tasks completed! Ready for the Codex Gate.</div>'
-          : `<p class="caption">${ptIds.length - completed} proof task(s) remaining.</p>`
-        }
-      </div>`;
-  }
-  addPage('proof-tasks', ptHtml);
+  // ── PAGE 8: ALL ARTIFACTS ──
+  const arts = DATA.artifacts||{};
+  addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Complete file listing of <code>action/</code> — click the eye icon to preview</p>' +
+    '<div class="filter-bar"><input id="artSearch" placeholder="Search files..." onkeyup="filterArtifacts()">' +
+    '<select id="artCatFilter" onchange="filterArtifacts()"><option value="">All categories</option><option value="notes">📝 Notes</option><option value="evidence">📁 Evidence</option><option value="reports">📊 Reports</option><option value="templates">📋 Templates</option><option value="scripts">⚙️ Scripts</option><option value="dashboard">📈 Dashboard</option><option value="other">📦 Other</option></select></div>' +
+    '<div id="artifactContainer"></div>');
+  renderArtifacts(arts);
 
-  // ── EVIDENCE ──
-  const evidence = DATA.evidence || [];
-  let evHtml = `<h2>📁 Evidence Gallery</h2><p class="subtitle">All evidence artifacts produced during training</p>`;
-  if (!evidence.length) {
-    evHtml += `<div class="alert alert-info">No evidence files yet. Every day should produce one evidence artifact.</div>`;
-  } else {
-    evHtml += `<p><strong>${evidence.length}</strong> artifacts found in <code>action/evidence/</code></p>`;
-    // Group by week using modified date
-    const groups = {};
-    evidence.forEach(e => {
-      const d = new Date(e.modified);
-      const wk = d.getFullYear() + '-W' + String(Math.ceil((d.getDate() + 6 - d.getDay()) / 7)).padStart(2,'0');
-      // Actually use ISO week approach:
-      const start = new Date(d.getFullYear(),0,1);
-      const diff = (d - start + (start.getTimezoneOffset() - d.getTimezoneOffset()) * 60000) / 86400000;
-      const weekNum = Math.ceil((diff + start.getDay() + 1) / 7);
-      const wkKey = d.getFullYear() + '-W' + String(weekNum).padStart(2,'0');
-      if (!groups[wkKey]) groups[wkKey] = [];
-      groups[wkKey].push(e);
-    });
-    Object.keys(groups).sort().reverse().forEach(wk => {
-      evHtml += `<div class="ev-group"><h4>${wk} (${groups[wk].length} artifacts)</h4>`;
-      groups[wk].forEach(e => {
-        const d = new Date(e.modified);
-        const sizeKb = (e.size / 1024).toFixed(1);
-        evHtml += `<div class="ev-item">📄 <code>${escHtml(e.path)}</code> <span class="ev-meta">(${sizeKb} KB, ${d.toLocaleDateString()})</span></div>`;
-      });
-      evHtml += `</div>`;
-    });
-  }
-  addPage('evidence', evHtml);
-
-  // ── CLASSIFICATION TREND ──
-  const clsSeq = s.classification_sequence || [];
-  let clsHtml = `<h2>📈 Readiness Classification Trend</h2><p class="subtitle">How your readiness level has evolved over time</p>`;
-  if (!clsSeq.length) {
-    clsHtml += `<div class="alert alert-info">No classification data yet.</div>`;
-  } else {
-    // Chart
-    clsHtml += `<div class="card"><div class="chart-container"><canvas id="chartClassification"></canvas></div></div>`;
-    clsHtml += `<p class="caption">Level: 1=Foundational, 2=Developing, 3=Operational, 4=Ready for Codex Acceleration</p>`;
-
-    // History bars
-    clsSeq.forEach(entry => {
-      const cls = entry.classification;
-      const color = CLS_COLORS[cls.toLowerCase()] || '#888';
-      const level = CLS_ORDER.indexOf(cls) + 1;
-      const dateStr = entry.date || '';
-      clsHtml += `
-        <div class="cls-bar" style="background:${color};width:${level/4*100}%;min-width:80px">
-          Day ${entry.day} (${dateStr}) — ${cls}
-        </div>`;
-    });
-
-    // Render chart after DOM
-    setTimeout(() => {
-      const canvas = document.getElementById('chartClassification');
-      if (!canvas) return;
-      new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: clsSeq.map(e => 'Day ' + e.day),
-          datasets: [{
-            label: 'Level',
-            data: clsSeq.map(e => CLS_ORDER.indexOf(e.classification) + 1),
-            borderColor: '#6c63ff',
-            backgroundColor: 'rgba(108,99,255,.1)',
-            fill: true,
-            tension: .3,
-            pointBackgroundColor: clsSeq.map(e => CLS_COLORS[e.classification.toLowerCase()] || '#888'),
-            pointRadius: 6,
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { min: 0.5, max: 4.5, ticks: { stepSize: 1, callback: v => CLS_ORDER[v-1] || '' } },
-            x: { grid: { display: false } }
-          }
-        }
-      });
-    }, 50);
-  }
-  addPage('classification', clsHtml);
-
-  // ── CODEX GATE ──
-  const gates = s.codex_gate_status || {};
-  const gateKeys = Object.keys(gates);
-  let gateHtml = `<h2>🚪 Codex Gate Status</h2><p class="subtitle">Final checkpoint — all 6 gates must be Yes to begin bounded Codex use</p>`;
-  if (!gateKeys.length) {
-    gateHtml += `<div class="alert alert-info">No Codex Gate data yet. This is checked on Day 28 (end of Week 4).</div>`;
-  } else {
-    const gateLabels = {
-      'one_end_to_end_workflow_completed': 'End-to-end workflow completed',
-      'business_logic_ownership_understood': 'Business-logic ownership understood',
-      'validation_evidence_produced_without_help': 'Validation evidence without help',
-      'proof_tasks_completed': 'All 6 proof tasks completed',
-      'one_clean_reviewable_change_slice': 'Clean change slice delivered',
-      'one_reusable_team_asset_created': 'Reusable asset created',
-    };
-    let allYes = true;
-    gateKeys.forEach(k => {
-      const label = gateLabels[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const status = gates[k] || '—';
-      const icon = status === 'Yes' ? '✅' : (status === 'No' ? '❌' : '⬜');
-      if (status !== 'Yes') allYes = false;
-      gateHtml += `<div class="gate-item"><div class="gate-icon">${icon}</div><div class="gate-label">${label}</div><strong>${status}</strong></div>`;
-    });
-    gateHtml += `<div class="card" style="margin-top:16px">`;
-    if (allYes) {
-      gateHtml += `<div class="alert alert-success" style="margin-bottom:0">🎉 <strong>Codex Gate: PASSED</strong> — You may begin bounded Codex use.</div>`;
-    } else {
-      const missing = gateKeys.filter(k => gates[k] !== 'Yes').map(k => gateLabels[k] || k);
-      gateHtml += `<div class="alert alert-warning" style="margin-bottom:0"><strong>Codex Gate: NOT YET</strong><br>Missing: ${missing.join(', ')}</div>`;
-    }
-    gateHtml += `</div>`;
-  }
-  addPage('codex-gate', gateHtml);
+  // ── PAGE 9: REVIEW BOARD ──
+  renderReviewBoard(notes, ev);
 }
 
-function escHtml(s) {
-  const div = document.createElement('div');
-  div.textContent = s;
-  return div.innerHTML;
+/* ═══════════════════════════════════════════════════════════════════════════
+   REVIEW SECTION (embedded on each artifact)
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderReviewSection(aid, type, label, filename) {
+  const saved = getReviews(), itemRev = saved[aid]||[];
+  const ropts = ['👍 Pass','⚡ Needs Work','❌ Rework'];
+  let html = '<div class="review-section">' +
+    '<div class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rf_'+aid+'\').classList.toggle(\'open\')">💬 Add Review</div>' +
+    '<div class="review-form" id="rf_'+aid+'">' +
+    '<label>Reviewer</label><input id="rn_'+aid+'" placeholder="Your name" value="'+escHtml(getReviewerName())+'">' +
+    '<label>Rating</label><div class="rating-group" id="rg_'+aid+'">' +
+    ropts.map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
+    '</div><label>Comments</label><textarea id="rc_'+aid+'" placeholder="Write your review feedback here..."></textarea>' +
+    '<div><button class="submit-btn" onclick="submitReview(\''+aid+'\',\''+escHtml(type)+'\',\''+escHtml(label)+'\',\''+escHtml(filename)+'\')">✉️ Send Review</button>' +
+    '<span class="mailto-note"> Opens email to '+REVIEW_EMAIL+'</span></div></div>' +
+    '<div class="review-list" id="rl_'+aid+'">'+renderReviewList(aid)+'</div></div>';
+  return html;
 }
+
+function selectRating(aid, idx) {
+  const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn');
+  btns.forEach(b=>b.classList.remove('selected'));
+  if (btns[idx]) btns[idx].classList.add('selected');
+}
+
+function getReviewerName() { try { return localStorage.getItem('mue_reviewer_name')||''; } catch { return ''; } }
+function setReviewerName(n) { try { localStorage.setItem('mue_reviewer_name', n); } catch {} }
+
+function submitReview(aid, type, label, filename) {
+  const nInput = document.getElementById('rn_'+aid), tInput = document.getElementById('rc_'+aid);
+  const name = (nInput ? nInput.value : 'Anonymous').trim();
+  const text = tInput ? tInput.value.trim() : '';
+  if (!text) { alert('Please write a comment before submitting.'); return; }
+  setReviewerName(name);
+  let rating = 'No rating';
+  const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn');
+  btns.forEach((b,i)=>{if(b.classList.contains('selected'))rating=b.textContent.trim();});
+  const review = {name,rating,text,type,label,filename};
+  saveReview(aid, review);
+  const list = document.getElementById('rl_'+aid);
+  if (list) list.innerHTML = renderReviewList(aid);
+  const subj = encodeURIComponent('[MUE Review] '+type+': '+label);
+  const body = encodeURIComponent('Reviewer: '+name+'\nArtifact: '+type+'\nFile: '+filename+'\nLabel: '+label+'\nRating: '+rating+'\n---\n'+text+'\n---\n\nSubmitted via MUE Dashboard Review Tool');
+  window.open('mailto:'+REVIEW_EMAIL+'?subject='+subj+'&body='+body, '_blank');
+  if (tInput) tInput.value = '';
+  btns.forEach(b=>b.classList.remove('selected'));
+}
+
+function renderReviewList(aid) {
+  const items = (getReviews()[aid]||[]).slice().reverse();
+  if (!items.length) return '';
+  let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:#888">Reviews</strong>';
+  items.forEach(r=>{
+    const d=new Date(r.timestamp), rc=r.rating.includes('Pass')?'#198754':(r.rating.includes('Rework')?'#dc3545':'#ffc107');
+    h += '<div class="review-item"><div class="r-header"><span class="r-name">'+escHtml(r.name)+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+'</div></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ARTIFACT BROWSER
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderArtifacts(artifacts) {
+  const c = document.getElementById('artifactContainer');
+  if (!c) return;
+  const catOrder = ['notes','evidence','reports','templates','scripts','dashboard','other'];
+  const catLabels = {notes:'📝 Notes',evidence:'📁 Evidence',reports:'📊 Reports',templates:'📋 Templates',scripts:'⚙️ Scripts',dashboard:'📈 Dashboard',other:'📦 Other'};
+  const total = catOrder.reduce((a,k)=>a+(artifacts[k]||[]).length,0);
+  if (!total) { c.innerHTML = '<div class="alert alert-info">No artifacts found.</div>'; return; }
+  let h = '<p><strong>'+total+'</strong> total files across action/</p>';
+  catOrder.forEach(cat=>{
+    const items = artifacts[cat]||[];
+    if (!items.length) return;
+    h += '<div class="artifact-cat" data-cat="'+cat+'"><h3>'+(catLabels[cat]||cat)+' ('+items.length+')</h3><table class="artifact-table"><thead><tr><th style="width:24px"></th><th>Path</th><th style="width:80px">Size</th><th style="width:140px">Modified</th><th style="width:80px;text-align:center">View</th></tr></thead><tbody>';
+    items.forEach(f=>{
+      const icon=f.filename.endsWith('.md')?'📄':(f.filename.endsWith('.py')?'🐍':(f.filename.endsWith('.ps1')?'⚡':(f.filename.endsWith('.json')?'📋':(f.filename.endsWith('.url')?'🔗':(f.filename.endsWith('.html')?'🌐':'📄')))));
+      const sz=f.size>1024?(f.size/1024).toFixed(1)+' KB':f.size+' B';
+      const md=new Date(f.modified), aid='art_'+f.path.replace(/[^a-zA-Z0-9]/g,'_');
+      const rv=getReviews(), rc=(rv[aid]||[]).length;
+      h += '<tr><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td style="text-align:center"><span style="font-size:13px;color:#6c63ff;cursor:pointer" onclick="showArtifactPreview(\''+aid+'\',\''+escHtml(f.path).replace(/'/g,"\\'")+'\',\''+escHtml(f.preview?f.preview.substring(0,500).replace(/'/g,"\\'").replace(/\n/g,'\\n'):'').replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:#888">'+rc+'</span>':'')+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  });
+  c.innerHTML = h;
+}
+
+function filterArtifacts() {
+  const q = (document.getElementById('artSearch').value||'').toLowerCase();
+  const cat = document.getElementById('artCatFilter').value;
+  document.querySelectorAll('.artifact-cat').forEach(el=>{
+    el.style.display = (!cat||el.dataset.cat===cat) ? '' : 'none';
+    if (q) el.querySelectorAll('tr').forEach((tr,i)=>{if(i)tr.style.display=tr.textContent.toLowerCase().includes(q)?'':'none';});
+  });
+}
+
+function showArtifactPreview(aid, path, preview) {
+  const overlay = document.getElementById('previewOverlay'), content = document.getElementById('previewContent');
+  let h = '<h3 style="margin-bottom:8px">📄 '+escHtml(path)+'</h3>';
+  h += preview ? '<pre>'+escHtml(preview)+'</pre><p class="caption">First 500 characters</p>' : '<div class="alert alert-info">No preview available.</div>';
+  h += renderReviewSection(aid, 'Artifact', path, path);
+  content.innerHTML = h;
+  overlay.classList.add('open');
+}
+function closePreview() { document.getElementById('previewOverlay').classList.remove('open'); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REVIEW BOARD
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderReviewBoard(notes, evidence) {
+  const allRv = getAllReviews();
+  const rvCnt = Object.keys(allRv).reduce((a,k)=>a+allRv[k].length,0);
+  let items = [];
+  notes.forEach(n=>{const aid='note_'+n.id,s=allRv[aid]||[];items.push({id:aid,type:'note',label:'Day '+(n.day_number||'?')+' — '+(n.date||''),path:n.filename,subtype:'📝 Daily Note',reviews:s,rc:s.length});});
+  evidence.forEach(e=>{const aid='ev_'+e.path.replace(/[^a-zA-Z0-9]/g,'_'),s=allRv[aid]||[];items.push({id:aid,type:'evidence',label:e.path,path:e.path,subtype:'📁 Evidence',reviews:s,rc:s.length});});
+
+  let h = '<h2>💬 Review Board</h2><p class="subtitle">All review comments across every artifact</p>' +
+    '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">' +
+    '<span class="caption"><strong>'+rvCnt+'</strong> total reviews</span>' +
+    '<button class="export-btn" onclick="exportReviews()">📤 Export All Reviews</button>' +
+    '<button class="export-btn" style="background:#dc3545" onclick="clearAllReviews()">🗑️ Clear Local</button></div>' +
+    '<div class="card"><h3>📋 Items Available for Review</h3>' +
+    '<div class="filter-bar"><input id="reviewSearch" placeholder="Search reviews..." onkeyup="filterReviewBoard()" style="flex:1">' +
+    '<select id="reviewTypeFilter" onchange="filterReviewBoard()"><option value="">All types</option><option value="note">📝 Notes</option><option value="evidence">📁 Evidence</option></select></div>' +
+    '<div id="reviewBoardList"></div></div>';
+  addPage('review-board', h);
+  const bl = document.getElementById('reviewBoardList');
+  if (!bl) return;
+  if (!items.length) { bl.innerHTML = '<div class="alert alert-info">No items available for review.</div>'; return; }
+  let bh = '';
+  items.forEach(item=>{
+    const badge = item.rc ? '<span style="background:#6c63ff;color:#fff;padding:1px 8px;border-radius:8px;font-size:10px">'+item.rc+' review'+(item.rc>1?'s':'')+'</span>' : '';
+    bh += '<div class="review-board-item" data-id="'+item.id+'" data-type="'+item.type+'" style="padding:8px 0;border-bottom:1px solid #f0f0f0">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center"><div><strong style="font-size:13px">'+item.subtype+': '+escHtml(item.label)+'</strong> '+badge+'<div style="font-size:11px;color:#888;font-family:monospace">'+item.path+'</div></div></div>' +
+      '<div class="review-list" id="rbl_'+item.id+'">'+renderReviewList(item.id)+'</div>' +
+      renderReviewSection(item.id, item.subtype, item.label, item.path)+'</div>';
+  });
+  bl.innerHTML = bh;
+}
+
+function filterReviewBoard() {
+  const q = (document.getElementById('reviewSearch').value||'').toLowerCase();
+  const type = document.getElementById('reviewTypeFilter').value;
+  document.querySelectorAll('.review-board-item').forEach(el=>{
+    el.style.display = (!type||el.dataset.type===type) && (!q||el.textContent.toLowerCase().includes(q)) ? '' : 'none';
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXPORT / CLEAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+function exportReviews() {
+  const all = getAllReviews(), keys = Object.keys(all);
+  if (!keys.length) { alert('No reviews to export.'); return; }
+  let t = 'MUE Review Export\nGenerated: '+new Date().toISOString()+'\n'+'='.repeat(60)+'\n\n';
+  keys.forEach(k=>{const rvs=all[k];t+='Artifact: '+k+'\n'+'-'.repeat(40)+'\n';rvs.forEach(r=>{t+='  Reviewer: '+r.name+'\n  Rating:   '+r.rating+'\n  Type:     '+(r.type||'')+'\n  File:     '+(r.filename||'')+'\n  Date:     '+r.timestamp+'\n  Comment:  '+r.text+'\n\n';});});
+  const blob = new Blob([t],{type:'text/plain'}), a = document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='mue-review-export-'+new Date().toISOString().slice(0,10)+'.txt'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function clearAllReviews() {
+  if (!confirm('Delete ALL local reviews? This cannot be undone.')) return;
+  localStorage.removeItem(REVIEWS_KEY);
+  const active = document.querySelector('.nav a.active');
+  if (active) showPage(active.dataset.page);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+function escHtml(s) { if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INIT

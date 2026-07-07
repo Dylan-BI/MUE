@@ -263,6 +263,71 @@ def compute_summary(notes):
     }
 
 
+def scan_all_artifacts():
+    """Recursively scan the entire action/ directory and categorize every file."""
+    categories = {
+        'notes': [],
+        'evidence': [],
+        'reports': [],
+        'templates': [],
+        'scripts': [],
+        'dashboard': [],
+        'other': [],
+    }
+
+    if not os.path.isdir(ACTION_DIR):
+        return categories
+
+    for root, dirs, fnames in os.walk(ACTION_DIR):
+        if '.git' in root.split(os.sep):
+            continue
+        rel_dir = os.path.relpath(root, ACTION_DIR)
+
+        for f in sorted(fnames):
+            if f == '.gitkeep' or f.endswith('.pyc'):
+                continue
+            fp = os.path.join(root, f)
+            rel = os.path.relpath(fp, ACTION_DIR)
+
+            mtime = datetime.fromtimestamp(os.path.getmtime(fp)).isoformat()
+            is_markdown = f.endswith('.md')
+            preview = None
+            if is_markdown:
+                try:
+                    with open(fp, 'r', encoding='utf-8') as fh:
+                        preview = fh.read(500)
+                except Exception:
+                    preview = None
+
+            entry = {
+                'path': rel,
+                'filename': f,
+                'folder': rel_dir,
+                'size': os.path.getsize(fp),
+                'modified': mtime,
+                'preview': preview,
+                'is_markdown': is_markdown,
+            }
+
+            # Categorize
+            if rel.startswith('notes') or rel.startswith('notes\\') or rel.startswith('notes/'):
+                categories['notes'].append(entry)
+            elif rel.startswith('evidence') or rel.startswith('evidence\\') or rel.startswith('evidence/'):
+                categories['evidence'].append(entry)
+            elif rel.startswith('reports') or rel.startswith('reports\\') or rel.startswith('reports/'):
+                categories['reports'].append(entry)
+            elif rel.startswith('templates') or rel.startswith('templates\\') or rel.startswith('templates/'):
+                categories['templates'].append(entry)
+            elif rel.startswith('scripts') or rel.startswith('scripts\\') or rel.startswith('scripts/'):
+                categories['scripts'].append(entry)
+            elif rel.startswith('dashboard') or rel.startswith('dashboard\\') or rel.startswith('dashboard/'):
+                categories['dashboard'].append(entry)
+            else:
+                categories['other'].append(entry)
+
+    return categories
+
+
 def main():
     print('Scanning notes...')
     notes = []
@@ -287,6 +352,11 @@ def main():
     reports = scan_reports()
     print(f'  Found {len(reports)} report files')
 
+    print('Scanning all artifacts...')
+    artifacts = scan_all_artifacts()
+    total_artifacts = sum(len(v) for v in artifacts.values())
+    print(f'  Found {total_artifacts} total artifacts across action/')
+
     # Strip filepath from notes for clean JSON
     notes_clean = []
     for n in notes:
@@ -297,6 +367,7 @@ def main():
         'notes': notes_clean,
         'evidence': evidence,
         'reports': reports,
+        'artifacts': artifacts,
         'summary': summary,
     }
 
