@@ -1,0 +1,5 @@
+# MUE Learner Dashboard — Python dependencies
+# Install with: pip install -r action/dashboard/requirements.txt
+
+streamlit>=1.28
+pandas>=1.5
