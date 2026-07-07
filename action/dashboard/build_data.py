@@ -1,0 +1,311 @@
+"""
+action/dashboard/build_data.py
+Scans action/notes/, action/evidence/, and action/reports/ then
+generates a static data.json that the HTML dashboard can consume.
+
+Usage:
+    python action/dashboard/build_data.py
+    # Output: action/dashboard/data.json
+"""
+import glob
+import json
+import os
+import re
+from collections import defaultdict
+from datetime import date, datetime
+
+DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
+ACTION_DIR = os.path.abspath(os.path.join(DASHBOARD_DIR, '..'))
+NOTES_DIR = os.path.join(ACTION_DIR, 'notes')
+EVIDENCE_DIR = os.path.join(ACTION_DIR, 'evidence')
+REPORTS_DIR = os.path.join(ACTION_DIR, 'reports')
+OUTPUT_PATH = os.path.join(DASHBOARD_DIR, 'data.json')
+
+# ── Regex patterns ──────────────────────────────────────────────────────────
+PAT_CLASSIFICATION = re.compile(
+    r'Classification:\s*(Foundational|Developing|Operational|Ready for Codex Acceleration)',
+    re.IGNORECASE,
+)
+PAT_PRIMARY_TRACK = re.compile(
+    r'Primary track:\s*(Pyramid operations|Codex productivity|BI judgment)',
+    re.IGNORECASE,
+)
+PAT_DAY_NUMBER = re.compile(r'Day\s*(\d+)')
+PAT_ARTIFACT = re.compile(r'Required Artifact:\s*(.+)', re.IGNORECASE)
+PAT_LEARNED = re.compile(r'What I learned today:\s*(.+)', re.IGNORECASE)
+PAT_EVIDENCE = re.compile(r'What evidence I produced:\s*(.+)', re.IGNORECASE)
+PAT_REMAINS = re.compile(r'What remains open:\s*(.+)', re.IGNORECASE)
+PAT_NEXT_STEP = re.compile(r'Next narrow step:\s*(.+)', re.IGNORECASE)
+PAT_WEEK_NUMBER = re.compile(r'Week Number:\s*(\d+)')
+
+SCORE_AREAS = [
+    'Prompt discipline',
+    'Repo or workspace analysis',
+    'Change isolation',
+    'Validation order',
+    'Deployment awareness',
+    'Reviewer handoff',
+    'Reusability',
+]
+
+CODEX_GATES = [
+    'One end-to-end workflow completed',
+    'Business-logic ownership understood',
+    'Validation evidence produced without help',
+    'Proof tasks completed',
+    'One clean reviewable change slice',
+    'One reusable team asset created',
+]
+
+PROOF_TASKS = [
+    ('PT1', 'Repository Analysis Brief'),
+    ('PT2', 'Review Workflow Dry Run'),
+    ('PT3', 'Metric Lineage Walkthrough'),
+    ('PT4', 'QC Evidence Pack'),
+    ('PT5', 'Deployment Rehearsal'),
+    ('PT6', 'Reviewer Handoff Test'),
+]
+
+
+def parse_date_from_filename(filename):
+    basename = os.path.basename(filename).replace('.md', '')
+    try:
+        return str(datetime.strptime(basename, '%Y-%m-%d').date())
+    except ValueError:
+        return None
+
+
+def parse_note(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    note = {
+        'id': os.path.basename(filepath).replace('.md', ''),
+        'filename': os.path.basename(filepath),
+        'date': parse_date_from_filename(filepath),
+        'day_number': None,
+        'classification': None,
+        'primary_track': None,
+        'required_artifact': None,
+        'what_learned': None,
+        'evidence_produced': None,
+        'what_remains': None,
+        'next_step': None,
+        'week_number': None,
+        'scorecard': {},
+        'codex_gate': {},
+    }
+
+    m = PAT_DAY_NUMBER.search(content)
+    if m:
+        note['day_number'] = int(m.group(1))
+
+    m = PAT_CLASSIFICATION.search(content)
+    if m:
+        note['classification'] = m.group(1).strip()
+
+    m = PAT_PRIMARY_TRACK.search(content)
+    if m:
+        note['primary_track'] = m.group(1).strip()
+
+    m = PAT_ARTIFACT.search(content)
+    if m:
+        note['required_artifact'] = m.group(1).strip()
+
+    for pat, key in [
+        (PAT_LEARNED, 'what_learned'),
+        (PAT_EVIDENCE, 'evidence_produced'),
+        (PAT_REMAINS, 'what_remains'),
+        (PAT_NEXT_STEP, 'next_step'),
+    ]:
+        m = pat.search(content)
+        if m:
+            note[key] = m.group(1).strip()
+
+    m = PAT_WEEK_NUMBER.search(content)
+    if m:
+        note['week_number'] = int(m.group(1))
+
+    for area in SCORE_AREAS:
+        p = re.compile(rf'{re.escape(area)}:\s*(Pass|Partial|Fail)', re.IGNORECASE)
+        m = p.search(content)
+        if m:
+            safe_key = area.lower().replace(' ', '_').replace('(', '').replace(')', '')
+            note['scorecard'][safe_key] = m.group(1).capitalize()
+
+    for gate in CODEX_GATES:
+        p = re.compile(rf'{re.escape(gate)}:\s*(Yes|No)', re.IGNORECASE)
+        m = p.search(content)
+        if m:
+            safe_key = gate.lower().replace(' ', '_').replace('(', '').replace(')', '')
+            note['codex_gate'][safe_key] = m.group(1).capitalize()
+
+    return note
+
+
+def scan_evidence():
+    files = []
+    if not os.path.isdir(EVIDENCE_DIR):
+        return files
+    for root, dirs, fnames in os.walk(EVIDENCE_DIR):
+        for f in fnames:
+            if f == '.gitkeep':
+                continue
+            fp = os.path.join(root, f)
+            rel = os.path.relpath(fp, EVIDENCE_DIR)
+            files.append({
+                'path': rel,
+                'size': os.path.getsize(fp),
+                'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+            })
+    files.sort(key=lambda x: x['modified'], reverse=True)
+    return files
+
+
+def scan_reports():
+    files = []
+    if not os.path.isdir(REPORTS_DIR):
+        return files
+    pattern = os.path.join(REPORTS_DIR, '*.md')
+    for fp in sorted(glob.glob(pattern)):
+        if os.path.basename(fp) == '.gitkeep':
+            continue
+        files.append({
+            'path': os.path.basename(fp),
+            'size': os.path.getsize(fp),
+            'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+        })
+    return files
+
+
+def compute_summary(notes):
+    if not notes:
+        return {
+            'total_days': 0,
+            'unique_weeks': 0,
+            'latest_classification': '—',
+            'classification_sequence': [],
+            'evidence_count': 0,
+            'completed_tracks': {},
+            'scorecard_trend': {},
+            'codex_gate_status': {},
+            'proof_tasks': {},
+            'current_week': 0,
+        }
+
+    cls_seq = []
+    for n in notes:
+        if n['classification']:
+            cls_seq.append({
+                'day': n['day_number'],
+                'date': n['date'],
+                'classification': n['classification'],
+            })
+
+    days_per_week = defaultdict(int)
+    for n in notes:
+        if n['week_number']:
+            days_per_week[n['week_number']] += 1
+        elif n['day_number']:
+            w = (n['day_number'] - 1) // 5 + 1
+            days_per_week[w] += 1
+
+    scorecard_trend = defaultdict(list)
+    for n in notes:
+        if n['scorecard']:
+            for area, score in n['scorecard'].items():
+                scorecard_trend[area].append({
+                    'day': n['day_number'],
+                    'date': n['date'],
+                    'score': score,
+                })
+
+    codex_gate_status = {}
+    for n in reversed(notes):
+        if n['codex_gate']:
+            codex_gate_status = n['codex_gate']
+            break
+
+    completed_tracks = defaultdict(int)
+    for n in notes:
+        if n['primary_track']:
+            completed_tracks[n['primary_track']] += 1
+
+    proof_tasks = {}
+    for pt_id, pt_desc in PROOF_TASKS:
+        proof_tasks[pt_id] = {
+            'id': pt_id,
+            'description': pt_desc,
+            'found': False,
+            'days': [],
+        }
+    for n in notes:
+        with open(n['filepath' if 'filepath' in n else 'id'], 'r', encoding='utf-8') as f:
+            content = f.read()
+        for pt_id, pt_desc in PROOF_TASKS:
+            if re.search(f'{pt_id}|{re.escape(pt_desc)}', content, re.IGNORECASE):
+                proof_tasks[pt_id]['found'] = True
+                if n['day_number']:
+                    proof_tasks[pt_id]['days'].append(n['day_number'])
+
+    return {
+        'total_days': len(notes),
+        'unique_weeks': len(days_per_week),
+        'latest_classification': cls_seq[-1]['classification'] if cls_seq else '—',
+        'classification_sequence': cls_seq,
+        'days_per_week': dict(days_per_week),
+        'evidence_count': 0,  # filled from scan
+        'scorecard_trend': {k: v for k, v in scorecard_trend.items()},
+        'codex_gate_status': codex_gate_status,
+        'completed_tracks': dict(completed_tracks),
+        'proof_tasks': proof_tasks,
+        'current_week': max(days_per_week.keys()) if days_per_week else 0,
+    }
+
+
+def main():
+    print('Scanning notes...')
+    notes = []
+    if os.path.isdir(NOTES_DIR):
+        for f in sorted(glob.glob(os.path.join(NOTES_DIR, '*.md'))):
+            d = parse_date_from_filename(f)
+            if d:
+                note = parse_note(f)
+                note['filepath'] = f  # keep for proof-task scan
+                notes.append(note)
+    notes.sort(key=lambda x: x['date'] or '0000-00-00')
+
+    print(f'  Found {len(notes)} daily notes')
+    summary = compute_summary(notes)
+
+    print('Scanning evidence...')
+    evidence = scan_evidence()
+    summary['evidence_count'] = len(evidence)
+    print(f'  Found {len(evidence)} evidence files')
+
+    print('Scanning reports...')
+    reports = scan_reports()
+    print(f'  Found {len(reports)} report files')
+
+    # Strip filepath from notes for clean JSON
+    notes_clean = []
+    for n in notes:
+        notes_clean.append({k: v for k, v in n.items() if k != 'filepath'})
+
+    data = {
+        'generated': datetime.now().isoformat(),
+        'notes': notes_clean,
+        'evidence': evidence,
+        'reports': reports,
+        'summary': summary,
+    }
+
+    with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, default=str)
+
+    print(f'\nDone — wrote {OUTPUT_PATH}')
+    return data
+
+
+if __name__ == '__main__':
+    main()

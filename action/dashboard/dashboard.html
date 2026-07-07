@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MUE Learner Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #f0f2f5; color: #1a1a2e; display: flex; min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px; background: #1a1a2e; color: #e0e0e0; display: flex;
+    flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .sidebar-header { padding: 24px 20px 16px; border-bottom: 1px solid #2a2a4a; }
+  .sidebar-header h1 { font-size: 20px; font-weight: 700; color: #fff; }
+  .sidebar-header span { font-size: 13px; color: #aaa; }
+  .sidebar .nav { flex: 1; padding: 12px 0; }
+  .sidebar .nav a {
+    display: block; padding: 10px 20px; color: #b0b0c8; text-decoration: none;
+    font-size: 14px; transition: all .15s; border-left: 3px solid transparent;
+    cursor: pointer;
+  }
+  .sidebar .nav a:hover { background: rgba(255,255,255,.04); color: #fff; }
+  .sidebar .nav a.active { background: rgba(255,255,255,.08); color: #fff; border-left-color: #6c63ff; font-weight: 600; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; font-size: 12px; color: #888; }
+  .sidebar-footer .meta { margin-top: 4px; color: #666; }
+  .sidebar-footer .refresh-btn {
+    margin-top: 8px; background: #6c63ff; color: #fff; border: none;
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: background .15s;
+  }
+  .sidebar-footer .refresh-btn:hover { background: #5a52e0; }
+
+  /* ── Main ── */
+  .main { flex: 1; padding: 32px 40px; overflow-y: auto; max-width: 1200px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  h2 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #666; font-size: 15px; margin-bottom: 28px; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 20px; }
+  .card h3 { font-size: 16px; font-weight: 600; margin-bottom: 12px; color: #333; }
+  .metric-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .metric { background: #fff; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); text-align: center; }
+  .metric .value { font-size: 32px; font-weight: 700; color: #1a1a2e; }
+  .metric .label { font-size: 13px; color: #888; margin-top: 2px; }
+  .metric .sublabel { font-size: 11px; color: #aaa; margin-top: 0; }
+
+  /* Day grid */
+  .day-grid { display: grid; grid-template-columns: repeat(28, 1fr); gap: 3px; margin-bottom: 8px; }
+  .day-cell { border-radius: 4px; text-align: center; padding: 6px 0; font-size: 11px; font-weight: 600; transition: transform .1s; }
+  .day-cell.done { background: #198754; color: #fff; }
+  .day-cell.pending { background: #e9ecef; color: #888; }
+  .day-cell:hover { transform: scale(1.2); }
+
+  /* Bar chart container */
+  .chart-container { position: relative; height: 220px; width: 100%; margin-bottom: 12px; }
+
+  /* Timeline */
+  .timeline-item { border-left: 3px solid #6c63ff; padding: 12px 0 12px 20px; margin-bottom: 8px; position: relative; }
+  .timeline-item::before { content: ''; position: absolute; left: -7px; top: 18px; width: 11px; height: 11px; background: #6c63ff; border-radius: 50%; }
+  .timeline-item .day-title { font-weight: 600; font-size: 15px; cursor: pointer; color: #1a1a2e; }
+  .timeline-item .day-title:hover { color: #6c63ff; }
+  .timeline-item .day-meta { font-size: 13px; color: #888; margin: 2px 0 6px; }
+  .timeline-item .day-details { display: none; margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 8px; font-size: 14px; line-height: 1.5; }
+  .timeline-item .day-details.open { display: block; }
+  .timeline-item .day-details strong { color: #333; }
+
+  /* Score grid */
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .score-card { background: #fff; border-radius: 8px; padding: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); text-align: center; }
+  .score-card .area-label { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .score-card .score-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; color: #fff; }
+  .score-pass { background: #198754; } .score-partial { background: #ffc107; color: #333; } .score-fail { background: #dc3545; }
+  .score-chip { display: inline-block; width: 28px; height: 28px; border-radius: 6px; text-align: center; line-height: 28px; font-size: 11px; font-weight: 700; color: #fff; margin: 1px; }
+
+  /* Proof tasks */
+  .pt-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+  .pt-row:last-child { border-bottom: none; }
+  .pt-icon { font-size: 20px; width: 28px; text-align: center; }
+  .pt-info { flex: 1; }
+  .pt-info .pt-title { font-weight: 600; font-size: 14px; }
+  .pt-info .pt-desc { font-size: 13px; color: #888; }
+  .pt-info .pt-days { font-size: 12px; color: #6c63ff; }
+
+  /* Evidence list */
+  .ev-group { margin-bottom: 16px; }
+  .ev-group h4 { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+  .ev-item { padding: 6px 0; font-size: 13px; color: #333; font-family: 'SF Mono', 'Consolas', monospace; }
+  .ev-item .ev-meta { font-size: 11px; color: #999; }
+
+  /* Classification trend */
+  .cls-bar { height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 4px; transition: transform .1s; }
+  .cls-bar:hover { transform: scaleY(1.05); }
+
+  /* Gate list */
+  .gate-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+  .gate-item:last-child { border-bottom: none; }
+  .gate-icon { font-size: 18px; width: 24px; text-align: center; }
+  .gate-label { flex: 1; font-size: 14px; }
+
+  /* Track legend */
+  .track-legend { display: flex; gap: 20px; flex-wrap: wrap; margin: 8px 0 16px; }
+  .track-legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .track-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* Progress bar */
+  .prog-bar { height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin: 4px 0 8px; }
+  .prog-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+
+  /* Utility */
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .gap-8 { gap: 8px; }
+  .mt-8 { margin-top: 8px; }
+  .mb-8 { margin-bottom: 8px; }
+  .text-center { text-align: center; }
+  .caption { color: #888; font-size: 13px; }
+
+  /* Alert */
+  .alert { padding: 16px 20px; border-radius: 10px; font-size: 14px; margin-bottom: 16px; }
+  .alert-info { background: #e8f4fd; color: #0c5460; border: 1px solid #bee5eb; }
+  .alert-success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+  .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+  /* Link icon */
+  .link-icon { color: #6c63ff; text-decoration: none; }
+  .link-icon:hover { text-decoration: underline; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    body { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; flex-wrap: wrap; }
+    .sidebar .nav { display: flex; flex-wrap: wrap; padding: 8px; }
+    .sidebar .nav a { padding: 8px 12px; font-size: 13px; border-left: none; border-bottom: 2px solid transparent; }
+    .sidebar .nav a.active { border-left: none; border-bottom-color: #6c63ff; }
+    .main { padding: 20px; }
+    .day-grid { grid-template-columns: repeat(14, 1fr); }
+    .metric-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1>📊 MUE Dashboard</h1>
+    <span>Multifaceted User Education</span>
+  </div>
+  <div class="nav" id="nav">
+    <a class="active" data-page="overview"        onclick="showPage('overview')">📋 Overview</a>
+    <a data-page="daily"           onclick="showPage('daily')">📅 Daily Progress</a>
+    <a data-page="scorecard"       onclick="showPage('scorecard')">🏆 Scorecard</a>
+    <a data-page="proof-tasks"     onclick="showPage('proof-tasks')">✅ Proof Tasks</a>
+    <a data-page="evidence"        onclick="showPage('evidence')">📁 Evidence</a>
+    <a data-page="classification"  onclick="showPage('classification')">📈 Classification</a>
+    <a data-page="codex-gate"      onclick="showPage('codex-gate')">🚪 Codex Gate</a>
+  </div>
+  <div class="sidebar-footer">
+    <div id="sidebarInfo">Loading…</div>
+    <div class="meta" id="sidebarMeta"></div>
+    <button class="refresh-btn" onclick="loadData()">🔄 Refresh</button>
+  </div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main" id="main">
+  <!-- Each page is toggled by showPage() -->
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════════════════ */
+let DATA = null;
+const CLS_COLORS = {
+  'foundational': '#6c757d',
+  'developing': '#ffc107',
+  'operational': '#0d6efd',
+  'ready for codex acceleration': '#198754',
+};
+const SCORE_COLORS = { 'Pass': '#198754', 'Partial': '#ffc107', 'Fail': '#dc3545' };
+const TRACK_COLORS = {
+  'Pyramid operations': '#0d6efd',
+  'Codex productivity': '#6f42c1',
+  'BI judgment': '#fd7e14',
+};
+const CLS_ORDER = ['Foundational','Developing','Operational','Ready for Codex Acceleration'];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOAD DATA
+   ═══════════════════════════════════════════════════════════════════════════ */
+async function loadData() {
+  const sidebarInfo = document.getElementById('sidebarInfo');
+  const sidebarMeta = document.getElementById('sidebarMeta');
+  sidebarInfo.textContent = 'Loading…';
+
+  // Try to fetch data.json — works when served via GitHub Pages or file://
+  // Falls back to GitHub raw if not found (for repo browsing)
+  let url = 'data.json';
+  try {
+    const resp = await fetch(url + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('Not found');
+    DATA = await resp.json();
+  } catch (e1) {
+    try {
+      // Fallback: GitHub raw content
+      const fallback = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json';
+      const resp2 = await fetch(fallback + '?t=' + Date.now());
+      if (!resp2.ok) throw new Error('GitHub raw failed');
+      DATA = await resp2.json();
+    } catch (e2) {
+      sidebarInfo.innerHTML = '❌ Could not load data. Run <code>python action/dashboard/build_data.py</code> first.';
+      sidebarMeta.textContent = '';
+      document.getElementById('main').innerHTML = `
+        <div class="alert alert-warning">
+          <strong>No data found.</strong> The dashboard requires a <code>data.json</code> file.
+          Generate it by running:<br><br>
+          <code>python action/dashboard/build_data.py</code>
+        </div>`;
+      return;
+    }
+  }
+
+  // Update sidebar
+  const s = DATA.summary;
+  sidebarInfo.innerHTML = `
+    <strong>${s.total_days}</strong> / 28 days (${Math.min(Math.round(s.total_days/28*100),100)}%)
+    <div class="prog-bar"><div class="prog-fill" style="width:${Math.min(s.total_days/28*100,100)}%;background:#6c63ff"></div></div>
+    Classification: <strong>${s.latest_classification}</strong><br>
+    Evidence: ${s.evidence_count} files
+  `;
+  sidebarMeta.textContent = `Refreshed: ${new Date().toLocaleTimeString()}`;
+
+  renderAll();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showPage(name) {
+  document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
+  document.querySelector(`.nav a[data-page="${name}"]`).classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + name);
+  if (el) el.classList.add('active');
+}
+
+function addPage(id, html) {
+  const main = document.getElementById('main');
+  const div = document.createElement('div');
+  div.id = 'page-' + id;
+  div.className = 'page' + (id === 'overview' ? ' active' : '');
+  div.innerHTML = html;
+  main.appendChild(div);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RENDER ALL PAGES
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderAll() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const s = DATA.summary;
+  const notes = DATA.notes || [];
+
+  // ── OVERVIEW ──
+  addPage('overview', `
+    <h2>📋 Overview</h2>
+    <p class="subtitle">High-level summary of your MUE training progress</p>
+
+    <div class="metric-row">
+      <div class="metric"><div class="value">${s.total_days}</div><div class="label">Days Completed</div><div class="sublabel">${28-s.total_days} remaining</div></div>
+      <div class="metric"><div class="value">${s.unique_weeks}</div><div class="label">Weeks Active</div></div>
+      <div class="metric"><div class="value">${s.evidence_count}</div><div class="label">Evidence Artifacts</div></div>
+      <div class="metric"><div class="value">${s.latest_classification}</div><div class="label">Classification</div></div>
+    </div>
+
+    <div class="card">
+      <h3>📆 Program Progress</h3>
+      <div class="day-grid" id="dayGrid"></div>
+      <p class="caption">Green = completed &nbsp;|&nbsp; Grey = not yet done</p>
+    </div>
+
+    <div class="card">
+      <h3>🎯 Track Distribution</h3>
+      <div class="chart-container"><canvas id="chartTracks"></canvas></div>
+      <div class="track-legend" id="trackLegend"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔗 Quick Links</h3>
+      <p><a class="link-icon" href="../source/4-Week%20Onboarding%20Map.md" target="_blank">📖 4-Week Onboarding Map</a></p>
+    </div>
+  `);
+
+  // Day grid
+  const dayNums = notes.filter(n => n.day_number).map(n => n.day_number);
+  const grid = document.getElementById('dayGrid');
+  for (let d = 1; d <= 28; d++) {
+    const done = dayNums.includes(d);
+    const cell = document.createElement('div');
+    cell.className = 'day-cell ' + (done ? 'done' : 'pending');
+    cell.textContent = d;
+    grid.appendChild(cell);
+  }
+
+  // Track chart
+  const tracks = s.completed_tracks || {};
+  const trackLabels = Object.keys(tracks);
+  const trackValues = Object.values(tracks);
+  if (trackLabels.length) {
+    new Chart(document.getElementById('chartTracks'), {
+      type: 'bar',
+      data: {
+        labels: trackLabels,
+        datasets: [{
+          data: trackValues,
+          backgroundColor: trackLabels.map(t => TRACK_COLORS[t] || '#888'),
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+    const legend = document.getElementById('trackLegend');
+    const total = trackValues.reduce((a,b) => a+b, 0);
+    trackLabels.forEach((t, i) => {
+      const pct = Math.round(trackValues[i] / total * 100);
+      const item = document.createElement('div');
+      item.className = 'track-legend-item';
+      item.innerHTML = `<span class="track-dot" style="background:${TRACK_COLORS[t] || '#888'}"></span> ${t}: ${trackValues[i]} days (${pct}%)`;
+      legend.appendChild(item);
+    });
+  }
+
+  // ── DAILY PROGRESS ──
+  let dailyHtml = `<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day breakdown of your training journey</p>`;
+  if (!notes.length) {
+    dailyHtml += `<div class="alert alert-info">No notes found yet. Create your first daily note!</div>`;
+  } else {
+    const sorted = [...notes].sort((a,b) => (a.day_number||0) - (b.day_number||0));
+    sorted.forEach(n => {
+      const day = n.day_number || '?';
+      const date = n.date || '—';
+      const cls = n.classification || '—';
+      const track = n.primary_track || '—';
+      const artifact = n.required_artifact || '—';
+      const scoreEntries = Object.entries(n.scorecard || {});
+      const scoresHtml = scoreEntries.length
+        ? scoreEntries.map(([k,v]) => `<span class="score-chip score-${v.toLowerCase()}">${v[0]}</span> ${k.replace(/_/g,' ')}`).join(' &nbsp;|&nbsp; ')
+        : '';
+
+      dailyHtml += `
+        <div class="timeline-item">
+          <div class="day-title" onclick="this.nextElementSibling.nextElementSibling.classList.toggle('open')">
+            Day ${day} — ${date} &middot; ${cls}
+          </div>
+          <div class="day-meta">Track: ${track} &middot; Evidence: ${artifact}</div>
+          <div class="day-details">
+            <strong>What I learned:</strong> ${escHtml(n.what_learned || '—')}<br>
+            <strong>Next step:</strong> ${escHtml(n.next_step || '—')}<br>
+            ${scoresHtml ? '<br><strong>Scorecard:</strong><br>' + scoresHtml : ''}
+          </div>
+        </div>`;
+    });
+  }
+  addPage('daily', dailyHtml);
+
+  // ── SCORECARD ──
+  const trend = s.scorecard_trend || {};
+  const trendKeys = Object.keys(trend);
+  let scoreHtml = `<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Weekly scores across all 7 competency areas</p>`;
+  if (!trendKeys.length) {
+    scoreHtml += `<div class="alert alert-info">No scorecard data yet. Complete your first week to see scores.</div>`;
+  } else {
+    trendKeys.forEach(area => {
+      const entries = trend[area] || [];
+      const label = area.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      scoreHtml += `<div class="card"><h3>${label}</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">`;
+      entries.forEach(e => {
+        const color = SCORE_COLORS[e.score] || '#888';
+        scoreHtml += `<span class="score-chip" style="background:${color}">${e.score[0]}</span>`;
+      });
+      scoreHtml += `</div><p class="caption">`;
+
+      // Trend direction
+      const vals = entries.map(e => ({'Pass':2,'Partial':1,'Fail':0}[e.score] || 0));
+      if (vals.length >= 2) {
+        if (vals[vals.length-1] > vals[0]) scoreHtml += '📈 Improving';
+        else if (vals[vals.length-1] < vals[0]) scoreHtml += '📉 Declining — needs attention';
+        else scoreHtml += '➡️ Steady';
+      }
+      scoreHtml += '</p></div>';
+    });
+
+    // Fail warning
+    const failAreas = trendKeys.filter(k => {
+      const e = trend[k];
+      return e && e.length && e[e.length-1].score === 'Fail';
+    });
+    if (failAreas.length >= 2) {
+      scoreHtml += `<div class="alert alert-warning">⚠️ ${failAreas.length} areas scored <strong>Fail</strong> in the latest week. Repeat this layer before expanding scope.</div>`;
+    }
+  }
+  addPage('scorecard', scoreHtml);
+
+  // ── PROOF TASKS ──
+  const pts = s.proof_tasks || {};
+  const ptIds = Object.keys(pts);
+  let ptHtml = `<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks required before passing the Codex Gate</p>`;
+  if (!ptIds.length) {
+    ptHtml += `<div class="alert alert-info">No proof task data yet.</div>`;
+  } else {
+    let completed = 0;
+    ptIds.forEach(id => {
+      const pt = pts[id];
+      const done = pt.found;
+      if (done) completed++;
+      const daysStr = pt.days && pt.days.length ? `(found on days ${pt.days.join(', ')})` : '';
+      ptHtml += `
+        <div class="pt-row">
+          <div class="pt-icon">${done ? '✅' : '⬜'}</div>
+          <div class="pt-info">
+            <div class="pt-title">${id}: ${escHtml(pt.description)}</div>
+            <div class="pt-days">${daysStr}</div>
+          </div>
+        </div>`;
+    });
+    ptHtml += `
+      <div class="card" style="margin-top:16px">
+        <div class="flex-between">
+          <strong>Progress: ${completed}/${ptIds.length} proof tasks complete</strong>
+          <span>${Math.round(completed/ptIds.length*100)}%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${completed/ptIds.length*100}%;background:#198754"></div></div>
+        ${completed === ptIds.length
+          ? '<div class="alert alert-success" style="margin-top:8px">🎉 All proof tasks completed! Ready for the Codex Gate.</div>'
+          : `<p class="caption">${ptIds.length - completed} proof task(s) remaining.</p>`
+        }
+      </div>`;
+  }
+  addPage('proof-tasks', ptHtml);
+
+  // ── EVIDENCE ──
+  const evidence = DATA.evidence || [];
+  let evHtml = `<h2>📁 Evidence Gallery</h2><p class="subtitle">All evidence artifacts produced during training</p>`;
+  if (!evidence.length) {
+    evHtml += `<div class="alert alert-info">No evidence files yet. Every day should produce one evidence artifact.</div>`;
+  } else {
+    evHtml += `<p><strong>${evidence.length}</strong> artifacts found in <code>action/evidence/</code></p>`;
+    // Group by week using modified date
+    const groups = {};
+    evidence.forEach(e => {
+      const d = new Date(e.modified);
+      const wk = d.getFullYear() + '-W' + String(Math.ceil((d.getDate() + 6 - d.getDay()) / 7)).padStart(2,'0');
+      // Actually use ISO week approach:
+      const start = new Date(d.getFullYear(),0,1);
+      const diff = (d - start + (start.getTimezoneOffset() - d.getTimezoneOffset()) * 60000) / 86400000;
+      const weekNum = Math.ceil((diff + start.getDay() + 1) / 7);
+      const wkKey = d.getFullYear() + '-W' + String(weekNum).padStart(2,'0');
+      if (!groups[wkKey]) groups[wkKey] = [];
+      groups[wkKey].push(e);
+    });
+    Object.keys(groups).sort().reverse().forEach(wk => {
+      evHtml += `<div class="ev-group"><h4>${wk} (${groups[wk].length} artifacts)</h4>`;
+      groups[wk].forEach(e => {
+        const d = new Date(e.modified);
+        const sizeKb = (e.size / 1024).toFixed(1);
+        evHtml += `<div class="ev-item">📄 <code>${escHtml(e.path)}</code> <span class="ev-meta">(${sizeKb} KB, ${d.toLocaleDateString()})</span></div>`;
+      });
+      evHtml += `</div>`;
+    });
+  }
+  addPage('evidence', evHtml);
+
+  // ── CLASSIFICATION TREND ──
+  const clsSeq = s.classification_sequence || [];
+  let clsHtml = `<h2>📈 Readiness Classification Trend</h2><p class="subtitle">How your readiness level has evolved over time</p>`;
+  if (!clsSeq.length) {
+    clsHtml += `<div class="alert alert-info">No classification data yet.</div>`;
+  } else {
+    // Chart
+    clsHtml += `<div class="card"><div class="chart-container"><canvas id="chartClassification"></canvas></div></div>`;
+    clsHtml += `<p class="caption">Level: 1=Foundational, 2=Developing, 3=Operational, 4=Ready for Codex Acceleration</p>`;
+
+    // History bars
+    clsSeq.forEach(entry => {
+      const cls = entry.classification;
+      const color = CLS_COLORS[cls.toLowerCase()] || '#888';
+      const level = CLS_ORDER.indexOf(cls) + 1;
+      const dateStr = entry.date || '';
+      clsHtml += `
+        <div class="cls-bar" style="background:${color};width:${level/4*100}%;min-width:80px">
+          Day ${entry.day} (${dateStr}) — ${cls}
+        </div>`;
+    });
+
+    // Render chart after DOM
+    setTimeout(() => {
+      const canvas = document.getElementById('chartClassification');
+      if (!canvas) return;
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: clsSeq.map(e => 'Day ' + e.day),
+          datasets: [{
+            label: 'Level',
+            data: clsSeq.map(e => CLS_ORDER.indexOf(e.classification) + 1),
+            borderColor: '#6c63ff',
+            backgroundColor: 'rgba(108,99,255,.1)',
+            fill: true,
+            tension: .3,
+            pointBackgroundColor: clsSeq.map(e => CLS_COLORS[e.classification.toLowerCase()] || '#888'),
+            pointRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: 0.5, max: 4.5, ticks: { stepSize: 1, callback: v => CLS_ORDER[v-1] || '' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }, 50);
+  }
+  addPage('classification', clsHtml);
+
+  // ── CODEX GATE ──
+  const gates = s.codex_gate_status || {};
+  const gateKeys = Object.keys(gates);
+  let gateHtml = `<h2>🚪 Codex Gate Status</h2><p class="subtitle">Final checkpoint — all 6 gates must be Yes to begin bounded Codex use</p>`;
+  if (!gateKeys.length) {
+    gateHtml += `<div class="alert alert-info">No Codex Gate data yet. This is checked on Day 28 (end of Week 4).</div>`;
+  } else {
+    const gateLabels = {
+      'one_end_to_end_workflow_completed': 'End-to-end workflow completed',
+      'business_logic_ownership_understood': 'Business-logic ownership understood',
+      'validation_evidence_produced_without_help': 'Validation evidence without help',
+      'proof_tasks_completed': 'All 6 proof tasks completed',
+      'one_clean_reviewable_change_slice': 'Clean change slice delivered',
+      'one_reusable_team_asset_created': 'Reusable asset created',
+    };
+    let allYes = true;
+    gateKeys.forEach(k => {
+      const label = gateLabels[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const status = gates[k] || '—';
+      const icon = status === 'Yes' ? '✅' : (status === 'No' ? '❌' : '⬜');
+      if (status !== 'Yes') allYes = false;
+      gateHtml += `<div class="gate-item"><div class="gate-icon">${icon}</div><div class="gate-label">${label}</div><strong>${status}</strong></div>`;
+    });
+    gateHtml += `<div class="card" style="margin-top:16px">`;
+    if (allYes) {
+      gateHtml += `<div class="alert alert-success" style="margin-bottom:0">🎉 <strong>Codex Gate: PASSED</strong> — You may begin bounded Codex use.</div>`;
+    } else {
+      const missing = gateKeys.filter(k => gates[k] !== 'Yes').map(k => gateLabels[k] || k);
+      gateHtml += `<div class="alert alert-warning" style="margin-bottom:0"><strong>Codex Gate: NOT YET</strong><br>Missing: ${missing.join(', ')}</div>`;
+    }
+    gateHtml += `</div>`;
+  }
+  addPage('codex-gate', gateHtml);
+}
+
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════════════ */
+loadData();
+</script>
+</body>
+</html>
