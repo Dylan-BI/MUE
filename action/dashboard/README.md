@@ -14,15 +14,24 @@ An interactive static dashboard for tracking MUE (Multifaceted User Education) t
 
 ## Deployment (GitHub Pages)
 
-The dashboard is designed to be served via **GitHub Pages**.
+The dashboard auto-deploys to GitHub Pages via the included workflow (`.github/workflows/deploy-dashboard.yml`).
 
+**One-time setup:**
 1. Go to your repo **Settings → Pages**
-2. Set **Source** to **Deploy from a branch**
-3. Select the branch (e.g. `main`) and folder (`/` or `/docs`)
-4. Save — your dashboard will be live at:
-   `https://<owner>.github.io/<repo>/action/dashboard/dashboard.html`
+2. Under **Source**, select **GitHub Actions**
+3. The workflow will deploy on every push to `main` that touches the dashboard or action files
 
-Once deployed, double-click `dashboard.url` (Windows) to open it in your browser.
+Once deployed, the dashboard is live at:
+`https://dylan-bi.github.io/MUE/`
+
+Double-click `dashboard.url` (Windows) to open it in your browser.
+
+### Manual deployment
+
+If you prefer not to use the workflow:
+1. Run `python action/dashboard/build_data.py` to regenerate `data.json`
+2. Upload the `action/dashboard/` folder to any static host
+3. Open `dashboard.html` in your browser
 
 ## Files
 
