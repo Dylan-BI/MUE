@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
-scripts/aggregate_weekly.py
-Aggregate notes in notes/ for a given ISO week into reports/weekly-YYYY-WW.md
-Usage: python3 scripts/aggregate_weekly.py --year 2026 --week 27
+source/scripts/aggregate_weekly.py
+Aggregate daily notes in action/notes/ for a given ISO week into action/reports/weekly-YYYY-WW.md
+Usage:
+    python3 source/scripts/aggregate_weekly.py --year 2026 --week 27
+    
+    # From source/scripts/:
+    python3 aggregate_weekly.py --year 2026 --week 27
 """
 import argparse
 import os
 from datetime import datetime
 import glob
 
-NOTES_DIR = 'notes'
-REPORTS_DIR = 'reports'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+
+NOTES_DIR = os.path.join(REPO_ROOT, 'action', 'notes')
+REPORTS_DIR = os.path.join(REPO_ROOT, 'action', 'reports')
 
 
 def find_notes_for_week(year, week):

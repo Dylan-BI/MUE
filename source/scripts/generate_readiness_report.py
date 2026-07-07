@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-scripts/generate_readiness_report.py
-Parse daily notes in notes/ and extract structured evidence, scores, and readiness.
-Generates a consolidated readiness report in reports/.
+source/scripts/generate_readiness_report.py
+Parse daily notes in action/notes/ and extract structured evidence, scores, readiness.
+Generates a consolidated readiness report in action/reports/.
 
 Usage:
-    python3 scripts/generate_readiness_report.py                    # latest week
-    python3 scripts/generate_readiness_report.py --year 2026 --week 27
-    python3 scripts/generate_readiness_report.py --full             # all notes
+    python3 source/scripts/generate_readiness_report.py                    # latest week
+    python3 source/scripts/generate_readiness_report.py --year 2026 --week 27
+    python3 source/scripts/generate_readiness_report.py --full             # all notes
 """
 import argparse
 import glob
@@ -15,9 +15,12 @@ import os
 import re
 from datetime import datetime, date, timedelta
 
-NOTES_DIR = 'notes'
-REPORTS_DIR = 'reports'
-EVIDENCE_DIR = 'evidence'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+
+NOTES_DIR = os.path.join(REPO_ROOT, 'action', 'notes')
+REPORTS_DIR = os.path.join(REPO_ROOT, 'action', 'reports')
+EVIDENCE_DIR = os.path.join(REPO_ROOT, 'action', 'evidence')
 
 # Patterns to extract from daily notes
 PATTERNS = {

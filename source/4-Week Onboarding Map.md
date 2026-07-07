@@ -247,15 +247,24 @@ Run this on Day 28. All must be **Yes** to begin bounded Codex use.
 
 | File | Purpose |
 |---|---|
-| `README.md` | Overview, sharing notes, 4-week flow |
-| `4-Week Onboarding Map.md` | **This file** — condensed daily/weekly plan with evidence, retention, and contributor definition |
-| `Copilot Reference for MUE.md` | Copilot modes, custom instructions, prompt files, context management |
-| `Custom Workflows for MUE.md` | Four operational workflows (repo analysis, review, handoff, daily learning) |
-| `Codex Productivity Training Handoff.md` | Vision document — three-track rationale |
-| `Pyramid, Codex, and BI Judgment Readiness Plan.md` | Full day-by-day and week-by-week readiness plan |
-| `Pyramid, Codex, and BI Judgment Daily Execution Guide.txt` | 60-day execution plan (reference; use this map for scheduling) |
-| `Pyramid, Codex, and BI Judgment Daily Working Template.txt` | Daily work blocks, checklists, scorecards (use directly) |
-| `scripts/create_daily_note.py` | Creates daily note from template (enforces day ≤ 28) |
-| `scripts/aggregate_weekly.py` | Aggregates weekly notes into reports/ |
-| `.github/workflows/weekly-aggregator.yml` | Auto-generates weekly reports via GitHub Actions |
+| `README.md` | Root overview — three-folder structure, quick start |
+| `source/4-Week Onboarding Map.md` | **This file** — condensed daily/weekly plan with evidence, retention, and contributor definition |
+| `source/Copilot Reference for MUE.md` | Copilot modes, custom instructions, prompt files, context management |
+| `source/Custom Workflows for MUE.md` | Four operational workflows (repo analysis, review, handoff, daily learning) |
+| `source/Codex Productivity Training Handoff.md` | Vision document — three-track rationale |
+| `source/Pyramid, Codex, and BI Judgment Readiness Plan.md` | Full day-by-day and week-by-week readiness plan |
+| `source/Pyramid, Codex, and BI Judgment Daily Execution Guide.txt` | 60-day execution plan (reference; use this map for scheduling) |
+| `source/Pyramid, Codex, and BI Judgment Daily Working Template.txt` | Daily work blocks, checklists, scorecards (use directly) |
+| `source/CONTRIBUTING.md` | Contribution rules, evidence layout, 28-day enforcement |
+| `source/scripts/create_daily_note.py` | Creates daily note from template (enforces day ≤ 28) |
+| `source/scripts/aggregate_weekly.py` | Aggregates weekly notes into action/reports/ |
+| `source/scripts/generate_readiness_report.py` | Parses notes → structured readiness reports |
+| `action/` | Learner workspace — notes, evidence, reports, templates |
+| `action/README.md` | Learner quick-start guide |
+| `action/templates/retention-review.md` | Weekly retention review |
+| `action/templates/contributor-readiness-check.md` | End-of-program certification checklist |
+| `review/` | Third-party reviewer workspace |
+| `review/README.md` | Reviewer instructions |
+| `review/scripts/sync-from-action.py` | Syncs action/ output into review/ |
+| `.github/workflows/weekly-aggregator.yml` | Auto-generates weekly reports + syncs to review/ via GitHub Actions |
 | `.github/instructions/mue-instructions.yml` | Team-wide Copilot working standards |

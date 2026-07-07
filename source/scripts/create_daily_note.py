@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
 """
-scripts/create_daily_note.py
+source/scripts/create_daily_note.py
 Create a daily note from the Daily Working Template and enforce 4-week (28 day) max.
-Usage: python3 scripts/create_daily_note.py --date YYYY-MM-DD --day-number N
+Usage:
+    # From repo root:
+    python3 source/scripts/create_daily_note.py --date YYYY-MM-DD --day-number N
+    
+    # From source/scripts/:
+    python3 create_daily_note.py --date YYYY-MM-DD --day-number N
 """
 import argparse
 import os
 import sys
 from datetime import datetime
 
-TEMPLATE_PATH = 'Pyramid, Codex, and BI Judgment Daily Working Template.txt'
-NOTES_DIR = 'notes'
+# Script lives in source/scripts/, repo root is two levels up
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+
+TEMPLATE_PATH = os.path.join(REPO_ROOT, 'source', 'Pyramid, Codex, and BI Judgment Daily Working Template.txt')
+NOTES_DIR = os.path.join(REPO_ROOT, 'action', 'notes')
 
 
 def load_template():
