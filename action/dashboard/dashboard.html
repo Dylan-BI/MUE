@@ -885,9 +885,9 @@ function renderCurriculumReviewContent() {
     '<p class="caption">At this level, learners focus on the following skills across all 7 categories:</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px">' +
     Object.values(levelCats).map(cat =>
-      '<div style="background:#f8f9fa;border-radius:8px;padding:10px 12px;border:1px solid #eee">' +
-      '<div style="font-weight:600;font-size:12px;color:#333;margin-bottom:4px">' + cat.emoji + ' ' + cat.label + '</div>' +
-      '<div style="font-size:11px;color:#888">' + (cat.skills || []).slice(0, 4).join(' · ') + '</div>' +
+      '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color)">' +
+      '<div style="font-weight:600;font-size:12px;color:var(--text-primary);margin-bottom:4px">' + cat.emoji + ' ' + cat.label + '</div>' +
+      '<div style="font-size:11px;color:var(--text-secondary)">' + (cat.skills || []).slice(0, 4).join(' · ') + '</div>' +
       '</div>'
     ).join('') +
     '</div></div>';
@@ -902,7 +902,7 @@ function renderCurriculumReviewContent() {
         const fCats = scMap[fPath] || [];
         return fCats.includes(cat.id);
       });
-      return '<div style="border:1px solid #e0e0e0;border-radius:10px;padding:14px 16px;margin-bottom:10px">' +
+      return '<div style="border:1px solid var(--border-color);border-radius:10px;padding:14px 16px;margin-bottom:10px">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
         '<span style="font-size:22px">' + cat.emoji + '</span>' +
         '<span style="font-weight:700;font-size:15px;color:var(--text-primary)">' + cat.label + '</span>' +
@@ -945,7 +945,7 @@ function renderCurriculumReviewContent() {
       const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
       const done = dayNotes.length > 0;
       return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;font-weight:600;cursor:default;' +
-        (done ? 'background:#198754;color:#fff' : 'background:#f0f0f0;color:#aaa') +
+        (done ? 'background:var(--day-cell-done);color:#fff' : 'background:var(--day-cell-pending);color:var(--day-cell-pending-text)') +
         '" title="Day ' + day + (done ? ' — completed' : ' — pending') + '">' + day + '</div>';
     }).join('') +
     '</div></div>';
@@ -1063,11 +1063,11 @@ function renderAll() {
   if (catGrid && Object.keys(cats).length) {
     Object.values(cats).forEach(cat => {
       const div = document.createElement('div');
-      div.style.cssText = 'background:#f8f9fa;border-radius:8px;padding:10px 12px;border:1px solid #eee;text-align:center';
+      div.style.cssText = 'background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color);text-align:center';
       div.innerHTML = '<div style="font-size:24px;margin-bottom:4px">' + cat.emoji + '</div>' +
-        '<div style="font-weight:600;font-size:12px;color:#333">' + cat.label + '</div>' +
-        '<div style="font-size:10px;color:#888;margin-top:2px">' + cat.description + '</div>' +
-        '<div style="font-size:10px;color:#999;margin-top:2px">Week' + (cat.weeks || []).join(', ') + '</div>';
+        '<div style="font-weight:600;font-size:12px;color:var(--text-primary)">' + cat.label + '</div>' +
+        '<div style="font-size:10px;color:var(--text-secondary);margin-top:2px">' + cat.description + '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Week' + (cat.weeks || []).join(', ') + '</div>';
       catGrid.appendChild(div);
     });
   }
