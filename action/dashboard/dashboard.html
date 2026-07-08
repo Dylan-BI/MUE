@@ -929,6 +929,7 @@ document.addEventListener('keydown', (e) => {
   const key = e.key.toUpperCase();
   if (key === 'R') { loadData(); }
   else if (key === 'S') { runSync(); }
+  else if (key === '0') { showPage('third-party'); }
   else if (key >= '1' && key <= '9') {
     const pages = ['overview','daily','scorecard','proof-tasks','evidence','classification','codex-gate','curriculum-review','artifacts','third-party'];
     const idx = parseInt(key) - 1;
@@ -1450,24 +1451,100 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     ).join('') +
     '</div></div>' +
 
-    // How-to tips
-    '<h4 style="font-size:13px;color:#333;margin-bottom:8px">How to Review Learner Work</h4>' +
-    '<ul style="font-size:12px;color:#555;line-height:1.8;padding-left:20px;margin-bottom:12px">' +
-    '<li><strong>Set the level first</strong> — Use the 🌱🌿🌳🏆 buttons in the sidebar to select the learner\'s proficiency level. All review criteria and category skills will adjust automatically.</li>' +
-    '<li><strong>Focus on 📘 Learner Artifact Changes</strong> — These are curriculum-completed notes, evidence, and reports. Infrastructure changes (dashboard, templates, CI/CD) are hidden by default.</li>' +
-    '<li><strong>Click "💬 Comment"</strong> on any file to leave review feedback. Comments are sent via mailto to <code>dylan@bicyclebi.com</code>.</li>' +
-    '<li><strong>Use "📤 Sync action/ → review/"</strong> to copy completed learner work from <code>action/</code> to <code>review/</code> for formal assessment.</li>' +
-    '<li><strong>Check Source Criteria</strong> below — reference files in <code>source/</code> define the education standards learners must meet.</li>' +
-    '<li><strong>Version tracking</strong> — Each change shows the git commit hash. Click a page name to jump to that section.</li>' +
-    '<li><strong>Check progress weekly</strong> — Use the <strong>Curriculum Review</strong> tab (nav key 8) for a full scope overview of all 7 categories across all 4 weeks, filtered by level.</li>' +
-    '</ul>' +
+    // Dashboard walkthrough — page by page
+    '<h4 style="font-size:13px;color:#333;margin-bottom:8px">📖 Dashboard Walkthrough — Page by Page</h4>' +
+    '<p style="font-size:12px;color:#666;margin-bottom:10px">The dashboard has 10 pages organised in two groups: <strong>Learning Data</strong> (Overview through Codex Gate) and <strong>Review &amp; Sync</strong> (Curriculum Review through Third Party Review). Press <kbd style="background:#f5f5f5;padding:1px 5px;border-radius:3px;border:1px solid #ddd">1</kbd>–<kbd style="background:#f5f5f5;padding:1px 5px;border-radius:3px;border:1px solid #ddd">9</kbd> for pages 1–9, <kbd style="background:#f5f5f5;padding:1px 5px;border-radius:3px;border:1px solid #ddd">0</kbd> for Third Party Review. <kbd style="background:#f5f5f5;padding:1px 5px;border-radius:3px;border:1px solid #ddd">G</kbd> toggles this guide.</p>' +
+    '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">' +
+      // Page 1
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">1</span>' +
+      '<strong style="font-size:13px">📋 Overview</strong>' +
+      '<span style="font-size:10px;color:#888">Pulse check — start here</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Top-level metrics (days, weeks, evidence, classification), 📘 Learner Artifact Changes summary, infrastructure toggle, day grid (green=grey=pending), category grid, track distribution chart, program-level review.' +
+      '<br><strong>Reviewer focus:</strong> Start here for a quick pulse. The 📘 Learner Artifact Changes section lists files modified since last commit — this is your entry point. Review the day grid for completion gaps. Click a page name in the change table to jump directly to those files for detailed review.</div></div>' +
+      // Page 2
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">2</span>' +
+      '<strong style="font-size:13px">📅 Daily Progress</strong>' +
+      '<span style="font-size:10px;color:#888">Day-by-day notes</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Chronological list of daily training notes with scorecard chips (P/F), evidence links, what-learned/next-step fields. Each note has an embedded 💬 Review form. Note artifacts in <code>action/notes/</code> shown below with change and review status.' +
+      '<br><strong>Reviewer focus:</strong> Verify each day has a completed note with meaningful reflection. Check that scorecard progression trends upward. Use the 💬 Review form on each day to give feedback on specific entries. Look for missing days or sparse notes.</div></div>' +
+      // Page 3
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">3</span>' +
+      '<strong style="font-size:13px">🏆 Scorecard</strong>' +
+      '<span style="font-size:10px;color:#888">Competency trends</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> 7 scorecard areas (Prompt discipline, Change isolation, Validation order, etc.) with Pass/Partial/Fail history. Each area shows trend direction (📈 Improving / 📉 Needs attention). Each area has an embedded 💬 Review form.' +
+      '<br><strong>Reviewer focus:</strong> Look for consistent progression. A cluster of Fails in related areas (e.g. Deployment awareness + Validation order) suggests a root cause in Pyramid/BI Judgment training. The 🏆 Scorecard → Learning Categories map (above) helps you connect low scores to the right categories. Use 💬 Review to flag concerns.</div></div>' +
+      // Page 4
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">4</span>' +
+      '<strong style="font-size:13px">✅ Proof Tasks</strong>' +
+      '<span style="font-size:10px;color:#888">Completion tracking</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> 6 proof tasks (e.g. BICC peer review, ticket audit validation) with completion status and the days they were found on. Overall progress bar.' +
+      '<br><strong>Reviewer focus:</strong> All 6 must be completed before Codex Gate. Verify that each task has genuine evidence of completion — not just a tick. Use 💬 Review to confirm or challenge each task.</div></div>' +
+      // Page 5
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">5</span>' +
+      '<strong style="font-size:13px">📁 Evidence</strong>' +
+      '<span style="font-size:10px;color:#888">Artifact gallery</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Evidence files (screenshots, logs, output) grouped by ISO week. Each file has a 💬 Review form. Agent-changed files highlighted with ✏️ badge.' +
+      '<br><strong>Reviewer focus:</strong> Check that evidence files are present, correctly named, and genuinely demonstrate the claimed skill. Look for gaps where days have notes but no supporting evidence. Agent-changed files (✏️) may need closer scrutiny.</div></div>' +
+      // Page 6
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">6</span>' +
+      '<strong style="font-size:13px">📈 Classification</strong>' +
+      '<span style="font-size:10px;color:#888">Readiness trend</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Line chart and bar chart of readiness classification over time (Foundational → Developing → Operational → Ready for Codex Acceleration). Embedded 💬 Review form.' +
+      '<br><strong>Reviewer focus:</strong> The trend should show upward progression. Plateaus or regressions need investigation — check what happened on those days. The final classification determines if the learner is ready for Codex Gate.</div></div>' +
+      // Page 7
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">7</span>' +
+      '<strong style="font-size:13px">🚪 Codex Gate</strong>' +
+      '<span style="font-size:10px;color:#888">Final checkpoint</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> 8 gate criteria (end-to-end workflow, business logic ownership, validation evidence, proof tasks, change slice, reusable asset, etc.) each with Yes/No/— status. Overall Pass/Fail banner.' +
+      '<br><strong>Reviewer focus:</strong> All gates must be ✅ Yes. If any are ❌ No or ⬜ pending, the learner is not ready. Use 💬 Review to document which gates need more work and what evidence is still missing. This is the final go/no-go decision point.</div></div>' +
+      // Page 8
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">8</span>' +
+      '<strong style="font-size:13px">📚 Curriculum Review</strong>' +
+      '<span style="font-size:10px;color:#888">Full curriculum scope</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Level-aware 4-level × 7-category × 28-day curriculum view. Metrics row (weeks, categories, source files, days done). Weekly overview cards, skills summary grid, deep-dive into each category with level-adjusted skills and mapped source files. Source Criteria Index table with category tags. 28-day curriculum calendar.' +
+      '<br><strong>Reviewer focus:</strong> This is your bird\'s-eye view of the entire curriculum. Use the 🌱🌿🌳🏆 level selector at the top to match the learner\'s proficiency tier. Verify that all 7 categories have activity. Check that source criteria files are mapped to the right categories. The curriculum calendar shows which days are complete vs pending.</div></div>' +
+      // Page 9
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">9</span>' +
+      '<strong style="font-size:13px">📂 All Artifacts</strong>' +
+      '<span style="font-size:10px;color:#888">Complete file browser</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> All files in <code>action/</code> organised by category (Notes, Evidence, Reports, Templates, Scripts, Dashboard, Other) with icons, size, modified date, change status (✏️), sync status (✅), learning category tags, and 👁️ preview + 💬 review per file. Filterable by search, category, and learning area.' +
+      '<br><strong>Reviewer focus:</strong> Use the search and category filters to zero in on specific files. The ✏️ badge highlights files the agent changed since last commit — prioritise those for review. The ✅ badge shows what\'s already synced to <code>review/</code>. Click 👁️ for a quick preview of a file\'s content.</div></div>' +
+      // Page 10
+      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
+      '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">0</span>' +
+      '<strong style="font-size:13px">🔍 Third Party Review</strong>' +
+      '<span style="font-size:10px;color:#888">Review hub &amp; sync (key 0)</span></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Central review dashboard. Top metrics (learner changes, synced files, reviews submitted, source criteria). 📘 Learner Artifact Changes table with per-page change counts and 💬 Comment buttons. ⚙️ Infrastructure changes (collapsible). 📖 Source Training Criteria table with category tags. 📤 Export and Sync buttons.' +
+      '<br><strong>Reviewer focus:</strong> This is your command centre. Start with the 📘 Learner Artifact Changes table — these are the files that need your attention. Use 💬 Comment to leave feedback on version changes. Use 📤 Export All Reviews to download all feedback as JSON. Use 📤 Sync to copy completed work to <code>review/</code> for formal assessment. The Source Training Criteria table at the bottom is your reference for what the learner should be demonstrating.</div></div>' +
+    '</div>' +
+    '<p class="caption" style="margin-bottom:12px">💡 <strong>Suggested review workflow:</strong> Overview (1) → check learner changes → jump to pages with changes → review each file with 💬 → return to Third Party Review (10) → 📤 Export Reviews → 📤 Sync when ready.</p>' +
 
     // Keyboard shortcuts
     '<h4 style="font-size:13px;color:#333;margin:12px 0 8px">Keyboard Shortcuts</h4>' +
     '<table style="font-size:11px;color:#666;width:100%;border-collapse:collapse">' +
     '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">R</td><td style="padding:2px">Refresh data</td></tr>' +
     '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">S</td><td style="padding:2px">Run sync</td></tr>' +
-    '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">1-9</td><td style="padding:2px">Jump to nav page (1=Overview, 2=Daily, …, 8=Curriculum Review, 9=Artifacts)</td></tr>' +
+    '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">1-9</td><td style="padding:2px">Jump to page (1 Overview … 8 Curriculum, 9 Artifacts)</td></tr>' +
+    '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">0</td><td style="padding:2px">Jump to Third Party Review hub</td></tr>' +
     '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">G</td><td style="padding:2px">Toggle this guide</td></tr>' +
     '</table>' +
 
