@@ -80,10 +80,25 @@ Category                    Wk1      Wk2      Wk3      Wk4
 
 ---
 
+## 📖 Academic Layer Reference
+
+This curriculum now includes a **BI Academic Framework** that adds BI theory, formal assessment design, and industry standards alignment to each proficiency level. See `source/BI Academic Framework.md` for the full reference.
+
+**Quick map by level:**
+| Level | Academic Focus | Key Concepts |
+|-------|---------------|--------------|
+| 🌱 L1 Foundation | Theoretical vocabulary | DIKW pyramid, descriptive vs. diagnostic analytics, what is a data model, why visualisation matters |
+| 🌿 L2 Development | Guided application of theory | Analytics maturity (4 types), ETL/ELT, dimensional modelling basics, grain as a threshold concept |
+| 🌳 L3 Operational | Independent analysis with rigour | Kimball lifecycle, data governance, star schemas, validation chain methodology, row ownership |
+| 🏆 L4 Mastery | Strategic integration & transfer | BI maturity models, industry standards (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone |
+
+---
+
 ## Week 1 — 🏗️ Foundation (Days 1–5)
 
 **Theme:** Establish the learning frame — AI habits, BI reasoning, and Pyramid awareness.
 **Categories:** 🤖 AI & Copilot · 📊 BI Judgment · 🏗️ Pyramid Platform · 🧠 Retention
+**🎓 Academic concepts this week:** DIKW pyramid (name the four layers), descriptive vs. diagnostic analytics, what is a data model, why visualisation matters
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
@@ -103,6 +118,7 @@ Category                    Wk1      Wk2      Wk3      Wk4
 
 **Theme:** Validate source-to-model data foundation. Complete Proof Tasks 1 and 3.
 **Categories:** 🔗 Data & Lineage · 📊 BI Judgment · ⚡ Codex Productivity · 🏗️ Pyramid Platform
+**🎓 Academic concepts this week:** Analytics maturity (descriptive→diagnostic→predictive→prescriptive), ETL/ELT pipeline, dimensional modelling basics (facts vs. dimensions), grain as a threshold concept
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
@@ -126,6 +142,7 @@ Category                    Wk1      Wk2      Wk3      Wk4
 
 **Theme:** Validate snapshot/rollup logic, run QC, rehearse deployment. Complete Proof Tasks 3–5.
 **Categories:** 🏗️ Pyramid Platform · ⚡ Codex Productivity · 📊 BI Judgment · 📦 Delivery & Handoff
+**🎓 Academic concepts this week:** Kimball lifecycle, data governance & quality dimensions (DMBOK), star schemas, validation chain methodology, row ownership threshold concept
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
@@ -150,6 +167,7 @@ Category                    Wk1      Wk2      Wk3      Wk4
 
 **Theme:** Deliver a reviewable change slice, create a reusable asset, and pass the Codex Gate.
 **Categories:** 📦 Delivery & Handoff · ⚡ Codex Productivity · 🏗️ Pyramid Platform · 📊 BI Judgment · 🧠 Retention & Readiness
+**🎓 Academic concepts this week:** BI maturity models (TDWI/Gartner), industry standards alignment (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone, bounded Codex as metacognition
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
