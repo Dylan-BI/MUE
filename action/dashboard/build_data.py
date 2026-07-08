@@ -1,8 +1,9 @@
 """
 action/dashboard/build_data.py
-Scans action/notes/, action/evidence/, action/reports/, and review/ then
-generates a static data.json that the HTML dashboard can consume.
-Tracks agent-changed files via git diff for "changes by the agent" display.
+Third-Party Review Dashboard builder for MUE.
+Scans action/, source/, and review/ then generates data.json consumed by
+dashboard.html. Tracks per-page version changes, git diffs, source criteria
+alignment, and provides version-based review metadata.
 
 Usage:
     python action/dashboard/build_data.py
@@ -26,6 +27,23 @@ OUTPUT_PATH = os.path.join(DASHBOARD_DIR, 'data.json')
 # Parent repo root (for review/ dir and git root)
 REPO_ROOT = os.path.abspath(os.path.join(ACTION_DIR, '..'))
 REVIEW_DIR = os.path.join(REPO_ROOT, 'review')
+SOURCE_DIR = os.path.join(REPO_ROOT, 'source')
+
+# ── Page mapping: file path patterns → dashboard page id ──
+PAGE_MAP = [
+    ('daily',       ['action/notes/', 'notes/']),
+    ('evidence',    ['action/evidence/', 'evidence/']),
+    ('reports',     ['action/reports/', 'reports/']),
+    ('scorecard',   []),  # derived from note content, not direct file map
+    ('proof-tasks', []),  # derived from note content
+    ('classification', []),
+    ('codex-gate',  []),
+    ('templates',   ['action/templates/', 'templates/']),
+    ('scripts',     ['action/scripts/', 'scripts/']),
+    ('dashboard',   ['action/dashboard/', 'dashboard/']),
+    ('review',      ['review/']),
+    ('source',      ['source/']),
+]
 
 # ── Regex patterns ──────────────────────────────────────────────────────────
 PAT_CLASSIFICATION = re.compile(
@@ -72,6 +90,167 @@ PROOF_TASKS = [
     ('PT6', 'Reviewer Handoff Test'),
 ]
 
+
+# ── Page classification helpers ────────────────────────────────────────────
+
+def classify_path_to_page(rel_path):
+    """Map a file path (relative to repo root) to a dashboard page id."""
+    p = rel_path.replace('\\', '/')
+    for page_id, patterns in PAGE_MAP:
+        for pat in patterns:
+            if pat in p or p.startswith(pat):
+                return page_id
+    return 'other'
+
+
+# Page mapping for files relative to action/ (legacy)
+PAGE_CATEGORY_FROM_ACTION = {
+    'notes': 'daily',
+    'evidence': 'evidence',
+    'reports': 'reports',
+    'templates': 'templates',
+    'scripts': 'scripts',
+    'dashboard': 'dashboard',
+}
+
+# ── Git helpers ─────────────────────────────────────────────────────────────
+
+def get_git_changed_files():
+    """Run git diff --name-only HEAD to find files changed by the agent since last commit."""
+    try:
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', 'HEAD'],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+        )
+        if result.returncode == 0:
+            changed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            return changed
+    except Exception:
+        pass
+    return []
+
+
+def get_git_diff_for_file(filepath):
+    """Get the unified diff for a specific file vs HEAD. Returns diff text or empty string."""
+    try:
+        result = subprocess.run(
+            ['git', 'diff', 'HEAD', '--', filepath],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+        )
+        if result.returncode == 0:
+            return result.stdout
+    except Exception:
+        pass
+    return ''
+
+
+def get_git_diff_stat(filepath):
+    """Get a short stat summary for the diff of a file. Returns string like '+3/-1 lines'."""
+    try:
+        result = subprocess.run(
+            ['git', 'diff', '--stat', 'HEAD', '--', filepath],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+        )
+        if result.returncode == 0:
+            line = result.stdout.strip()
+            if line:
+                # Parse stat like " 1 file changed, 3 insertions(+), 1 deletion(-)"
+                m = re.search(r'(\d+) insertions?\(\+\)', line)
+                added = int(m.group(1)) if m else 0
+                m = re.search(r'(\d+) deletions?\(-\)', line)
+                removed = int(m.group(1)) if m else 0
+                if added or removed:
+                    return f'+{added}/-{removed} lines'
+    except Exception:
+        pass
+    return ''
+
+
+def get_git_head_info():
+    """Return the current HEAD commit short hash and timestamp."""
+    try:
+        result = subprocess.run(
+            ['git', 'log', '-1', '--format=%h|%ct', 'HEAD'],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+        )
+        if result.returncode == 0:
+            parts = result.stdout.strip().split('|')
+            if len(parts) == 2:
+                return {
+                    'commit': parts[0],
+                    'timestamp': datetime.fromtimestamp(int(parts[1])).isoformat(),
+                }
+    except Exception:
+        pass
+    return {'commit': '—', 'timestamp': datetime.now().isoformat()}
+
+
+def compute_changes_by_page(changed_files):
+    """
+    Group changed files by dashboard page. For each file, capture:
+    - diff content, diff stat, version label, timestamp
+    Returns dict: { page_id: { count: N, files: [...] } }
+    """
+    changes_by_page = defaultdict(lambda: {'count': 0, 'files': []})
+    head_info = get_git_head_info()
+
+    # Track all changed files for cross-reference
+    all_file_details = []
+
+    for fp in changed_files:
+        page = classify_path_to_page(fp)
+        diff = get_git_diff_for_file(fp)
+        stat = get_git_diff_stat(fp)
+        # Determine version label from file modification time or HEAD
+        version = head_info['commit'][:7] if head_info['commit'] != '—' else 'v1'
+
+        entry = {
+            'path': fp,
+            'page': page,
+            'version': version,
+            'commit': head_info['commit'],
+            'timestamp': datetime.now().isoformat(),
+            'diff': diff,
+            'diff_stat': stat,
+            'has_diff': bool(diff.strip()),
+        }
+        changes_by_page[page]['count'] += 1
+        changes_by_page[page]['files'].append(entry)
+        all_file_details.append(entry)
+
+    return dict(changes_by_page), all_file_details
+
+
+def compute_page_change_counts(changes_by_page):
+    """Build a flat { page_id: count } map for sidebar badges."""
+    all_pages = [
+        'overview', 'daily', 'scorecard', 'proof-tasks', 'evidence',
+        'classification', 'codex-gate', 'artifacts', 'third-party',
+        'templates', 'scripts', 'dashboard', 'source',
+    ]
+    counts = {}
+    for p in all_pages:
+        counts[p] = changes_by_page.get(p, {}).get('count', 0)
+    return counts
+
+
+def get_source_criteria():
+    """Scan source/ folder and return list of reference criteria files."""
+    files = []
+    if not os.path.isdir(SOURCE_DIR):
+        return files
+    for f in sorted(os.listdir(SOURCE_DIR)):
+        fpath = os.path.join(SOURCE_DIR, f)
+        if os.path.isfile(fpath) and not f.startswith('.'):
+            files.append({
+                'path': f,
+                'size': os.path.getsize(fpath),
+                'modified': datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(),
+            })
+    return files
+
+
+# ── Legacy data functions (unchanged from original) ────────────────────────
 
 def parse_date_from_filename(filename):
     basename = os.path.basename(filename).replace('.md', '')
@@ -184,43 +363,6 @@ def scan_reports():
     return files
 
 
-def get_git_changed_files():
-    """Run git diff --name-only HEAD to find files changed by the agent since last commit."""
-    try:
-        result = subprocess.run(
-            ['git', 'diff', '--name-only', 'HEAD'],
-            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
-        )
-        if result.returncode == 0:
-            changed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-            return changed
-    except Exception:
-        pass
-    return []
-
-
-def classify_changed_file(rel_path):
-    """Classify a file path into a page/section category."""
-    p = rel_path.replace('\\', '/')
-    if 'action/notes/' in p or p.startswith('notes/'):
-        return 'daily'
-    if 'action/evidence/' in p or p.startswith('evidence/'):
-        return 'evidence'
-    if 'action/reports/' in p or p.startswith('reports/'):
-        return 'reports'
-    if 'action/templates/' in p or p.startswith('templates/'):
-        return 'templates'
-    if 'action/scripts/' in p or p.startswith('scripts/'):
-        return 'scripts'
-    if 'action/dashboard/' in p or p.startswith('dashboard/'):
-        return 'dashboard'
-    if 'review/' in p:
-        return 'review'
-    if 'source/' in p:
-        return 'source'
-    return 'other'
-
-
 def compute_summary(notes):
     if not notes:
         return {
@@ -301,13 +443,129 @@ def compute_summary(notes):
         'latest_classification': cls_seq[-1]['classification'] if cls_seq else '—',
         'classification_sequence': cls_seq,
         'days_per_week': dict(days_per_week),
-        'evidence_count': 0,  # filled from scan
+        'evidence_count': 0,
         'scorecard_trend': {k: v for k, v in scorecard_trend.items()},
         'codex_gate_status': codex_gate_status,
         'completed_tracks': dict(completed_tracks),
         'proof_tasks': proof_tasks,
         'current_week': max(days_per_week.keys()) if days_per_week else 0,
     }
+
+
+def scan_all_artifacts():
+    """Recursively scan the entire action/ directory and categorize every file."""
+    categories = {
+        'notes': [],
+        'evidence': [],
+        'reports': [],
+        'templates': [],
+        'scripts': [],
+        'dashboard': [],
+        'other': [],
+    }
+
+    if not os.path.isdir(ACTION_DIR):
+        return categories
+
+    for root, dirs, fnames in os.walk(ACTION_DIR):
+        if '.git' in root.split(os.sep):
+            continue
+        rel_dir = os.path.relpath(root, ACTION_DIR)
+
+        for f in sorted(fnames):
+            if f == '.gitkeep' or f.endswith('.pyc'):
+                continue
+            fp = os.path.join(root, f)
+            rel = os.path.relpath(fp, ACTION_DIR)
+
+            mtime = datetime.fromtimestamp(os.path.getmtime(fp)).isoformat()
+            is_markdown = f.endswith('.md')
+            preview = None
+            if is_markdown:
+                try:
+                    with open(fp, 'r', encoding='utf-8') as fh:
+                        preview = fh.read(500)
+                except Exception:
+                    preview = None
+
+            entry = {
+                'path': rel,
+                'filename': f,
+                'folder': rel_dir,
+                'size': os.path.getsize(fp),
+                'modified': mtime,
+                'preview': preview,
+                'is_markdown': is_markdown,
+                'page_category': classify_path_to_page(os.path.join('action', rel)),
+            }
+
+            # Categorize
+            if rel.startswith('notes') or rel.startswith('notes\\') or rel.startswith('notes/'):
+                categories['notes'].append(entry)
+            elif rel.startswith('evidence') or rel.startswith('evidence\\') or rel.startswith('evidence/'):
+                categories['evidence'].append(entry)
+            elif rel.startswith('reports') or rel.startswith('reports\\') or rel.startswith('reports/'):
+                categories['reports'].append(entry)
+            elif rel.startswith('templates') or rel.startswith('templates\\') or rel.startswith('templates/'):
+                categories['templates'].append(entry)
+            elif rel.startswith('scripts') or rel.startswith('scripts\\') or rel.startswith('scripts/'):
+                categories['scripts'].append(entry)
+            elif rel.startswith('dashboard') or rel.startswith('dashboard\\') or rel.startswith('dashboard/'):
+                categories['dashboard'].append(entry)
+            else:
+                categories['other'].append(entry)
+
+    return categories
+
+
+def scan_review_dir():
+    """Scan the review/ directory for files synced from action/."""
+    synced = {'notes': [], 'evidence': [], 'reports': []}
+    if not os.path.isdir(REVIEW_DIR):
+        return synced
+    for sub in ['notes', 'evidence', 'reports']:
+        subdir = os.path.join(REVIEW_DIR, sub)
+        if not os.path.isdir(subdir):
+            continue
+        for root, dirs, fnames in os.walk(subdir):
+            for f in fnames:
+                if f == '.gitkeep':
+                    continue
+                fp = os.path.join(root, f)
+                rel = os.path.relpath(fp, REVIEW_DIR)
+                synced[sub].append({
+                    'path': rel,
+                    'filename': f,
+                    'size': os.path.getsize(fp),
+                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                })
+    return synced
+
+
+def build_page_artifacts(artifacts, changed_set):
+    """Group artifacts by dashboard page category for per-page review sections."""
+    page_map = {
+        'daily': [],
+        'evidence': [],
+        'reports': [],
+        'templates': [],
+        'scripts': [],
+        'dashboard': [],
+        'other': [],
+    }
+    for cat, items in artifacts.items():
+        for item in items:
+            pc = item.get('page_category', 'other')
+            item['action_cat'] = cat
+            item['was_changed'] = (
+                'action/' + item['path'].replace('\\', '/') in changed_set
+                or item['path'].replace('\\', '/') in changed_set
+            )
+            if pc in page_map:
+                page_map[pc].append(item)
+            else:
+                page_map['other'].append(item)
+    return page_map
 
 
 def scan_all_artifacts():
@@ -468,6 +726,19 @@ def main():
     review_total = sum(len(v) for v in review_data.values())
     print(f'  Found {review_total} synced file(s) in review/')
 
+    print('Scanning source/ criteria...')
+    source_criteria = get_source_criteria()
+    print(f'  Found {len(source_criteria)} source criteria file(s)')
+
+    print('Computing per-page version changes...')
+    changes_by_page, all_file_changes = compute_changes_by_page(changed_files)
+    change_counts = compute_page_change_counts(changes_by_page)
+    total_changes = sum(change_counts.values())
+    print(f'  {total_changes} change(s) across {len([c for c in change_counts.values() if c > 0])} page(s)')
+
+    print('Getting HEAD version info...')
+    head_info = get_git_head_info()
+
     # Strip filepath from notes for clean JSON
     notes_clean = []
     for n in notes:
@@ -475,12 +746,17 @@ def main():
 
     data = {
         'generated': datetime.now().isoformat(),
+        'version': head_info,
         'notes': notes_clean,
         'evidence': evidence,
         'reports': reports,
         'artifacts': artifacts,
         'page_artifacts': page_artifacts,
         'changed_files': changed_files,
+        'changes_by_page': changes_by_page,
+        'all_file_changes': all_file_changes,
+        'change_counts': change_counts,
+        'source_criteria': source_criteria,
         'review_data': review_data,
         'summary': summary,
     }
