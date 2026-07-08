@@ -15,6 +15,14 @@
         "/^python -c \"import os,http\\.server; os\\.chdir\\(r'C:\\\\opencode-copilot-chat\\\\MUE'\\); http\\.server\\.test\\(HandlerClass=http\\.server\\.SimpleHTTPRequestHandler, port=8900\\)\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^python -c \"import json; d=json\\.load\\(open\\(r'action\\\\dashboard\\\\data\\.json'\\)\\); print\\(list\\(d\\.keys\\(\\)\\)\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"import json; d=json\\.load\\(open\\(r'action\\\\dashboard\\\\data\\.json'\\)\\); print\\(json\\.dumps\\(d\\['summary'\\], indent=2\\)\\); print\\('---'\\); print\\(json\\.dumps\\(d\\['categories'\\], indent=2\\)\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
