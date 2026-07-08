@@ -177,6 +177,195 @@ SOURCE_CATEGORY_MAP = {
     'LEARNING_CATEGORIES.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
 }
 
+# ── 4-Level Curriculum Framework ──────────────────────────────────────────
+# Each level has its own independent 28-day curriculum across all 7 categories.
+# Level 1 (Foundation) is for complete amateurs; Level 4 (Mastery) for expert-ready.
+
+LEVELS = {
+    1: {
+        'id': 1,
+        'label': 'Foundation',
+        'emoji': '🌱',
+        'subtitle': 'For complete amateurs — no prior experience needed. Learn vocabulary and basic concepts with maximum guidance.',
+        'color': '#4CAF50',
+    },
+    2: {
+        'id': 2,
+        'label': 'Development',
+        'emoji': '🌿',
+        'subtitle': 'For learners with some experience — build competence through guided application and practice.',
+        'color': '#2196F3',
+    },
+    3: {
+        'id': 3,
+        'label': 'Operational',
+        'emoji': '🌳',
+        'subtitle': 'For confident practitioners — deep concepts with significant independence and quality focus.',
+        'color': '#FF9800',
+    },
+    4: {
+        'id': 4,
+        'label': 'Mastery',
+        'emoji': '🏆',
+        'subtitle': 'For expert-ready learners — advanced optimization, automation, and strategic thinking with full autonomy.',
+        'color': '#9C27B0',
+    },
+}
+
+# ── Level-specific category content ───────────────────────────────────────
+# Each level adjusts the 7 learning categories with appropriate descriptions,
+# skills, and weekly coverage for that proficiency tier.
+LEVEL_CATEGORIES = {
+    1: {
+        'ai-copilot': {
+            'description': 'What is an AI coding assistant? Learn to chat, ask simple questions, and understand basic responses. No prior experience needed — just curiosity.',
+            'skills': ['Basic chat interaction', 'Simple question asking', 'Understanding AI responses', 'AI assistant overview'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'codex': {
+            'description': 'Introduction to the Codex workflow. Learn what the Codex Loop is and practice following simple guided prompts step by step.',
+            'skills': ['Codex Loop vocabulary', 'Following guided prompts', 'Basic observation skills', 'Simple note-taking'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'pyramid': {
+            'description': 'What is a data platform? Learn basic vocabulary — models, deployments, QC — and see examples of each. Build awareness of the analytics ecosystem.',
+            'skills': ['Platform vocabulary', 'Model awareness', 'Deployment concept', 'QC overview'],
+            'weeks': [2, 3, 4],
+        },
+        'bi-judgment': {
+            'description': 'What is business intelligence? Learn to identify simple business questions and understand what metrics are at a basic level.',
+            'skills': ['BI vocabulary', 'Business question awareness', 'Metric concept', 'Simple data observation'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'data-lineage': {
+            'description': 'What is data lineage? Learn where data comes from and where it goes. Build simple dependency awareness and follow data flows.',
+            'skills': ['Lineage vocabulary', 'Source-to-destination concept', 'Simple dependency awareness', 'Data flow overview'],
+            'weeks': [1, 2, 3],
+        },
+        'delivery-handoff': {
+            'description': 'What does it mean to deliver work? Learn about change tracking, review concepts, and why communication matters.',
+            'skills': ['Delivery vocabulary', 'Change awareness', 'Review concept introduction', 'Communication basics'],
+            'weeks': [3, 4],
+        },
+        'readiness': {
+            'description': 'How do we track learning? Learn about progress tracking, simple check-ins, and basic self-assessment of your own work.',
+            'skills': ['Progress tracking', 'Simple check-ins', 'Basic self-assessment', 'Learning awareness'],
+            'weeks': [1, 2, 3, 4],
+        },
+    },
+    2: {
+        'ai-copilot': {
+            'description': 'Choose the right chat mode for the task. Write clear, structured prompts. Understand context management basics and when to use each tool.',
+            'skills': ['Mode selection', 'Prompt structure', 'Context management', 'Tool introduction'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'codex': {
+            'description': 'Practice the Codex Loop with real tasks. Learn handoff extraction, context pull techniques, and bounded prompt design for safe automation.',
+            'skills': ['Handoff extraction', 'Context pull', 'Bounded prompt design', 'Codex Loop practice'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'pyramid': {
+            'description': 'Build deployment checklists. Practice preflight checks before releases. Learn artifact migration basics between environments.',
+            'skills': ['Model lineage', 'Deployment preflight', 'Artifact migration', 'QC checklist creation'],
+            'weeks': [2, 3, 4],
+        },
+        'bi-judgment': {
+            'description': 'Articulate clear business questions. Select appropriate metrics for each scenario. Start validating data outputs against expectations.',
+            'skills': ['Business question articulation', 'Metric selection', 'Basic validation', 'Output type selection'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'data-lineage': {
+            'description': 'Trace dependencies from source to model. Identify row ownership patterns. Understand basic deduplication and its importance.',
+            'skills': ['Dependency tracing', 'Row ownership', 'Deduplication basics', 'Aggregation awareness'],
+            'weeks': [1, 2, 3],
+        },
+        'delivery-handoff': {
+            'description': 'Scope clean change slices for review. Prepare review packages with change context. Generate handoff notes that reviewers can act on.',
+            'skills': ['Change-slice scoping', 'Review package prep', 'Handoff note creation', 'Basic asset creation'],
+            'weeks': [3, 4],
+        },
+        'readiness': {
+            'description': 'Track progress across all learning tracks. Practice accurate self-assessment. Complete proof tasks and build gate awareness.',
+            'skills': ['Cross-track recall', 'Self-assessment practice', 'Proof task completion', 'Gate awareness'],
+            'weeks': [1, 2, 3, 4],
+        },
+    },
+    3: {
+        'ai-copilot': {
+            'description': 'Create instruction files and prompt files for consistent results. Manage context across long sessions. Detect and avoid prompt drift.',
+            'skills': ['Instruction files', 'Prompt files', 'Context windows', 'Drift avoidance', 'Advanced mode use'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'codex': {
+            'description': 'Master the Codex Loop unassisted in under 5 minutes. Apply quality rubrics to handoffs. Evaluate manual vs Codex approaches systematically.',
+            'skills': ['Codex Loop mastery', 'Handoff quality rubric', 'Manual-vs-Codex evaluation', 'Pattern library use'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'pyramid': {
+            'description': 'Execute QC independently with full evidence packs. Manage access policies and roles. Set up reviewer paths for smooth handoffs.',
+            'skills': ['QC execution', 'Access policy management', 'Reviewer path setup', 'Security awareness'],
+            'weeks': [2, 3, 4],
+        },
+        'bi-judgment': {
+            'description': 'Define grain, filters, and exclusions precisely. Produce validation evidence that stands up to scrutiny. Select optimal output types confidently.',
+            'skills': ['Grain/filter/exclusion definition', 'Validation evidence', 'Output type mastery', 'Cross-tool thinking'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'data-lineage': {
+            'description': 'Apply deduplication logic correctly. Define aggregation boundaries and understand their impact. Identify and mitigate double-counting risks.',
+            'skills': ['Deduplication logic', 'Aggregation boundaries', 'Double-counting risk', 'Dependency mapping'],
+            'weeks': [1, 2, 3],
+        },
+        'delivery-handoff': {
+            'description': 'Generate professional handoff notes that pass quality rubrics. Create reusable assets (prompts, checklists, templates). Set up reviewer workflows.',
+            'skills': ['Handoff note generation', 'Reusable asset creation', 'Reviewer workflow', 'Change impact analysis'],
+            'weeks': [3, 4],
+        },
+        'readiness': {
+            'description': 'Track proof tasks rigorously to completion. Evaluate gate readiness against all criteria. Drive your own progress independently.',
+            'skills': ['Proof task tracking', 'Gate readiness evaluation', 'Self-directed progress', 'Quality assessment'],
+            'weeks': [1, 2, 3, 4],
+        },
+    },
+    4: {
+        'ai-copilot': {
+            'description': 'Design custom agent workflows and sophisticated prompt systems. Optimize team-wide AI usage patterns. Define AI strategy and best practices.',
+            'skills': ['Custom workflow design', 'Advanced prompt engineering', 'Team optimization', 'AI strategy'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'codex': {
+            'description': 'Automate Codex workflows end to end. Optimize the loop for speed and quality. Teach others. Design evaluation frameworks for Codex proficiency.',
+            'skills': ['Workflow automation', 'Codex optimization', 'Teaching and mentoring', 'Evaluation design'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'pyramid': {
+            'description': 'Own the full deployment pipeline end to end. Design security architecture. Define platform strategy and automation roadmaps.',
+            'skills': ['Full pipeline ownership', 'Security architecture', 'Platform strategy', 'Deployment automation'],
+            'weeks': [2, 3, 4],
+        },
+        'bi-judgment': {
+            'description': 'Design strategic metrics that drive decisions. Validate insights across domains and systems. Deliver trusted BI independently with executive-ready communication.',
+            'skills': ['Strategic metric design', 'Cross-domain validation', 'Trusted delivery', 'BI strategy'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'data-lineage': {
+            'description': 'Design data architecture for lineage transparency. Automate lineage tracking and dependency management. Implement quality monitoring systems.',
+            'skills': ['Data architecture', 'Lineage automation', 'Quality monitoring', 'Dependency management'],
+            'weeks': [1, 2, 3],
+        },
+        'delivery-handoff': {
+            'description': 'Design review programs and quality standards. Manage asset libraries for team reuse. Drive process improvement through metrics and feedback.',
+            'skills': ['Review program design', 'Asset library management', 'Process improvement', 'Quality standards'],
+            'weeks': [3, 4],
+        },
+        'readiness': {
+            'description': 'Evaluate program-level effectiveness. Improve the curriculum based on outcomes. Mentor others through their readiness journey. Drive quality assurance.',
+            'skills': ['Program evaluation', 'Curriculum improvement', 'Mentoring', 'Quality assurance'],
+            'weeks': [1, 2, 3, 4],
+        },
+    },
+}
+
 
 # ── Page classification helpers ────────────────────────────────────────────
 
@@ -847,6 +1036,8 @@ def main():
         'summary': summary,
         'categories': CATEGORIES,
         'source_category_map': SOURCE_CATEGORY_MAP,
+        'levels': LEVELS,
+        'level_categories': LEVEL_CATEGORIES,
     }
 
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:

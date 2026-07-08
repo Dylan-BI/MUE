@@ -156,6 +156,12 @@
     .day-grid { grid-template-columns: repeat(14, 1fr); }
     .metric-row { grid-template-columns: repeat(2, 1fr); }
   }
+  .level-selector { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .level-btn { padding: 8px 18px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 600; background: #fff; transition: all .15s; display: flex; align-items: center; gap: 6px; flex: 1; min-width: 120px; justify-content: center; }
+  .level-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .level-btn .lvl-label { font-size: 11px; font-weight: 400; color: #888; display: block; }
+  .level-btn .lvl-emoji { font-size: 18px; }
+  .level-content { transition: opacity .2s; }
 </style>
 </head>
 <body>
@@ -217,6 +223,7 @@ const TRACK_COLORS = { 'Pyramid operations': '#0d6efd', 'Codex productivity': '#
 const CLS_ORDER = ['Foundational','Developing','Operational','Ready for Codex Acceleration'];
 const REVIEWS_KEY = 'mue_reviews';
 const REVIEWER_NAME_KEY = 'mue_reviewer_name';
+let CURRENT_LEVEL = 1;
 
 function getReviews() { try { return JSON.parse(localStorage.getItem(REVIEWS_KEY)) || {}; } catch { return {}; } }
 function saveReview(artifactPath, review) {
@@ -325,6 +332,173 @@ function startAutoRefresh() {
       }
     } catch (e) {}
   }, 30 * 60 * 1000);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEVEL-AWARE CURRICULUM REVIEW (4 levels × 7 categories × 28 days)
+   ═══════════════════════════════════════════════════════════════════════════ */
+function setLevel(level) {
+  CURRENT_LEVEL = level;
+  const container = document.getElementById('curriculumContent');
+  if (container) container.innerHTML = renderCurriculumReviewContent();
+  // Update active state on level buttons
+  document.querySelectorAll('.level-btn').forEach(btn => {
+    const lvl = parseInt(btn.dataset.level);
+    btn.classList.toggle('active', lvl === level);
+    if (lvl === level) {
+      const lvlData = (DATA.levels || {})[level] || {};
+      btn.style.borderColor = lvlData.color || '#6c63ff';
+      btn.style.background = (lvlData.color || '#6c63ff') + '18';
+    } else {
+      btn.style.borderColor = '#e0e0e0';
+      btn.style.background = '#fff';
+    }
+  });
+  // Update subtitle
+  const sub = document.getElementById('curriculumSubtitle');
+  if (sub) {
+    const lvlData = (DATA.levels || {})[level] || {};
+    sub.textContent = 'Level ' + level + ': ' + lvlData.label + ' — ' + (lvlData.subtitle || '') + ' All 7 categories, 28-day curriculum, adjusted for this proficiency tier.';
+  }
+}
+
+function renderCurriculumReviewContent() {
+  const cats = DATA.categories || {};
+  const srcCrit = DATA.source_criteria || [];
+  const scMap = DATA.source_category_map || {};
+  const levels = DATA.levels || {};
+  const lvlCats = DATA.level_categories || {};
+  const s = DATA.summary || {};
+  const level = CURRENT_LEVEL || 1;
+  const lvlData = levels[level] || levels[1] || {};
+  const lvlColor = lvlData.color || '#6c63ff';
+  const categoryOverrides = lvlCats[level] || lvlCats[1] || {};
+
+  // Build level-specific category list
+  const levelCats = {};
+  Object.keys(cats).forEach(cid => {
+    const base = cats[cid];
+    const override = categoryOverrides[cid] || {};
+    levelCats[cid] = {
+      ...base,
+      description: override.description || base.description,
+      skills: override.skills || base.skills,
+      weeks: override.weeks || base.weeks,
+    };
+  });
+
+  // Level selector bar
+  const levelBtns = Object.values(levels).map(lv =>
+    '<div class="level-btn' + (lv.id === level ? ' active' : '') + '" data-level="' + lv.id + '" onclick="setLevel(' + lv.id + ')"' +
+    ' style="border-color:' + (lv.id === level ? lv.color : '#e0e0e0') + ';background:' + (lv.id === level ? lv.color + '18' : '#fff') + '">' +
+    '<span class="lvl-emoji">' + lv.emoji + '</span>' +
+    '<div><div style="font-size:13px">Level ' + lv.id + ': ' + lv.label + '</div>' +
+    '<span class="lvl-label">' + lv.subtitle.substring(0, 50) + '…</span></div></div>'
+  ).join('');
+
+  let html = '<div style="margin-bottom:8px">' +
+    '<div class="level-selector">' + levelBtns + '</div>' +
+    '<p style="font-size:12px;color:#888;margin-bottom:12px"><strong>Active:</strong> ' + lvlData.emoji + ' Level ' + level + ' (' + lvlData.label + ')' +
+    ' — <span style="color:#666">' + lvlData.subtitle + '</span></p></div>';
+
+  // Top metrics row
+  html += '<div class="metric-row">' +
+    '<div class="metric" style="background:#f0f4ff"><div class="value">4</div><div class="label">📅 Weeks</div><div class="sublabel">28 training days</div></div>' +
+    '<div class="metric" style="background:#f0fdf4"><div class="value">' + Object.keys(levelCats).length + '</div><div class="label">📚 Categories</div><div class="sublabel">learning subject areas</div></div>' +
+    '<div class="metric" style="background:#fefce8"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Files</div><div class="sublabel">criteria references</div></div>' +
+    '<div class="metric" style="background:#fef2f2"><div class="value">' + s.total_days + '</div><div class="label">✅ Days Done</div><div class="sublabel">' + (28 - s.total_days) + ' remaining</div></div>' +
+    '</div>';
+
+  // Weekly overview cards (level-aware)
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:16px">' +
+    [1,2,3,4].map(w => {
+      const wkCats = Object.keys(levelCats).filter(cid => (levelCats[cid].weeks||[]).includes(w));
+      const daysInWeek = Math.min(w * 7, 28) - (w-1) * 7;
+      const doneInWeek = s.total_days > 0 ? Math.max(0, Math.min(s.total_days - (w-1)*7, daysInWeek)) : 0;
+      return '<div class="card" style="text-align:center;padding:16px 14px">' +
+        '<div style="font-size:28px;font-weight:700;color:' + lvlColor + '">Week ' + w + '</div>' +
+        '<div style="font-size:12px;color:#888;margin-bottom:8px">Days ' + ((w-1)*7+1) + '–' + Math.min(w*7, 28) + '</div>' +
+        '<div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px">' +
+        wkCats.map(cid => '<span style="font-size:16px" title="' + escHtml(levelCats[cid].label) + '">' + levelCats[cid].emoji + '</span>').join('') +
+        '</div>' +
+        '<div class="prog-bar"><div class="prog-fill" style="width:' + (doneInWeek/daysInWeek*100) + '%;background:' + (doneInWeek >= daysInWeek ? '#198754' : lvlColor) + '"></div></div>' +
+        '<div style="font-size:11px;color:#999">' + doneInWeek + '/' + daysInWeek + ' days completed</div>' +
+        '</div>';
+    }).join('') +
+    '</div>';
+
+  // Level-specific skills summary
+  html += '<div class="card" style="border-left:3px solid ' + lvlColor + '">' +
+    '<h3>' + lvlData.emoji + ' Level ' + level + ' Skills — ' + lvlData.label + '</h3>' +
+    '<p class="caption">At this level, learners focus on the following skills across all 7 categories:</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px">' +
+    Object.values(levelCats).map(cat =>
+      '<div style="background:#f8f9fa;border-radius:8px;padding:10px 12px;border:1px solid #eee">' +
+      '<div style="font-weight:600;font-size:12px;color:#333;margin-bottom:4px">' + cat.emoji + ' ' + cat.label + '</div>' +
+      '<div style="font-size:11px;color:#888">' + (cat.skills || []).slice(0, 4).join(' · ') + '</div>' +
+      '</div>'
+    ).join('') +
+    '</div></div>';
+
+  // Learning categories deep-dive (level-aware)
+  html += '<div class="card"><h3>📚 All Learning Categories — Level ' + level + '</h3>' +
+    '<p class="caption">Each skill area below shows the level-adjusted topics, focus skills, and which reference files support it.</p>' +
+    '<div style="margin-top:8px">' +
+    Object.values(levelCats).map(cat => {
+      const catFiles = srcCrit.filter(f => {
+        const fPath = f.path.replace(/\\/g,'/');
+        const fCats = scMap[fPath] || [];
+        return fCats.includes(cat.id);
+      });
+      return '<div style="border:1px solid #e0e0e0;border-radius:10px;padding:14px 16px;margin-bottom:10px">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+        '<span style="font-size:22px">' + cat.emoji + '</span>' +
+        '<span style="font-weight:700;font-size:15px;color:#1a1a2e">' + cat.label + '</span>' +
+        '<span style="font-size:11px;color:#888;background:#f5f5f5;padding:1px 8px;border-radius:4px">Week' + (cat.weeks||[]).map(w => ' ' + w).join(',') + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#666;margin-bottom:6px">' + cat.description + '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' +
+        (cat.skills||[]).map(s => '<span style="display:inline-block;font-size:10px;background:' + lvlColor + '22;color:#555;padding:1px 8px;border-radius:10px;border:1px solid ' + lvlColor + '44">✦ ' + s + '</span>').join('') +
+        '</div>' +
+        (catFiles.length ?
+          '<div style="display:flex;flex-wrap:wrap;gap:4px">' +
+          catFiles.map(f => '<span style="display:inline-block;font-size:10px;font-family:monospace;background:#f0f4ff;color:#4a5568;padding:2px 8px;border-radius:4px;border:1px solid #d4e0f0">📄 ' + escHtml(f.path) + '</span>').join('') +
+          '</div>' :
+          '<div style="font-size:11px;color:#aaa;font-style:italic">No source criteria files mapped yet</div>') +
+        '</div>';
+    }).join('') +
+    '</div></div>';
+
+  // Source criteria quick reference
+  html += '<div class="card"><h3>📖 Source Criteria Index</h3><p class="caption">All ' + srcCrit.length + ' training reference files in <code>source/</code> that spell out what learners need to learn and do.</p>' +
+    '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>Categories</th></tr></thead><tbody>' +
+    srcCrit.map(f => {
+      const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
+      const fPath = f.path.replace(/\\/g,'/');
+      const catIds = scMap[fPath] || [];
+      const catTags = catIds.map(cid => {
+        const c = cats[cid];
+        return c ? '<span style="display:inline-block;background:#f0f4ff;color:#4a5568;font-size:10px;padding:1px 6px;border-radius:4px;margin:1px;white-space:nowrap">' + c.emoji + ' ' + c.label + '</span>' : '';
+      }).join('');
+      return '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + (catTags || '<span class="caption">—</span>') + '</td></tr>';
+    }).join('') +
+    '</tbody></table></div>';
+
+  // Curriculum progress overview (28-day calendar)
+  html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">A 28-day training calendar — green squares show finished days, grey ones are still ahead. Each day builds on the last.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px">' +
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:#888;text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
+    Array.from({length:28}, (_,i) => {
+      const day = i+1;
+      const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
+      const done = dayNotes.length > 0;
+      return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;font-weight:600;cursor:default;' +
+        (done ? 'background:#198754;color:#fff' : 'background:#f0f0f0;color:#aaa') +
+        '" title="Day ' + day + (done ? ' — completed' : ' — pending') + '">' + day + '</div>';
+    }).join('') +
+    '</div></div>';
+
+  return html;
 }
 
 // Keyboard shortcuts
@@ -559,91 +733,11 @@ function renderAll() {
   }
   addPage('codex-gate', ghtml);
 
-  // ── PAGE 8: CURRICULUM REVIEW (full-scope overview with all learning categories) ──
-  const scMap = DATA.source_category_map || {};
+  // ── PAGE 8: CURRICULUM REVIEW (level-aware, 4-level curriculum framework) ──
   addPage('curriculum-review',
     '<h2>📚 Curriculum Review</h2>' +
-    '<p class="subtitle">Everything a learner needs to know — 4 weeks (28 days) of training across 7 skill areas. Each area has its own focus, practice exercises, and reference files.</p>' +
-
-    // Top metrics row
-    '<div class="metric-row">' +
-    '<div class="metric" style="background:#f0f4ff"><div class="value">4</div><div class="label">📅 Weeks</div><div class="sublabel">28 training days</div></div>' +
-    '<div class="metric" style="background:#f0fdf4"><div class="value">' + Object.keys(cats).length + '</div><div class="label">📚 Categories</div><div class="sublabel">learning subject areas</div></div>' +
-    '<div class="metric" style="background:#fefce8"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Files</div><div class="sublabel">criteria references</div></div>' +
-    '<div class="metric" style="background:#fef2f2"><div class="value">' + s.total_days + '</div><div class="label">✅ Days Done</div><div class="sublabel">' + (28 - s.total_days) + ' remaining</div></div>' +
-    '</div>' +
-
-    // Weekly overview cards
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:16px">' +
-    [1,2,3,4].map(w => {
-      const wkCats = Object.keys(cats).filter(cid => (cats[cid].weeks||[]).includes(w));
-      const daysInWeek = Math.min(w * 7, 28) - (w-1) * 7;
-      const doneInWeek = s.total_days > 0 ? Math.max(0, Math.min(s.total_days - (w-1)*7, daysInWeek)) : 0;
-      return '<div class="card" style="text-align:center;padding:16px 14px">' +
-        '<div style="font-size:28px;font-weight:700;color:#6c63ff">Week ' + w + '</div>' +
-        '<div style="font-size:12px;color:#888;margin-bottom:8px">Days ' + ((w-1)*7+1) + '–' + Math.min(w*7, 28) + '</div>' +
-        '<div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px">' +
-        wkCats.map(cid => '<span style="font-size:16px" title="' + escHtml(cats[cid].label) + '">' + cats[cid].emoji + '</span>').join('') +
-        '</div>' +
-        '<div class="prog-bar"><div class="prog-fill" style="width:' + (doneInWeek/daysInWeek*100) + '%;background:' + (doneInWeek >= daysInWeek ? '#198754' : '#6c63ff') + '"></div></div>' +
-        '<div style="font-size:11px;color:#999">' + doneInWeek + '/' + daysInWeek + ' days completed</div>' +
-        '</div>';
-    }).join('') +
-    '</div>' +
-
-    // Learning categories deep-dive
-    '<div class="card"><h3>📚 All Learning Categories</h3><p class="caption">What learners study — each skill area below shows the topics it covers and which reference files support it.</p>' +
-    '<div style="margin-top:8px">' +
-    Object.values(cats).map(cat => {
-      const catFiles = srcCrit.filter(f => {
-        const fPath = f.path.replace(/\\/g,'/');
-        const fCats = scMap[fPath] || [];
-        return fCats.includes(cat.id);
-      });
-      return '<div style="border:1px solid #e0e0e0;border-radius:10px;padding:14px 16px;margin-bottom:10px">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
-        '<span style="font-size:22px">' + cat.emoji + '</span>' +
-        '<span style="font-weight:700;font-size:15px;color:#1a1a2e">' + cat.label + '</span>' +
-        '<span style="font-size:11px;color:#888;background:#f5f5f5;padding:1px 8px;border-radius:4px">Week' + (cat.weeks||[]).map(w => ' ' + w).join(',') + '</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:#666;margin-bottom:6px">' + cat.description + '</div>' +
-        (catFiles.length ?
-          '<div style="display:flex;flex-wrap:wrap;gap:4px">' +
-          catFiles.map(f => '<span style="display:inline-block;font-size:10px;font-family:monospace;background:#f0f4ff;color:#4a5568;padding:2px 8px;border-radius:4px;border:1px solid #d4e0f0">📄 ' + escHtml(f.path) + '</span>').join('') +
-          '</div>' :
-          '<div style="font-size:11px;color:#aaa;font-style:italic">No source criteria files mapped yet</div>') +
-        '</div>';
-    }).join('') +
-    '</div></div>' +
-
-    // Source criteria quick reference
-    '<div class="card"><h3>📖 Source Criteria Index</h3><p class="caption">All ' + srcCrit.length + ' training reference files in <code>source/</code> that spell out what learners need to learn and do.</p>' +
-    '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>Categories</th></tr></thead><tbody>' +
-    srcCrit.map(f => {
-      const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
-      const fPath = f.path.replace(/\\/g,'/');
-      const catIds = scMap[fPath] || [];
-      const catTags = catIds.map(cid => {
-        const c = cats[cid];
-        return c ? '<span style="display:inline-block;background:#f0f4ff;color:#4a5568;font-size:10px;padding:1px 6px;border-radius:4px;margin:1px;white-space:nowrap">' + c.emoji + ' ' + c.label + '</span>' : '';
-      }).join('');
-      return '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + (catTags || '<span class="caption">—</span>') + '</td></tr>';
-    }).join('') +
-    '</tbody></table></div>' +
-
-    // Curriculum progress overview
-    '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">A 28-day training calendar — green squares show finished days, grey ones are still ahead. Each day builds on the last.</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px">' +
-    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:#888;text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
-    Array.from({length:28}, (_,i) => {
-      const day = i+1;
-      const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
-      const done = dayNotes.length > 0;
-      return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;font-weight:600;cursor:default;' +
-        (done ? 'background:#198754;color:#fff' : 'background:#f0f0f0;color:#aaa') +
-        '" title="Day ' + day + (done ? ' — completed' : ' — pending') + '">' + day + '</div>';
-    }).join('') +
-    '</div></div>'
+    '<p class="subtitle" id="curriculumSubtitle">Everything a learner needs to know — 4 weeks (28 days) of training across 7 skill areas, now available at 4 proficiency levels.</p>' +
+    '<div id="curriculumContent">' + renderCurriculumReviewContent() + '</div>'
   );
 
   // ── PAGE 9: ALL ARTIFACTS (with review, agent status, sync status, version tracking) ──
