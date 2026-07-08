@@ -155,9 +155,11 @@ SOURCE_CATEGORY_MAP = {
     # AI & Copilot
     'Copilot Reference for MUE.md': ['ai-copilot'],
     'Custom Workflows for MUE.md': ['ai-copilot', 'delivery-handoff'],
+    'Copilot Best Practices Guide.md': ['ai-copilot'],
     # Codex Productivity
     'Codex Productivity Training Handoff.md': ['codex'],
     'Codex Productivity.md': ['codex'],
+    'Agentic Workflow Patterns.md': ['codex', 'delivery-handoff'],
     # Pyramid
     # (no Pyramid-specific source files currently — tagged via keywords)
     # BI Judgment
@@ -167,8 +169,10 @@ SOURCE_CATEGORY_MAP = {
     # Data & Lineage
     # (embedded in onboarding map and category notes)
     # Delivery & Handoff
+    'Code Review and Handoff Standards.md': ['delivery-handoff', 'codex'],
     'CONTRIBUTING.md': ['delivery-handoff'],
     # Readiness
+    'GitHub Well-Architected Principles.md': ['pyramid', 'bi-judgment', 'delivery-handoff'],
     '4-Week Onboarding Map.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
     'LEARNING_CATEGORIES.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
 }
