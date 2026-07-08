@@ -867,11 +867,37 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<button class="export-btn" style="background:#198754" onclick="runSync()">📤 Sync action/ → review/</button>' +
     '<button class="export-btn" style="background:#dc3545" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>';
 
-  // Reviewer Guide (collapsible)
+  // Reviewer Guide (collapsible) — expanded with category-specific criteria
+  const cats = DATA.categories || {};
+  const catReviewItems = Object.values(cats).map(c =>
+    '<div style="margin-bottom:6px;padding:6px 10px;background:#f8f9fa;border-radius:6px;border-left:3px solid #6c63ff">' +
+    '<strong style="font-size:12px">' + c.emoji + ' ' + c.label + '</strong>' +
+    '<div style="font-size:11px;color:#666;margin-top:2px">Look for: ' + (c.skills || []).slice(0,4).join(', ') + '</div>' +
+    '</div>'
+  ).join('');
   h += '<div class="card" style="border-left:3px solid #6c63ff;margin-bottom:16px">' +
     '<h3 style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleReviewerGuide()">' +
     '📋 Reviewer Guide <span id="guideToggle" style="margin-left:auto;color:#888;font-size:12px">▼ Expand</span></h3>' +
     '<div id="reviewerGuideContent" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #eee">' +
+
+    // Quick checklist
+    '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px;margin-bottom:12px">' +
+    '<h4 style="font-size:13px;color:#166534;margin-bottom:6px">✅ Review Checklist</h4>' +
+    '<ul style="font-size:12px;color:#333;line-height:1.9;padding-left:20px;margin:0">' +
+    '<li>📄 <strong>Daily notes</strong> — Does the learner log what they learned, what evidence they produced, and what remains open?</li>' +
+    '<li>📁 <strong>Evidence artifacts</strong> — Are screenshots, logs, or output files present and correctly named?</li>' +
+    '<li>📊 <strong>Reports</strong> — Are weekly retention reviews and readiness reports filed?</li>' +
+    '<li>🏆 <strong>Scorecard</strong> — Do scores show progression from Foundational → Developing → Operational?</li>' +
+    '<li>🚪 <strong>Codex Gate</strong> — Has the learner completed end-to-end workflows unassisted?</li>' +
+    '<li>📚 <strong>Curriculum breadth</strong> — Is there work across all 7 categories (AI, Codex, Pyramid, BI, Lineage, Delivery, Readiness)?</li>' +
+    '</ul></div>' +
+
+    // Category-specific review hints
+    '<h4 style="font-size:13px;color:#333;margin-bottom:8px">🔍 Review by Learning Category</h4>' +
+    '<p class="caption" style="margin-bottom:8px">Each category has specific skills and artifact types. Look for these when reviewing learner work:</p>' +
+    '<div style="margin-bottom:12px">' + catReviewItems + '</div>' +
+
+    // How-to tips
     '<h4 style="font-size:13px;color:#333;margin-bottom:8px">How to Review Learner Work</h4>' +
     '<ul style="font-size:12px;color:#555;line-height:1.8;padding-left:20px;margin-bottom:12px">' +
     '<li><strong>Focus on 📘 Learner Artifact Changes</strong> — These are curriculum-completed notes, evidence, and reports. Infrastructure changes (dashboard, templates, CI/CD) are hidden by default.</li>' +
@@ -879,15 +905,18 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<li><strong>Use "📤 Sync action/ → review/"</strong> to copy completed learner work from <code>action/</code> to <code>review/</code> for formal assessment.</li>' +
     '<li><strong>Check Source Criteria</strong> below — reference files in <code>source/</code> define the education standards learners must meet.</li>' +
     '<li><strong>Version tracking</strong> — Each change shows the git commit hash. Click a page name to jump to that section.</li>' +
+    '<li><strong>Check progress weekly</strong> — Use the <strong>Curriculum Review</strong> tab (nav key 8) for a full scope overview of all 7 categories across all 4 weeks.</li>' +
     '</ul>' +
+
+    // Keyboard shortcuts
     '<h4 style="font-size:13px;color:#333;margin:12px 0 8px">Keyboard Shortcuts</h4>' +
     '<table style="font-size:11px;color:#666;width:100%;border-collapse:collapse">' +
     '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">R</td><td style="padding:2px">Refresh data</td></tr>' +
     '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">S</td><td style="padding:2px">Run sync</td></tr>' +
-    '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">1-9</td><td style="padding:2px">Jump to nav page (1=Overview, 2=Daily, etc.)</td></tr>' +
+    '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">1-9</td><td style="padding:2px">Jump to nav page (1=Overview, 2=Daily, …, 8=Curriculum Review, 9=Artifacts)</td></tr>' +
     '<tr><td style="padding:2px 8px 2px 0;font-family:monospace;background:#f5f5f5;border-radius:3px">G</td><td style="padding:2px">Toggle this guide</td></tr>' +
     '</table>' +
-    '<p class="caption" style="margin-top:8px">💡 Tip: Learner artifacts live in <code>action/notes/</code>, <code>action/evidence/</code>, <code>action/reports/</code>. Infrastructure = everything else.</p>' +
+    '<p class="caption" style="margin-top:8px">💡 Tip: Learner artifacts live in <code>action/notes/</code>, <code>action/evidence/</code>, <code>action/reports/</code>. Infrastructure = everything else. Use the Curriculum Review tab for a bird\'s-eye view of all learning categories.</p>' +
     '</div>' +
   '</div>';
 

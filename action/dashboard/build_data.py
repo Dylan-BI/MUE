@@ -90,6 +90,89 @@ PROOF_TASKS = [
     ('PT6', 'Reviewer Handoff Test'),
 ]
 
+# ── Learning Categories (aligned with LEARNING_CATEGORIES.md) ──────────────
+CATEGORIES = {
+    'ai-copilot': {
+        'id': 'ai-copilot',
+        'emoji': '🤖',
+        'label': 'AI & Copilot',
+        'description': 'Chat modes, prompt engineering, custom instructions, context management, tool use. Learners practice mode selection, prompt structure, and drift avoidance.',
+        'weeks': [1, 2, 3, 4],
+        'skills': ['Mode selection', 'Prompt structure', 'Instruction files', 'Prompt files', 'Context management', 'Drift avoidance'],
+    },
+    'codex': {
+        'id': 'codex',
+        'emoji': '⚡',
+        'label': 'Codex Productivity',
+        'description': 'Workflow orientation, handoff fluency, context synthesis, targeted AI use, bounded automation, Codex loop mastery (Pull → Summarize → Identify → Execute → Record).',
+        'weeks': [1, 2, 3, 4],
+        'skills': ['Codex Loop', 'Handoff extraction', 'Context pull', 'Bounded prompt design', 'Manual-vs-Codex evaluation'],
+    },
+    'pyramid': {
+        'id': 'pyramid',
+        'emoji': '🏗️',
+        'label': 'Pyramid Platform',
+        'description': 'Model logic, deployment sequencing, QC, security, artifact movement, reviewer access. Learners build deployment checklists and QC evidence packs.',
+        'weeks': [2, 3, 4],
+        'skills': ['Model lineage', 'Deployment preflight', 'Artifact migration', 'QC execution', 'Access policy'],
+    },
+    'bi-judgment': {
+        'id': 'bi-judgment',
+        'emoji': '📊',
+        'label': 'BI Judgment',
+        'description': 'Business reasoning, metric definition, grain, validation, trusted delivery, tool-agnostic thinking. Learners articulate business questions and validate metrics.',
+        'weeks': [1, 2, 3, 4],
+        'skills': ['Business question articulation', 'Metric selection', 'Grain/filter/exclusion definition', 'Validation evidence'],
+    },
+    'data-lineage': {
+        'id': 'data-lineage',
+        'emoji': '🔗',
+        'label': 'Data & Lineage',
+        'description': 'Source-to-model lineage, aggregation, rollups, snapshots, dependency mapping, row ownership. Learners trace dependencies and map data flows.',
+        'weeks': [1, 2, 3],
+        'skills': ['Dependency tracing', 'Row ownership identification', 'Deduplication logic', 'Aggregation boundaries'],
+    },
+    'delivery-handoff': {
+        'id': 'delivery-handoff',
+        'emoji': '📦',
+        'label': 'Delivery & Handoff',
+        'description': 'Change isolation, review packages, handoff drafting, reusable assets, reviewer readiness. Learners prepare change charters and review packages.',
+        'weeks': [3, 4],
+        'skills': ['Change-slice scoping', 'Review package preparation', 'Handoff note generation', 'Asset creation'],
+    },
+    'readiness': {
+        'id': 'readiness',
+        'emoji': '🧠',
+        'label': 'Retention & Readiness',
+        'description': 'Weekly retention checks, scorecards, proof tasks, Codex Gate, readiness classification. Learners self-assess across all tracks and track progress.',
+        'weeks': [1, 2, 3, 4],
+        'skills': ['Cross-track recall', 'Self-assessment', 'Proof task tracking', 'Gate readiness evaluation'],
+    },
+}
+
+# ── Source file → category mapping (inferred from path/filename patterns) ──
+SOURCE_CATEGORY_MAP = {
+    # AI & Copilot
+    'Copilot Reference for MUE.md': ['ai-copilot'],
+    'Custom Workflows for MUE.md': ['ai-copilot', 'delivery-handoff'],
+    # Codex Productivity
+    'Codex Productivity Training Handoff.md': ['codex'],
+    'Codex Productivity.md': ['codex'],
+    # Pyramid
+    # (no Pyramid-specific source files currently — tagged via keywords)
+    # BI Judgment
+    'Pyramid, Codex, and BI Judgment Daily Execution Guide.txt': ['pyramid', 'codex', 'bi-judgment'],
+    'Pyramid, Codex, and BI Judgment Daily Working Template.txt': ['pyramid', 'codex', 'bi-judgment'],
+    'Pyramid, Codex, and BI Judgment Readiness Plan.md': ['pyramid', 'codex', 'bi-judgment', 'readiness'],
+    # Data & Lineage
+    # (embedded in onboarding map and category notes)
+    # Delivery & Handoff
+    'CONTRIBUTING.md': ['delivery-handoff'],
+    # Readiness
+    '4-Week Onboarding Map.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
+    'LEARNING_CATEGORIES.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
+}
+
 
 # ── Page classification helpers ────────────────────────────────────────────
 
@@ -758,6 +841,8 @@ def main():
         'source_criteria': source_criteria,
         'review_data': review_data,
         'summary': summary,
+        'categories': CATEGORIES,
+        'source_category_map': SOURCE_CATEGORY_MAP,
     }
 
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
