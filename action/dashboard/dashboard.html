@@ -1231,6 +1231,41 @@ function selectRating(aid, idx) {
 function getReviewerName() { try { return localStorage.getItem(REVIEWER_NAME_KEY)||''; } catch { return ''; } }
 function setReviewerName(n) { try { localStorage.setItem(REVIEWER_NAME_KEY, n); } catch {} }
 
+/* ── Look up version/changes context for the reviewed artifact ── */
+function getReviewContext(filename, type) {
+  const ctx = { version: '—', changed: false, diffStat: '', commit: '', page: '' };
+  if (!filename && !type) return ctx;
+  // Collapse all change sources into one searchable list
+  const changeSets = [
+    DATA.changes_by_page,
+    DATA.learner_changes_by_page,
+    DATA.infrastructure_changes_by_page,
+  ];
+  const norm = p => p.replace(/\\/g,'/').toLowerCase();
+  const target = norm(filename);
+  for (const cs of changeSets) {
+    if (!cs) continue;
+    for (const [pageId, page] of Object.entries(cs)) {
+      for (const f of (page.files || [])) {
+        const fPath = norm(f.path);
+        // Match if filename ends with the file path, or vice versa, or exact match
+        if (target === fPath || target.endsWith(fPath) || fPath.endsWith(target)) {
+          ctx.version = f.version || ctx.version;
+          ctx.changed = true;
+          ctx.diffStat = f.diff_stat || '';
+          ctx.commit = f.commit || '';
+          ctx.page = pageId;
+        }
+      }
+    }
+  }
+  // If no specific file match, fall back to overall version
+  if (!ctx.changed && DATA.version) {
+    ctx.version = DATA.version.commit || '—';
+  }
+  return ctx;
+}
+
 function submitReview(aid, type, label, filename) {
   const nInput = document.getElementById('rn_'+aid) || document.getElementById('rin_'+aid);
   const tInput = document.getElementById('rc_'+aid) || document.getElementById('ric_'+aid);
@@ -1246,15 +1281,24 @@ function submitReview(aid, type, label, filename) {
   saveReview(aid, review);
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
-  const ver = DATA.version ? DATA.version.commit || '—' : '—';
-  const subj = encodeURIComponent('[MUE Review] '+type+': '+label+' (v'+ver+')');
+
+  // Build context-aware version/changes block
+  const ctx = getReviewContext(filename, type);
+  const versionLine = 'Version: ' + ctx.version + (ctx.page ? ' (' + ctx.page + ')' : '');
+  const changeLine = ctx.changed
+    ? 'Changed: ✅ Yes | ' + (ctx.diffStat || 'modified') + (ctx.commit ? ' | commit ' + ctx.commit : '')
+    : 'Changed: ⬜ Not in this change set';
+
+  const subj = encodeURIComponent('[MUE Review] '+type+': '+label+' (v'+ctx.version+')');
   const body = encodeURIComponent(
     'Reviewer: '+name+'\n' +
     'Artifact: '+type+'\n' +
     'File: '+filename+'\n' +
     'Label: '+label+'\n' +
     'Rating: '+rating+'\n' +
-    'Version: '+ver+'\n' +
+    versionLine + '\n' +
+    changeLine + '\n' +
+    '\n' +
     'Dashboard: https://dylan-bi.github.io/MUE/\n' +
     '---\n' +
     text + '\n' +
@@ -1689,14 +1733,21 @@ function toggleChangeSummary() {
 }
 
 function versionComment(filePath, version, diffStat, pageName) {
-  const subj = encodeURIComponent('[MUE Review] Version ' + version + ' — ' + filePath);
+  // Look up additional change context for this file
+  const ctx = getReviewContext(filePath, 'Version Change');
+  const reviewerName = getReviewerName() || '________________';
+  const subj = encodeURIComponent('[MUE Review] Version ' + (ctx.version || version) + ' — ' + filePath);
   const body = encodeURIComponent(
+    'Reviewer: ' + reviewerName + '\n' +
+    'Artifact: Version Change' + '\n' +
     'File: ' + filePath + '\n' +
-    'Version: ' + version + '\n' +
-    'Page: ' + pageName + '\n' +
-    'Diff: ' + (diffStat || '—') + '\n' +
-    'Reviewer: ________________\n' +
+    'Label: ' + pageName + '\n' +
     'Rating: ________________\n' +
+    'Version: ' + (ctx.version || version) + (ctx.page ? ' (' + ctx.page + ')' : '') + '\n' +
+    (ctx.changed ? 'Changed: ✅ Yes | ' + (ctx.diffStat || diffStat || 'modified') + (ctx.commit ? ' | commit ' + ctx.commit : '') : 'Changed: ⬜ Not in this change set') + '\n' +
+    'Diff: ' + (diffStat || ctx.diffStat || '—') + '\n' +
+    '\n' +
+    'Dashboard: https://dylan-bi.github.io/MUE/\n' +
     '---\n' +
     'Comments:\n' +
     '\n' +
