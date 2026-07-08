@@ -1201,7 +1201,7 @@ function renderReviewSection(aid, type, label, filename) {
   let html = '<div class="review-section">' +
     '<div class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rf_'+aid+'\').classList.toggle(\'open\')">💬 Review</div>' +
     '<div class="review-form" id="rf_'+aid+'">' +
-    '<label>Reviewer</label><input id="rn_'+aid+'" placeholder="Your name" value="'+escHtml(getReviewerName())+'">' +
+    '<label>Reviewer <span style="color:#dc3545">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rg_'+aid+'">' +
     ropts.map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="rc_'+aid+'" placeholder="Write your review feedback here..."></textarea>' +
@@ -1214,7 +1214,7 @@ function renderReviewSection(aid, type, label, filename) {
 function reviewToggleInline(aid, type, label, filename) {
   return '<span class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rif_'+aid+'\').classList.toggle(\'open\')">💬 Review</span>' +
     '<div class="review-form" id="rif_'+aid+'" style="display:none">' +
-    '<label>Reviewer</label><input id="rin_'+aid+'" placeholder="Your name" value="'+escHtml(getReviewerName())+'">' +
+    '<label>Reviewer <span style="color:#dc3545">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rig_'+aid+'">' +
     ['👍 Pass','⚡ Needs Work','❌ Rework'].map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="ric_'+aid+'" placeholder="Write your review..."></textarea>' +
@@ -1234,8 +1234,9 @@ function setReviewerName(n) { try { localStorage.setItem(REVIEWER_NAME_KEY, n); 
 function submitReview(aid, type, label, filename) {
   const nInput = document.getElementById('rn_'+aid) || document.getElementById('rin_'+aid);
   const tInput = document.getElementById('rc_'+aid) || document.getElementById('ric_'+aid);
-  const name = (nInput ? nInput.value : 'Anonymous').trim();
+  const name = (nInput ? nInput.value : '').trim();
   const text = tInput ? tInput.value.trim() : '';
+  if (!name) { nInput && (nInput.style.borderColor = '#dc3545'); nInput && (nInput.style.outline = 'none'); alert('Please enter your name before submitting.'); return; }
   if (!text) { alert('Please write a comment before submitting.'); return; }
   setReviewerName(name);
   let rating = 'No rating';
