@@ -1,10 +1,15 @@
 # Contributing to MUE (Multifaceted User Education)
 
-Welcome — this repository is a training bundle and working kit for Pyramid, Codex, and BI judgment readiness. To keep learning practical, evidence-backed, and team-friendly, follow these contribution guidelines.
+> **7 Learning Categories** · 4-Week Program · Evidence-Backed Readiness
+
+Welcome — this repository is a training bundle and working kit organized around **7 subject-material categories**: 🤖 AI & Copilot, ⚡ Codex Productivity, 🏗️ Pyramid Platform, 📊 BI Judgment, 🔗 Data & Lineage, 📦 Delivery & Handoff, and 🧠 Retention & Readiness.
+
+See [`source/LEARNING_CATEGORIES.md`](./LEARNING_CATEGORIES.md) for the complete category reference.
 
 ## Core rules
 - Training programs using this content must be limited to a **4-week maximum (28 calendar days)**. Any extended program must be explicitly approved and documented in a team decision note.
 - Every day of training must produce **one evidence artifact** (note, prompt, checklist, validation record, handoff draft, or reusable asset) and store it under `action/notes/` or `action/evidence/`.
+- Every daily task should be **tagged with its primary category** (🤖 ⚡ 🏗️ 📊 🔗 📦 🧠).
 - Contributors must complete all 6 proof tasks (or show equivalent evidence) before making changes to production work.
 - Start each week with the retention review in `action/templates/retention-review.md`.
 - End the program with the contributor readiness check in `action/templates/contributor-readiness-check.md`.
@@ -14,27 +19,26 @@ Welcome — this repository is a training bundle and working kit for Pyramid, Co
 ```
 MUE/
 ├── source/                   # TRAINING MATERIALS (reference — read-only)
-│   ├── 4-Week Onboarding Map.md
-│   ├── Codex Productivity Training Handoff.md
-│   ├── Copilot Reference for MUE.md
-│   ├── Custom Workflows for MUE.md
-│   ├── Pyramid, Codex, and BI Judgment Readiness Plan.md
-│   ├── Pyramid, Codex, and BI Judgment Daily Execution Guide.txt
-│   ├── Pyramid, Codex, and BI Judgment Daily Working Template.txt
-│   ├── CONTRIBUTING.md
-│   └── scripts/              # Utility scripts (operate on ../action/)
-│       ├── create_daily_note.py
-│       ├── aggregate_weekly.py
-│       └── generate_readiness_report.py
+│   ├── LEARNING_CATEGORIES.md    🧠  Master category reference
+│   ├── 4-Week Onboarding Map.md  🧠  Daily/weekly plan with category tags
+│   ├── Copilot Reference.md      🤖  AI modes, prompts, context
+│   ├── Custom Workflows.md       ⚡📦  Workflow patterns
+│   ├── Codex Productivity.md     ⚡📊  Codex productivity vision
+│   ├── Readiness Plan.md         🏗️📊⚡  Full readiness plan
+│   ├── Daily Execution Guide.txt 🏗️  60-day reference
+│   ├── Daily Working Template.txt🧠  Daily work blocks
+│   ├── CONTRIBUTING.md           🧠  This file
+│   └── scripts/                  🧠  Utility scripts
 ├── action/                   # EDUCATION ACTIONING (learner workspace)
 │   ├── notes/                # Daily notes (YYYY-MM-DD.md)
 │   ├── evidence/             # Proof task artifacts, validation records
 │   ├── reports/              # Aggregated reports and readiness summaries
 │   │   ├── weekly-YYYY-WW.md
 │   │   └── readiness-YYYY-WW.md
-│   └── templates/            # Reusable templates
-│       ├── retention-review.md
-│       └── contributor-readiness-check.md
+│   ├── templates/            # 🧠 Reusable templates
+│   │   ├── retention-review.md
+│   │   └── contributor-readiness-check.md
+│   └── dashboard/            # 🧠 Third-party review dashboard
 ├── review/                   # THIRD PARTY REVIEW (reviewer workspace)
 │   ├── scripts/
 │   │   └── sync-from-action.py
@@ -42,25 +46,25 @@ MUE/
 └── README.md                 # Root overview
 ```
 
-## The 60-day guide condensed to 28 days
+## The 60-day guide condensed to 28 days with category tags
 
-The original Execution Guide (`source/Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`) describes a full 60-day program. The [`source/4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md) condenses this into a **4-week (28-day) schedule** with:
+The original Execution Guide (`source/Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`) describes a full 60-day program. The [`source/4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md) condenses this into a **4-week (28-day) schedule** with explicit **category tagging**:
 
-- **Week 1** (Days 1–5): Foundation — tracks, Copilot habits, baseline readiness
-- **Week 2** (Days 6–12): Data foundation & model layer — PT1 + PT3 due
-- **Week 3** (Days 13–19): Snapshots, rollups, QC, deployment — PT4 + PT5 due
-- **Week 4** (Days 20–28): Contribution, handoff, asset creation, Codex Gate — PT2 + PT6 due
+- **Week 1** (Days 1–5): 🏗️ Foundation — 🤖 AI · 📊 BI · 🏗️ Pyr
+- **Week 2** (Days 6–12): 🔗 Data Layer — 🔗 Data · 📊 BI · ⚡ Codex — PT1 + PT3 due
+- **Week 3** (Days 13–19): ⚡ Operations — 🏗️ Pyr · ⚡ Codex · 📦 Del — PT4 + PT5 due
+- **Week 4** (Days 20–28): 📦 Contribution — 📦 Del · ⚡ Codex · 🧠 Ret — PT2 + PT6 due
 
-### Proof Task Schedule (aligned to the 4-Week Map)
+### Proof Task Schedule (with category mapping)
 
-| Proof Task | Week Due | Days |
-|---|---|---|
-| PT1: Repository Analysis Brief | Week 2 | Day 9 |
-| PT2: Review Workflow Dry Run | Week 4 | Day 21 |
-| PT3: Metric Lineage Walkthrough | Week 2–3 | Days 12–13 |
-| PT4: QC Evidence Pack | Week 3 | Days 15–16 |
-| PT5: Deployment Rehearsal | Week 3 | Days 17–18 |
-| PT6: Reviewer Handoff Test | Week 4 | Day 21 |
+| Proof Task | Week | Categories | Days |
+|---|---|---|---|
+| PT1: Repository Analysis Brief | 2 | ⚡ Codex · 🧠 Ret | Day 9 |
+| PT2: Review Workflow Dry Run | 4 | ⚡ Codex · 📦 Del | Day 21 |
+| PT3: Metric Lineage Walkthrough | 2–3 | 📊 BI · 🔗 Data | Days 12–13 |
+| PT4: QC Evidence Pack | 3 | ⚡ Codex · 🧠 Ret | Days 15–16 |
+| PT5: Deployment Rehearsal | 3 | 🏗️ Pyr · 🧠 Ret | Days 17–18 |
+| PT6: Reviewer Handoff Test | 4 | 📦 Del · 🧠 Ret | Day 21 |
 
 > **Important:** Use the `source/4-Week Onboarding Map.md` for day-by-day scheduling. The original 60-day Execution Guide is a reference for detail; do not use it to extend the program.
 

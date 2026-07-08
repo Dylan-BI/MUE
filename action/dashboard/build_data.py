@@ -135,10 +135,10 @@ def get_git_diff_for_file(filepath):
     try:
         result = subprocess.run(
             ['git', 'diff', 'HEAD', '--', filepath],
-            capture_output=True, text=True, cwd=REPO_ROOT, timeout=10
+            capture_output=True, text=False, cwd=REPO_ROOT, timeout=10
         )
         if result.returncode == 0:
-            return result.stdout
+            return result.stdout.decode('utf-8', errors='replace')
     except Exception:
         pass
     return ''
@@ -210,9 +210,8 @@ def compute_changes_by_page(changed_files):
             'version': version,
             'commit': head_info['commit'],
             'timestamp': datetime.now().isoformat(),
-            'diff': diff,
             'diff_stat': stat,
-            'has_diff': bool(diff.strip()),
+            'has_diff': bool(diff.strip()) if diff else False,
         }
         changes_by_page[page]['count'] += 1
         changes_by_page[page]['files'].append(entry)
@@ -612,7 +611,7 @@ def scan_all_artifacts():
                 'modified': mtime,
                 'preview': preview,
                 'is_markdown': is_markdown,
-                'page_category': classify_changed_file(rel),
+                'page_category': classify_path_to_page(rel),
             }
 
             # Categorize

@@ -6,26 +6,44 @@ Use this at the **start of each week** (before beginning new material) to reinfo
 
 ## Week {N} Retention Check
 
-### From Week 1 — Foundation
+### 🤖 AI & Copilot — From Week 1
 - [ ] Can I name all 4 Copilot modes and when to use each? (Ask, Edit, Agent, Plan)
 - [ ] Can I explain prompt structure and why context bloat causes drift?
-- [ ] Can I name the 3 tracks of MUE? (Pyramid, Codex, BI Judgment)
+- [ ] Do I have 3+ reusable prompts that I use regularly?
 
-### From Week 2 — Data Foundation & Model
+### ⚡ Codex Productivity
+- [ ] Can I use Codex to pull context, summarize state, identify next steps, and record a handoff?
+- [ ] Can I constrain Codex to proven workflows (does not let AI define business logic)?
+- [ ] Have I completed a manual-vs-Codex comparison?
+
+### 🏗️ Pyramid Platform — From Weeks 1–3
 - [ ] Can I name the dependency order from source loads to reporting outputs?
-- [ ] Can I explain what layer owns row selection, deduplication, and aggregation?
-- [ ] Can I name the top 3 data quality risks?
-
-### From Week 3 — Snapshots, Rollups, QC
 - [ ] Can I trace one KPI end-to-end from source to final rollup?
-- [ ] Can I explain whether an error belongs to source, transform, snapshot, rollup, or presentation?
 - [ ] Can I state the deployment sequence from memory?
+- [ ] Can I explain whether an error belongs to source, transform, snapshot, rollup, or presentation?
 
-### Cross-Track Reflection
+### 📊 BI Judgment — From Weeks 2–3
+- [ ] Can I articulate the business question before selecting a technical approach?
+- [ ] Can I define metric grain, filters, exclusions, and ownership rules?
+- [ ] Can I distinguish between a data-quality issue, a logic error, and a presentation limitation?
+
+### 🔗 Data & Lineage — From Week 2
+- [ ] Can I name what layer owns row selection, deduplication, and aggregation?
+- [ ] Can I name the top 3 data quality risks?
+- [ ] Can I identify where double-counting could happen?
+
+### 📦 Delivery & Handoff — From Weeks 3–4
+- [ ] Can I prepare a reviewer handoff package consumable without clarification?
+- [ ] Have I created at least one reusable team asset?
+- [ ] Can I scope a change slice and document before/after?
+
+### Cross-Category Reflection
 1. What concept from a prior week am I still using daily?
-2. Which track (Pyramid / Codex / BI Judgment) have I advanced most?
-3. Which track needs the most attention this week?
+2. Which category (AI / Codex / Pyramid / BI / Data / Delivery) have I advanced most?
+3. Which category needs the most attention this week?
 
 ### Self-Assessment
 - **Current classification:** Foundational / Developing / Operational / Ready For Codex Acceleration
 - **Why this classification applies now (2–3 sentences):**
+- **Category with most progress this week:**
+- **Category needing most focus next week:**

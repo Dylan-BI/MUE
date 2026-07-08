@@ -8,6 +8,11 @@ on:
       - action/notes/**
       - action/evidence/**
       - action/reports/**
+      - action/templates/**
+      - source/**
+      - review/**
+  schedule:
+    - cron: '0 6 * * *'   # daily at 06:00 UTC — auto-sync changes
   workflow_dispatch:
 
 permissions:
@@ -25,15 +30,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # need full history for git diff tracking
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.x'
 
-      - name: Regenerate data.json from notes
+      - name: Regenerate data.json with version tracking
         run: |
-          python3 action/dashboard/build_data.py || echo "No notes yet — using existing data.json"
+          python3 action/dashboard/build_data.py || echo "Build script completed"
+
+      - name: Sync to review/ folder
+        run: |
+          python3 review/scripts/sync-from-action.py || echo "Sync skipped (no new files)"
+          python3 action/dashboard/build_data.py || echo "Re-run build after sync"
+
+      - name: Commit updated data.json (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add action/dashboard/data.json review/ || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: auto-sync dashboard data and review folder"
+            git push
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
