@@ -161,7 +161,7 @@ SOURCE_CATEGORY_MAP = {
     'Codex Productivity.md': ['codex'],
     'Agentic Workflow Patterns.md': ['codex', 'delivery-handoff'],
     # Pyramid
-    # (no Pyramid-specific source files currently — tagged via keywords)
+    'Pyramid Platform Reference.md': ['pyramid'],
     # BI Judgment
     'Pyramid, Codex, and BI Judgment Daily Execution Guide.txt': ['pyramid', 'codex', 'bi-judgment'],
     'Pyramid, Codex, and BI Judgment Daily Working Template.txt': ['pyramid', 'codex', 'bi-judgment'],

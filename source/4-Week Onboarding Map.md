@@ -32,6 +32,24 @@ This map condenses the 60-day `Pyramid, Codex, and BI Judgment Daily Execution G
 
 > **Rule:** This program must not exceed 28 calendar days. If you need more time, open an issue with rationale and get explicit team sign-off per `CONTRIBUTING.md`.
 
+### Note on Cognitive Load Across Proficiency Levels
+
+The MUE curriculum offers **4 proficiency levels** (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), each with its own independent 28-day cycle. The same 7 categories repeat across all levels, but the **cognitive demand escalates significantly**:
+
+| Level | Bloom's Tier | Typical Task | Cognitive Load |
+|-------|-------------|--------------|----------------|
+| **🌱 L1 Foundation** | Remember & Understand | *Identify, describe, follow guided steps* | Low — vocabulary building with maximum scaffolding |
+| **🌿 L2 Development** | Apply | *Practice, implement, execute under guidance* | Moderate — structured tasks with clear success criteria |
+| **🌳 L3 Operational** | Analyze & Evaluate | *Compare, detect, assess, validate independently* | High — requires quality judgment and self-correction |
+| **🏆 L4 Mastery** | Create & Evaluate | *Design, automate, optimize, mentor others* | Very high — system-level thinking, strategy, teaching |
+
+This means **28 days at L4 is not the same workload as 28 days at L1**. Learners at higher levels are expected to:
+- Work with greater independence (less step-by-step guidance)
+- Produce higher-quality artifacts (validation evidence, reusable assets)
+- Demonstrate judgment, not just compliance
+
+**Recommendation for reviewers:** When assessing at L3 or L4, evaluate the *quality and autonomy* of the work, not just completion. A Level 4 learner who still needs daily step-by-step guidance may need to consolidate at L3 before advancing.
+
 ---
 
 ## How the 60-Day Guide Maps to 28 Days
@@ -303,6 +321,7 @@ Run this on Day 28. All must be **Yes** to begin bounded Codex use.
 | `source/LEARNING_CATEGORIES.md` | 🧠 | **Master category reference** — all 7 categories defined |
 | `source/4-Week Onboarding Map.md` | 🧠 | **This file** — condensed daily/weekly plan with categories, evidence, and gates |
 | `source/Copilot Reference for MUE.md` | 🤖 AI | Copilot modes, custom instructions, prompt files, context management |
+| `source/Pyramid Platform Reference.md` | 🏗️ Pyr | **NEW — Comprehensive Pyramid reference:** model architecture, deployment sequencing, QC, security, artifact migration, reviewer path |
 | `source/Codex Productivity.md` | ⚡ Codex | **NEW — Comprehensive Codex training:** Codex Loop, handoff fluency, 7 prompt patterns, bounded use, 6 practice exercises, manual-vs-Codex comparison methodology |
 | `source/Custom Workflows for MUE.md` | ⚡ Codex · 📦 Del | Four operational workflows (repo analysis, review, handoff, daily learning) + 3 new Codex-specific workflows (handoff fluency, bounded use, comparison) |
 | `source/Codex Productivity Training Handoff.md` | ⚡ Codex · 📊 BI | Vision document — three-track rationale and Codex productivity |

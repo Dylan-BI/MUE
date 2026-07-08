@@ -1100,6 +1100,23 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     ).join('') +
     '</div>' +
 
+    // Scorecard-to-category mapping reference
+    '<div style="background:#f0f4ff;border:1px solid #d4e0f0;border-radius:8px;padding:10px 14px;margin-bottom:12px">' +
+    '<h4 style="font-size:13px;color:#1a1a2e;margin-bottom:6px">🏆 Scorecard Areas → Learning Categories</h4>' +
+    '<p style="font-size:11px;color:#555;margin-bottom:6px">The 7 scorecard areas are <strong>cross-cutting</strong> — they measure behaviors that span multiple learning categories. This map shows which categories each scorecard area primarily exercises.</p>' +
+    '<table style="font-size:11px;color:#333;width:100%;border-collapse:collapse">' +
+    '<tr style="background:#e8f0fe"><th style="padding:4px 8px;text-align:left;border:1px solid #d4e0f0">Scorecard Area</th><th style="padding:4px 8px;text-align:left;border:1px solid #d4e0f0">Primary Categories</th><th style="padding:4px 8px;text-align:left;border:1px solid #d4e0f0">Why It Matters</th></tr>' +
+    '<tr><td style="padding:4px 8px;border:1px solid #e0e0e0">Prompt discipline</td><td style="padding:4px 8px;border:1px solid #e0e0e0">🤖 AI &amp; Copilot</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Quality of AI interaction habits — mode selection, prompt structure, drift avoidance</td></tr>' +
+    '<tr style="background:#f8f9fa"><td style="padding:4px 8px;border:1px solid #e0e0e0">Repo or workspace analysis</td><td style="padding:4px 8px;border:1px solid #e0e0e0">⚡ Codex · 🔗 Data &amp; Lineage</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Ability to understand context before acting — codebase orientation, dependency tracing</td></tr>' +
+    '<tr><td style="padding:4px 8px;border:1px solid #e0e0e0">Change isolation</td><td style="padding:4px 8px;border:1px solid #e0e0e0">📦 Delivery &amp; Handoff · ⚡ Codex</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Scoping narrow, reviewable changes — the foundation of clean handoffs</td></tr>' +
+    '<tr style="background:#f8f9fa"><td style="padding:4px 8px;border:1px solid #e0e0e0">Validation order</td><td style="padding:4px 8px;border:1px solid #e0e0e0">📊 BI Judgment · 🏗️ Pyramid Platform</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Bottom-up validation discipline — source before transformation before presentation</td></tr>' +
+    '<tr><td style="padding:4px 8px;border:1px solid #e0e0e0">Deployment awareness</td><td style="padding:4px 8px;border:1px solid #e0e0e0">🏗️ Pyramid Platform · 📦 Delivery &amp; Handoff</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Understanding the full delivery pipeline — deployment sequence, environment differences</td></tr>' +
+    '<tr style="background:#f8f9fa"><td style="padding:4px 8px;border:1px solid #e0e0e0">Reviewer handoff</td><td style="padding:4px 8px;border:1px solid #e0e0e0">📦 Delivery &amp; Handoff</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Quality of communication — handoff notes, context provision, reviewer readiness</td></tr>' +
+    '<tr><td style="padding:4px 8px;border:1px solid #e0e0e0">Reusability</td><td style="padding:4px 8px;border:1px solid #e0e0e0">📦 Delivery &amp; Handoff · ⚡ Codex</td><td style="padding:4px 8px;border:1px solid #e0e0e0">Creating assets that outlast one task — prompt templates, checklists, runbooks</td></tr>' +
+    '</table>' +
+    '<p style="font-size:10px;color:#888;margin-top:4px">💡 Tip: A low score in "Change isolation" suggests gaps in Delivery &amp; Handoff and/or Codex, not necessarily Pyramid or BI Judgment. Use this map to target review feedback to the right category.</p>' +
+    '</div>' +
+
     // Level-specific review focus
     '<div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px" id="guideLevelFocus">' +
     '<h4 style="font-size:13px;color:#92400e;margin-bottom:6px">' + getLevelData().emoji + ' Level ' + (CURRENT_LEVEL||1) + ' Review Focus — ' + getLevelData().label + '</h4>' +

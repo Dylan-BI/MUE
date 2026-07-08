@@ -24,6 +24,7 @@ MUE/
 │   ├── Copilot Reference.md      🤖  AI modes, prompts, context
 │   ├── Custom Workflows.md       ⚡📦  Workflow patterns
 │   ├── Codex Productivity.md     ⚡📊  Codex productivity vision
+│   ├── Pyramid Platform Reference.md  🏗️  Platform mechanics, deployment, QC, access
 │   ├── Readiness Plan.md         🏗️📊⚡  Full readiness plan
 │   ├── Daily Execution Guide.txt 🏗️  60-day reference
 │   ├── Daily Working Template.txt🧠  Daily work blocks
