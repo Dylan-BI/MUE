@@ -628,6 +628,28 @@
   [data-theme="dark"] [style*="border-left:3px solid #6c63ff"] { border-left-color: var(--accent) !important; }
   [data-theme="dark"] [style*="border-color:#fde68a"] { border-color: var(--border-yellow) !important; }
   [data-theme="dark"] pre { background: var(--bg-preview) !important; color: var(--text-code) !important; }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     PROGRESS WIDGETS — visual targets & learner input representation
+     ═══════════════════════════════════════════════════════════════════════ */
+  .progress-ring-container { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+  .progress-ring-svg { transform: rotate(-90deg); }
+  .progress-ring-bg { fill: none; stroke: var(--bg-progress); }
+  .progress-ring-fill { fill: none; stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+  .progress-ring-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+  .progress-target-list { margin-top: 6px; }
+  .progress-target-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 12px; color: var(--text-secondary); }
+  .progress-target-item .target-icon { width: 16px; text-align: center; font-size: 12px; flex-shrink: 0; }
+  .progress-target-item.fulfilled { color: var(--success-hue); }
+  .progress-target-item.unfulfilled { color: var(--text-muted); }
+  .progress-target-summary { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: var(--bg-muted); border-radius: 6px; font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+  .progress-target-bar { flex: 1; height: 4px; background: var(--bg-progress); border-radius: 3px; overflow: hidden; }
+  .progress-target-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+  .progress-widget-header { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-muted); border-radius: 8px; margin-bottom: 6px; }
+  .progress-widget-header .pwh-stats { flex: 1; font-size: 12px; color: var(--text-secondary); }
+  .progress-widget-header .pwh-pct { font-size: 14px; font-weight: 700; min-width: 40px; text-align: right; }
+  .progress-section { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg-card); }
+  .progress-section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 </style>
 </head>
 <body>
@@ -1112,12 +1134,46 @@ function renderCurriculumReviewContent() {
         const fCats = scMap[fPath] || [];
         return fCats.includes(cat.id);
       });
+      // ── Per-category progress: skills coverage from notes & evidence ──
+      const catSkills = cat.skills || [];
+      const notes = DATA.notes || [];
+      const ev = DATA.evidence || [];
+      const fulfilledSkills = catSkills.filter(skill => {
+        const sk = skill.toLowerCase();
+        return notes.some(n =>
+          (n.what_learned || '').toLowerCase().includes(sk) ||
+          (n.next_step || '').toLowerCase().includes(sk)
+        ) || ev.some(e =>
+          (e.path || e.filename || '').toLowerCase().includes(sk)
+        );
+      });
+      const catSkillItems = catSkills.map(s => ({ id: s, label: '✦ ' + s }));
+      const catDays = notes.filter(n => {
+        const track = (n.primary_track || '').toLowerCase();
+        return track.includes(cat.id) || (n.what_learned || '').toLowerCase().includes(cat.label.toLowerCase());
+      });
+      const expectedDays = Math.min((cat.weeks || []).length * 7, 28);
       return '<div style="border:1px solid var(--border-color);border-radius:10px;padding:14px 16px;margin-bottom:10px">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
         '<span style="font-size:22px">' + cat.emoji + '</span>' +
         '<span style="font-weight:700;font-size:15px;color:var(--text-primary)">' + cat.label + '</span>' +
         '<span style="font-size:11px;color:var(--text-light);background:var(--bg-muted);padding:1px 8px;border-radius:4px">Week' + (cat.weeks||[]).map(w => ' ' + w).join(',') + '</span>' +
         '</div>' +
+        // ── Progress ring + skills coverage ──
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;padding:6px 10px;background:var(--bg-muted);border-radius:8px">' +
+        renderProgressRing(fulfilledSkills.length, Math.max(catSkills.length,1), 36) +
+        '<div style="flex:1;font-size:11px;color:var(--text-secondary)">' +
+        '<strong>Skills coverage:</strong> ' + fulfilledSkills.length + '/' + catSkills.length + ' demonstrated' +
+        ' · <strong>Days:</strong> ' + catDays.length + '/' + expectedDays +
+        '</div>' +
+        '<div>' + reviewToggleInline('curriculum_cat_' + cat.id, 'Curriculum Category', cat.label + ' — Learner Progress', 'curriculum/' + cat.id) + '</div>' +
+        '</div>' +
+        // ── Skill target list (collapsible) ──
+        '<div style="margin-bottom:6px">' +
+        '<span style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:600" onclick="this.nextElementSibling.classList.toggle(\'open\')">📋 View skill targets ▸</span>' +
+        '<div style="display:none;margin-top:4px" class="skill-targets-detail">' +
+        renderTargetList(catSkillItems, fulfilledSkills, 'curriculum_cat_skills_' + cat.id, 'Curriculum Category Skills', cat.label + ' — Skill Targets', 'curriculum/' + cat.id) +
+        '</div></div>' +
         '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">' + cat.description + '</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">' +
         (cat.skills||[]).map(s => '<span style="display:inline-block;font-size:10px;background:' + lvlColor + '22;color:var(--text-muted);padding:1px 8px;border-radius:10px;border:1px solid ' + lvlColor + '44">✦ ' + s + '</span>').join('') +
@@ -1255,6 +1311,15 @@ function renderAll() {
     '<div class="metric" style="background:var(--bg-muted)"><div class="value">' + infraTotal + '</div><div class="label">⚙️ Infrastructure</div><div class="sublabel">dashboard/templates/source</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-green)"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria</div><div class="sublabel">training reference files</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-yellow)"><div class="value">' + (rtc || 0) + '</div><div class="label">✅ Synced to review/</div><div class="sublabel">ready for assessment</div></div></div>' +
+    '<div class="card"><h3>🎯 Learner Progress & Requirements <span style="font-size:12px;color:var(--text-muted);font-weight:400">target vs actual</span></h3>' +
+    '<div class="progress-ring-container" style="flex-direction:row;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">' +
+    renderProgressRing(s.total_days||0, 28, 52) + '<div style="text-align:left"><strong>📅 Days</strong><br><span style="font-size:11px;color:var(--text-muted)">' + (s.total_days||0) + '/28 working days</span></div>' +
+    renderProgressRing(s.evidence_count||0, Math.max(s.evidence_count||0, Math.ceil((s.total_days||0)/2)), 52) + '<div style="text-align:left"><strong>📁 Evidence</strong><br><span style="font-size:11px;color:var(--text-muted)">' + (s.evidence_count||0) + ' artifacts</span></div>' +
+    renderProgressRing(Object.values(s.scorecard_trend||{}).filter(a => { const e=a; return e&&e.length&&e[e.length-1].score==='Pass'; }).length, Math.max(Object.keys(s.scorecard_trend||{}).length,1), 52) + '<div style="text-align:left"><strong>🏆 Scorecard</strong><br><span style="font-size:11px;color:var(--text-muted)">Areas at Pass</span></div>' +
+    renderProgressRing(Object.values(s.codex_gate_status||{}).filter(v=>v==='Yes').length, Math.max(Object.keys(s.codex_gate_status||{}).length,1), 52) + '<div style="text-align:left"><strong>🚪 Codex Gate</strong><br><span style="font-size:11px;color:var(--text-muted)">Gates passed</span></div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--text-muted);text-align:center;padding:4px 0 0;border-top:1px solid var(--border-light)">💬 Click the 💬 Review button below each section to comment on learner progress per sub-title</div>' +
+    '<div style="margin-top:8px">' + reviewToggleInline('overview_progress', 'Progress Overview', 'MUE Program — Learner Progress & Requirements', 'overview') + '</div></div>' +
     '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="toggleChangeSummary()">📘 Learner Artifact Changes <span id="changeSummaryToggle" style="font-size:12px;color:var(--accent);font-weight:400">[show]</span></h3>' +
     '<p class="caption">Showing only learner-completed curriculum artifacts (notes, evidence, reports). <span style="color:var(--text-muted)" id="infraToggle" onclick="toggleInfraChanges()">⚙️ Show infrastructure changes ('+infraTotal+')</span></p>' +
     '<div id="changeSummaryBody" style="display:none">' +
@@ -1305,6 +1370,24 @@ function renderAll() {
   const dailyArts = pa.daily || [];
   let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day training breakdown — review each day and track changes.</p>';
   dh += renderPageChanges('daily', 'Daily Progress');
+  // ≡≡≡ Daily Progress Widget — learner input vs requirement ≡≡≡
+  const daysWithNotes = notes.filter(n => n.what_learned && n.what_learned.trim()).length;
+  const daysWithEvidence = notes.filter(n => n.required_artifact && n.required_artifact.trim()).length;
+  const daysWithScorecard = notes.filter(n => n.scorecard && Object.keys(n.scorecard).length > 0).length;
+  const totalDaysCount = notes.length;
+  dh += '<div class="card"><h3>📊 Daily Requirements Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">learner input vs expected</span></h3>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(daysWithNotes, Math.max(totalDaysCount,1), 40) +
+    '<div><strong>📝 Notes</strong><br><span style="font-size:11px;color:var(--text-muted)">' + daysWithNotes + '/' + totalDaysCount + ' with reflection</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(daysWithEvidence, Math.max(totalDaysCount,1), 40) +
+    '<div><strong>📁 Evidence</strong><br><span style="font-size:11px;color:var(--text-muted)">' + daysWithEvidence + '/' + totalDaysCount + ' with artifacts</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(daysWithScorecard, Math.max(totalDaysCount,1), 40) +
+    '<div><strong>🏆 Scorecard</strong><br><span style="font-size:11px;color:var(--text-muted)">' + daysWithScorecard + '/' + totalDaysCount + ' with scores</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:4px">' + reviewToggleInline('daily_progress_req', 'Daily Requirements', 'Daily Progress — Learner Input & Requirements', 'daily') + '</div></div>';
   if (!notes.length) dh += '<div class="alert alert-info">No notes found yet.</div>';
   else [...notes].sort((a,b)=>(a.day_number||0)-(b.day_number||0)).forEach(n => {
     const se=Object.entries(n.scorecard||{}), sh=se.length?se.map(([k,v])=>'<span class="score-chip score-'+v.toLowerCase()+'">'+v[0]+'</span> '+k.replace(/_/g,' ')).join(' | '):'';
@@ -1335,6 +1418,19 @@ function renderAll() {
   const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
   let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Competency scores across all 7 areas — review each area and track changes.</p>';
   sh2 += renderPageChanges('scorecard', 'Scorecard');
+  // ≡≡≡ Scorecard Progress Widget — Pass rate per area ≡≡≡
+  const scorePassAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Pass'; });
+  const scoreFailAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Fail'; });
+  sh2 += '<div class="card"><h3>📊 Scorecard Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">fulfilled vs unfulfilled</span></h3>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(scorePassAreas.length, Math.max(trK.length,1), 44) +
+    '<div><strong>✅ At Pass</strong><br><span style="font-size:11px;color:var(--text-muted)">' + scorePassAreas.length + '/' + trK.length + ' areas</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(scoreFailAreas.length, Math.max(trK.length,1), 44, 'var(--danger)') +
+    '<div><strong>❌ Needs Work</strong><br><span style="font-size:11px;color:var(--text-muted)">' + scoreFailAreas.length + '/' + trK.length + ' failing</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:4px">' + reviewToggleInline('scorecard_progress_req', 'Scorecard Targets', 'Scorecard — Learner Target Progress', 'scorecard') + '</div></div>';
   if (!trK.length) sh2 += '<div class="alert alert-info">No scorecard data yet.</div>';
   else {
     trK.forEach(a=>{
@@ -1356,6 +1452,16 @@ function renderAll() {
   const pt = s.proof_tasks||{}, ptK=Object.keys(pt);
   let pth = '<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks — review each task and track changes.</p>';
   pth += renderPageChanges('proof-tasks', 'Proof Tasks');
+  // ≡≡≡ Proof Tasks Progress Widget — target list ≡≡≡
+  const ptItems = ptK.map(id => ({ id: id, label: id + ': ' + (pt[id].description || '') }));
+  const ptDone = ptK.filter(id => pt[id].found);
+  pth += '<div class="card"><h3>📊 Proof Task Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">fulfilled vs unfulfilled</span></h3>' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">' +
+    renderProgressRing(ptDone.length, Math.max(ptK.length,1), 44) +
+    '<div style="flex:1"><strong>Completion Status</strong><br><span style="font-size:11px;color:var(--text-muted)">' + ptDone.length + '/' + ptK.length + ' proof tasks done (' + (ptK.length ? Math.round(ptDone.length/ptK.length*100) : 0) + '%)</span></div>' +
+    '</div>' +
+    renderTargetList(ptItems, ptDone, 'prooftasks_progress_req', 'Proof Task Targets', 'Proof Tasks — Learner Target Progress', 'proof-tasks') +
+    '</div>';
   if (!ptK.length) pth += '<div class="alert alert-info">No proof task data yet.</div>';
   else {
     let cmp=0;
@@ -1363,7 +1469,7 @@ function renderAll() {
       pth+='<div class="pt-row"><div class="pt-icon">'+(d?'✅':'⬜')+'</div><div class="pt-info"><div class="pt-title">'+id+': '+escHtml(p.description)+'</div><div class="pt-days">'+(p.days&&p.days.length?'(found on days '+p.days.join(', ')+')':'')+'</div></div></div>';
       pth+=renderReviewSection('pt_'+id,'Proof Task',id+': '+p.description,id);
     });
-    pth += '<div class="card" style="margin-top:12px"><div class="flex-between"><strong>Progress: '+cmp+'/'+ptK.length+'</strong><span>'+Math.round(cmp/ptK.length*100)+'%</span></div><div class="prog-bar"><div class="prog-fill" style="width:'+cmp/ptK.length*100+'%;background:var(--success)"></div></div>'+(cmp===ptK.length?'<div class="alert alert-success" style="margin-top:6px">🎉 All proof tasks completed!</div>':'<p class="caption">'+(ptK.length-cmp)+' remaining.</p>')+'</div>';
+    pth += '<div class="card" style="margin-top:12px"><div class="flex-between"><strong>Overall: '+cmp+'/'+ptK.length+'</strong><span>'+Math.round(cmp/ptK.length*100)+'%</span></div><div class="prog-bar"><div class="prog-fill" style="width:'+cmp/ptK.length*100+'%;background:var(--success)"></div></div>'+(cmp===ptK.length?'<div class="alert alert-success" style="margin-top:6px">🎉 All proof tasks completed!</div>':'<p class="caption">'+(ptK.length-cmp)+' remaining.</p>')+'</div>';
   }
   addPage('proof-tasks', pth);
 
@@ -1371,6 +1477,19 @@ function renderAll() {
   const evArts = pa.evidence || [];
   let ehtml = '<h2>📁 Evidence Gallery</h2><p class="subtitle">Browse evidence artifacts — review per file. <span class="changed-badge">✏️ Agent-changed</span> files highlighted.</p>';
   ehtml += renderPageChanges('evidence', 'Evidence');
+  // ≡≡≡ Evidence Progress Widget — files produced vs days expected ≡≡≡
+  const evExpected = Math.max(ev.length, Math.ceil((s.total_days||0) / 2));
+  const evReviewed = Object.keys(getAllReviews()).filter(k => k.startsWith('ev_')).length;
+  ehtml += '<div class="card"><h3>📊 Evidence Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">artifacts produced vs reviewed</span></h3>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(ev.length, Math.max(evExpected,1), 44) +
+    '<div><strong>📁 Produced</strong><br><span style="font-size:11px;color:var(--text-muted)">' + ev.length + ' evidence files</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(evReviewed, Math.max(ev.length,1), 44, 'var(--warning-hue)') +
+    '<div><strong>💬 Reviewed</strong><br><span style="font-size:11px;color:var(--text-muted)">' + evReviewed + ' with feedback</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:4px">' + reviewToggleInline('evidence_progress_req', 'Evidence Targets', 'Evidence — Learner Artifact Progress', 'evidence') + '</div></div>';
   if (!ev.length) ehtml += '<div class="alert alert-info">No evidence files yet.</div>';
   else {
     ehtml += '<p class="caption"><strong>'+ev.length+'</strong> artifacts in action/evidence/</p>';
@@ -1393,6 +1512,21 @@ function renderAll() {
   const cs = s.classification_sequence||[];
   let chtml = '<h2>📈 Readiness Classification Trend</h2><p class="subtitle">How readiness level evolved over time — review and track changes.</p>';
   chtml += renderPageChanges('classification', 'Classification');
+  // ≡≡≡ Classification Progress Widget — current standing vs target ≡≡≡
+  const latestCls = s.latest_classification || '—';
+  const clsTarget = 'Operational';
+  const clsIdx = CLS_ORDER.indexOf(latestCls) + 1;
+  const clsTargetIdx = CLS_ORDER.indexOf(clsTarget) + 1;
+  chtml += '<div class="card"><h3>📊 Classification Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">current standing vs minimum requirement</span></h3>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(clsIdx, Math.max(clsTargetIdx,1), 44) +
+    '<div><strong>📈 Current</strong><br><span style="font-size:11px;color:var(--text-muted)">' + latestCls + ' (level ' + clsIdx + '/4)</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    '<span style="font-size:28px">🎯</span>' +
+    '<div><strong>Target Minimum</strong><br><span style="font-size:11px;color:var(--text-muted)">' + clsTarget + ' (level ' + clsTargetIdx + '/4)</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:4px">' + reviewToggleInline('classification_progress_req', 'Classification Targets', 'Classification — Learner Readiness Progress', 'classification') + '</div></div>';
   if (!cs.length) chtml += '<div class="alert alert-info">No classification data yet.</div>';
   else {
     chtml += '<div class="card"><div class="chart-container"><canvas id="chartClassification"></canvas></div></div><p class="caption">1=Foundational → 4=Ready for Codex Acceleration</p>';
@@ -1405,11 +1539,26 @@ function renderAll() {
 
   // ── PAGE 7: CODEX GATE + review + version tracking ──
   const gs = s.codex_gate_status||{}, gK = Object.keys(gs);
+  const gl={'one_end_to_end_workflow_completed':'End-to-end workflow completed','business_logic_ownership_understood':'Business-logic ownership understood','validation_evidence_produced_without_help':'Validation evidence without help','proof_tasks_completed':'All 6 proof tasks completed','one_clean_reviewable_change_slice':'Clean change slice delivered','one_reusable_team_asset_created':'Reusable asset created','manual_vs_codex_comparison_completed':'Manual-vs-Codex comparison completed','all_6_codex_exercises_passed':'All 6 Codex exercises passed','can_explain_bounded_codex_rules':'Bounded Codex rules (bonus)'};
   let ghtml = '<h2>🚪 Codex Gate Status</h2><p class="subtitle">Final checkpoint — all 6 gates must be Yes — review and track changes.</p>';
   ghtml += renderPageChanges('codex-gate', 'Codex Gate');
+  // ≡≡≡ Codex Gate Progress Widget ≡≡≡
+  const gsPassed = gK.filter(k => gs[k] === 'Yes');
+  const gsFailed = gK.filter(k => gs[k] === 'No');
+  const gsItems = gK.map(k => ({
+    id: k,
+    label: (gs[k] === 'Yes' ? '✅ ' : gs[k] === 'No' ? '❌ ' : '⬜ ') + (gl[k] || k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()))
+  }));
+  ghtml += '<div class="card"><h3>📊 Codex Gate Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">fulfilled vs unfulfilled</span></h3>' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">' +
+    renderProgressRing(gsPassed.length, Math.max(gK.length,1), 44) +
+    '<div style="flex:1"><strong>Gate Status</strong><br><span style="font-size:11px;color:var(--text-muted)">' + gsPassed.length + '/' + gK.length + ' gates passed' +
+    (gsFailed.length ? ' · ' + gsFailed.length + ' failed' : '') +
+    '</span></div></div>' +
+    renderTargetList(gsItems, gsPassed, 'codexgate_progress_req', 'Codex Gate Targets', 'Codex Gate — Learner Target Progress', 'codex-gate') +
+    '</div>';
   if (!gK.length) ghtml += '<div class="alert alert-info">No Codex Gate data yet. Checked on Day 28.</div>';
   else {
-    const gl={'one_end_to_end_workflow_completed':'End-to-end workflow completed','business_logic_ownership_understood':'Business-logic ownership understood','validation_evidence_produced_without_help':'Validation evidence without help','proof_tasks_completed':'All 6 proof tasks completed','one_clean_reviewable_change_slice':'Clean change slice delivered','one_reusable_team_asset_created':'Reusable asset created','manual_vs_codex_comparison_completed':'Manual-vs-Codex comparison completed','all_6_codex_exercises_passed':'All 6 Codex exercises passed','can_explain_bounded_codex_rules':'Bounded Codex rules (bonus)'};
     let ay=true;
     gK.forEach(k=>{const lb=gl[k]||k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),st=gs[k]||'—';if(st!=='Yes')ay=false;ghtml+='<div class="gate-item"><div class="gate-icon">'+(st==='Yes'?'✅':(st==='No'?'❌':'⬜'))+'</div><div class="gate-label">'+lb+'</div><strong>'+st+'</strong></div>';});
     ghtml += '<div class="card" style="margin-top:12px">'+(ay?'<div class="alert alert-success" style="margin-bottom:0">🎉 <strong>Codex Gate: PASSED</strong></div>':'<div class="alert alert-warning" style="margin-bottom:0"><strong>Codex Gate: NOT YET</strong><br>Missing: '+gK.filter(k=>gs[k]!=='Yes').map(k=>gl[k]||k).join(', ')+'</div>')+'</div>';
@@ -1418,15 +1567,48 @@ function renderAll() {
   addPage('codex-gate', ghtml);
 
   // ── PAGE 8: CURRICULUM REVIEW (level-aware, 4-level curriculum framework) ──
+  // ≡≡≡ Overall Curriculum Progress Widget ≡≡≡
+  const catProgress = computeCategoryProgress();
+  const catFulfilled = Object.values(catProgress).filter(c => c.fulfilled > 0).length;
+  const catTotal = Object.keys(catProgress).length;
+  const skillFulfilled = Object.values(catProgress).reduce((a, c) => a + c.skillsFulfilled, 0);
+  const skillTotal = Object.values(catProgress).reduce((a, c) => a + c.skillsTotal, 0);
   addPage('curriculum-review',
     '<h2>📚 Curriculum Review</h2>' +
     '<p class="subtitle" id="curriculumSubtitle">Everything a learner needs to know — 4 weeks (28 days) of training across 7 skill areas, now available at 4 proficiency levels.</p>' +
+    '<div class="card"><h3>🎯 Curriculum Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">category & skill coverage</span></h3>' +
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(catFulfilled, Math.max(catTotal,1), 44) +
+    '<div><strong>📚 Categories</strong><br><span style="font-size:11px;color:var(--text-muted)">' + catFulfilled + '/' + catTotal + ' engaged</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(skillFulfilled, Math.max(skillTotal,1), 44) +
+    '<div><strong>✦ Skills</strong><br><span style="font-size:11px;color:var(--text-muted)">' + skillFulfilled + '/' + skillTotal + ' demonstrated</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:4px">' + reviewToggleInline('curriculum_progress_req', 'Curriculum Targets', 'Curriculum — Learner Category & Skill Progress', 'curriculum') + '</div></div>' +
     '<div id="curriculumContent">' + renderCurriculumReviewContent() + '</div>'
   );
 
   // ── PAGE 9: ALL ARTIFACTS (with review, agent status, sync status, version tracking) ──
   const arts = DATA.artifacts||{};
+  // ≡≡≡ Artifacts Progress Widget — category distribution ≡≡≡
+  const artCats = Object.keys(arts);
+  const artTotal = Object.values(arts).reduce((a, arr) => a + arr.length, 0);
+  const artReviewed = Object.keys(getAllReviews()).filter(k => k.startsWith('art_') || k.startsWith('pa_')).length;
   addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Complete file listing of <code>action/</code> — review per file. <span class="changed-badge">✏️ Agent</span> = changed, <span class="synced-badge">✅ Synced</span> = synced to review/</p>' +
+    '<div class="card"><h3>📊 Artifact Overview <span style="font-size:12px;color:var(--text-muted);font-weight:400">files by category & review status</span></h3>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
+    artCats.slice(0, 5).map(cat => {
+      const count = (arts[cat] || []).length;
+      return '<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-muted);border-radius:6px;font-size:11px">' +
+        '<strong>' + cat.charAt(0).toUpperCase() + cat.slice(1) + ':</strong> ' + count +
+        '</div>';
+    }).join('') +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(artReviewed, Math.max(artTotal,1), 36) +
+    '<div><strong>💬 Reviewed</strong><br><span style="font-size:11px;color:var(--text-muted)">' + artReviewed + '/' + artTotal + ' files</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:4px">' + reviewToggleInline('artifacts_progress_req', 'Artifact Overview', 'All Artifacts — Coverage & Targets', 'artifacts') + '</div></div>' +
     renderPageChanges('artifacts', 'All Artifacts') +
     renderPageChanges('templates', 'Templates') +
     renderPageChanges('scripts', 'Scripts') +
@@ -2025,7 +2207,22 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<button class="export-btn" onclick="exportReviews()">📤 Export All Reviews</button>' +
     '<button class="export-btn" style="background:var(--info-tint)" onclick="saveReviewsToReview()">💾 Save to review/reviews.json</button>' +
     '<button class="export-btn" style="background:var(--success)" onclick="runSync()">📤 Sync action/ → review/</button>' +
-    '<button class="export-btn" style="background:var(--danger)" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>';
+    '<button class="export-btn" style="background:var(--danger)" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>' +
+
+  // ≡≡≡ Third-Party Review Progress Widget — review coverage ≡≡≡
+  '<div class="card"><h3>📊 Review Coverage Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">reviews submitted vs artifacts</span></h3>' +
+  '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
+  '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+  renderProgressRing(rvCnt, Math.max(Object.keys(allRv).length,1), 40) +
+  '<div><strong>💬 Reviews</strong><br><span style="font-size:11px;color:var(--text-muted)">' + rvCnt + ' total on ' + Object.keys(allRv).length + ' artifacts</span></div></div>' +
+  '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+  renderProgressRing(rtc, Math.max(totalChanges || rtc, 1), 40, 'var(--success)') +
+  '<div><strong>✅ Synced</strong><br><span style="font-size:11px;color:var(--text-muted)">' + rtc + ' files to review/</span></div></div>' +
+  '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+  renderProgressRing(learnerTotal, Math.max(learnerTotal + infraTotal, 1), 40, 'var(--warning-hue)') +
+  '<div><strong>📘 Learner Changes</strong><br><span style="font-size:11px;color:var(--text-muted)">' + learnerTotal + ' learner artifacts</span></div></div>' +
+  '</div>' +
+  '<div style="margin-top:4px">' + reviewToggleInline('tp_review_coverage', 'Review Coverage', 'Third Party Review — Coverage & Targets', 'third-party') + '</div></div>';
 
   // Reviewer Guide (collapsible) — expanded with category-specific criteria
   h += '<div class="card" style="border-left:3px solid var(--accent);margin-bottom:16px">' +
@@ -2508,6 +2705,182 @@ function hexToRgba(hex, alpha) {
   const g = parseInt(hex.substring(2,4),16);
   const b = parseInt(hex.substring(4,6),16);
   return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROGRESS WIDGETS — reusable visual target indicators with commenting
+   ── renderProgressRing(fulfilled, total, size) ── SVG circular progress
+   ── renderTargetList(items, fulfilled, aid, type, label, filename) ── checklist
+   ── renderSectionProgress(fulfilled, total, label, aid, ...) ── combined widget
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Render an SVG circular progress ring.
+ * @param {number} fulfilled - Number of completed/fulfilled items
+ * @param {number} total - Total number of required items
+ * @param {number} [size=40] - Diameter of the ring in pixels
+ * @param {string} [color] - Optional CSS color override
+ * @returns {string} HTML string
+ */
+function renderProgressRing(fulfilled, total, size, color) {
+  size = size || 40;
+  const r = (size - 6) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = total > 0 ? Math.min(fulfilled / total, 1) : 0;
+  const offset = circ * (1 - pct);
+  const strokeColor = color || (pct >= 1 ? 'var(--success)' : pct > 0 ? 'var(--accent)' : 'var(--text-light)');
+  const labelColor = pct >= 1 ? 'var(--success)' : pct > 0 ? 'var(--accent)' : 'var(--text-light)';
+  return '<div class="progress-ring-container">' +
+    '<svg width="' + size + '" height="' + size + '" class="progress-ring-svg">' +
+    '<circle class="progress-ring-bg" cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + r + '" stroke-width="3"/>' +
+    '<circle class="progress-ring-fill" cx="' + (size/2) + '" cy="' + (size/2) + '" r="' + r + '" stroke-width="3"' +
+    ' stroke="' + strokeColor + '" stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '"/>' +
+    '</svg>' +
+    '<div class="progress-ring-label" style="color:' + labelColor + '">' + fulfilled + '/' + total + '</div>' +
+    '</div>';
+}
+
+/**
+ * Render a detailed target/requirement checklist with per-item status and review integration.
+ * @param {Array} items - Array of { id, label } objects representing requirements
+ * @param {function|Array} fulfilled - Array of fulfilled item ids, or function(item) => boolean
+ * @param {string} aid - Artifact/review ID for the review section
+ * @param {string} type - Review type label
+ * @param {string} label - Human-readable label for the review section
+ * @param {string} filename - File path for review context
+ * @returns {string} HTML string
+ */
+function renderTargetList(items, fulfilled, aid, type, label, filename) {
+  if (!items || !items.length) return '';
+  const isFn = typeof fulfilled === 'function';
+  const total = items.length;
+  const done = items.filter(item => isFn ? fulfilled(item) : (fulfilled || []).includes(item.id));
+  const cnt = done.length;
+  const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+  const barColor = pct >= 100 ? 'var(--success)' : pct >= 50 ? 'var(--accent)' : 'var(--warning-hue)';
+  let h = '<div class="progress-target-list">' +
+    '<div class="progress-target-summary">' +
+    '<strong>' + cnt + '/' + total + '</strong> fulfilled' +
+    '<div class="progress-target-bar"><div class="progress-target-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+    '<span style="font-weight:600;color:' + barColor + '">' + pct + '%</span>' +
+    '</div>';
+  items.forEach(item => {
+    const isFulfilled = isFn ? fulfilled(item) : (fulfilled || []).includes(item.id);
+    h += '<div class="progress-target-item' + (isFulfilled ? ' fulfilled' : ' unfulfilled') + '">' +
+      '<span class="target-icon">' + (isFulfilled ? '✅' : '⬜') + '</span>' +
+      escHtml(item.label) +
+      '</div>';
+  });
+  // Add review button for this target set
+  h += '<div style="margin-top:4px">' + reviewToggleInline(aid, type, label, filename) + '</div>';
+  h += '</div>';
+  return h;
+}
+
+/**
+ * Render a combined section progress widget: ring + summary + target list + review.
+ * @param {number} fulfilled - Count of fulfilled items
+ * @param {number} total - Total required count
+ * @param {string} sectionLabel - Short label like "Daily Notes"
+ * @param {string} aid - Artifact/review ID
+ * @param {string} type - Review type
+ * @param {string} itemLabel - Label for the review section
+ * @param {string} filename - File path for review context
+ * @param {Array} [items] - Optional detailed items array for renderTargetList
+ * @returns {string} HTML string
+ */
+function renderSectionProgress(fulfilled, total, sectionLabel, aid, type, itemLabel, filename, items) {
+  const pct = total > 0 ? Math.round(fulfilled / total * 100) : 0;
+  const barColor = pct >= 100 ? 'var(--success)' : pct >= 50 ? 'var(--accent)' : 'var(--warning-hue)';
+  const statusEmoji = pct >= 100 ? '✅' : pct >= 50 ? '🔄' : '⏳';
+  const statusText = pct >= 100 ? 'Complete' : pct >= 50 ? 'In Progress' : 'Pending';
+  let h = '<div class="progress-section">' +
+    '<div class="progress-widget-header">' +
+    renderProgressRing(fulfilled, total, 36) +
+    '<div class="pwh-stats"><strong>' + escHtml(sectionLabel) + '</strong><br>' +
+    '<span>' + fulfilled + '/' + total + ' (' + pct + '%) — ' + statusEmoji + ' ' + statusText + '</span></div>' +
+    '<div class="pwh-pct" style="color:' + barColor + '">' + pct + '%</div>' +
+    '</div>';
+  if (items && items.length) {
+    h += renderTargetList(items, null, aid + '_targets', type, itemLabel + ' — Targets', filename);
+  }
+  h += '<div style="margin-top:4px">' + reviewToggleInline(aid, type, itemLabel, filename) + '</div>';
+  h += '</div>';
+  return h;
+}
+
+/**
+ * Compute progress data per learning category from current DATA state.
+ * Returns an object keyed by category id with { fulfilled, total, items }.
+ */
+function computeCategoryProgress() {
+  const cats = DATA.categories || {};
+  const levelCats = getLevelCats();
+  const s = DATA.summary || {};
+  const notes = DATA.notes || [];
+  const ev = DATA.evidence || [];
+  const tr = s.scorecard_trend || {};
+  const pt = s.proof_tasks || {};
+  const gs = s.codex_gate_status || {};
+  const result = {};
+  Object.keys(levelCats).forEach(cid => {
+    const cat = levelCats[cid];
+    const skills = cat.skills || [];
+    // Determine progress from notes mentioning this category, evidence count, scorecard pass rate
+    const relatedNotes = notes.filter(n => {
+      const track = (n.primary_track || '').toLowerCase();
+      return track.includes(cid) || (n.what_learned || '').toLowerCase().includes(cat.label.toLowerCase());
+    });
+    const noteDays = relatedNotes.map(n => n.day_number).filter(Boolean);
+    const uniqueDays = [...new Set(noteDays)];
+    // Skills coverage: how many skills are mentioned in notes or evidence
+    const skillCoverage = skills.filter(skill => {
+      const sk = skill.toLowerCase();
+      return relatedNotes.some(n =>
+        (n.what_learned || '').toLowerCase().includes(sk) ||
+        (n.next_step || '').toLowerCase().includes(sk)
+      ) || ev.some(e =>
+        (e.path || e.filename || '').toLowerCase().includes(sk)
+      );
+    });
+    const expectedDays = Math.min((cat.weeks || []).length * 7, 28);
+    result[cid] = {
+      label: cat.label,
+      emoji: cat.emoji,
+      fulfilled: uniqueDays.length,
+      total: Math.min(expectedDays, 28),
+      skillsFulfilled: skillCoverage.length,
+      skillsTotal: skills.length,
+      items: skills.map(s => ({
+        id: s,
+        label: s
+      }))
+    };
+  });
+  return result;
+}
+
+/**
+ * Compute overall program progress from summary metrics.
+ */
+function computeOverallProgress() {
+  const s = DATA.summary || {};
+  const pt = s.proof_tasks || {};
+  const gs = s.codex_gate_status || {};
+  const ptDone = Object.values(pt).filter(p => p.found).length;
+  const ptTotal = Object.keys(pt).length;
+  const gsDone = Object.values(gs).filter(v => v === 'Yes').length;
+  const gsTotal = Object.keys(gs).length;
+  return {
+    days: { fulfilled: s.total_days || 0, total: 28 },
+    evidence: { fulfilled: s.evidence_count || 0, total: Math.max(s.evidence_count || 0, Math.ceil((s.total_days||0) / 2)) },
+    scorecard: { fulfilled: Object.values(s.scorecard_trend || {}).filter(a => {
+      const entries = a;
+      return entries && entries.length && entries[entries.length-1].score === 'Pass';
+    }).length, total: Object.keys(s.scorecard_trend || {}).length },
+    proofTasks: { fulfilled: ptDone, total: Math.max(ptTotal, 1) },
+    codexGate: { fulfilled: gsDone, total: Math.max(gsTotal, 1) }
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
