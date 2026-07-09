@@ -31,13 +31,15 @@ Week 1                  Week 2                  Week 3                  Week 4
 
 > **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
 
-This map condenses the 60-day `Pyramid, Codex, and BI Judgment Daily Execution Guide` into a **maximum 4-week (28-day) program** while preserving all six proof tasks, the eight learning categories, and the evidence-backed readiness gates. It is the single source of truth for scheduling. Every week builds directly toward the BI team contributor outcome.
+This map condenses the 60-day `Pyramid, Codex, and BI Judgment Daily Execution Guide` into a **maximum 28-working-day program** while preserving all six proof tasks, the eight learning categories, and the evidence-backed readiness gates. It is the single source of truth for scheduling. Every week builds directly toward the BI team contributor outcome.
 
-> **Rule:** This program must not exceed 28 calendar days. If you need more time, open an issue with rationale and get explicit team sign-off per `CONTRIBUTING.md`.
+> **Rule:** This program must not exceed 28 working days (Monday–Friday only; weekends are excluded). If you need more time, open an issue with rationale and get explicit team sign-off per `CONTRIBUTING.md`.
+
+> **Weekend exclusion:** Day count increments only on weekdays. A day-number of N always corresponds to the N‑th working day since the cycle started. See `source/scripts/create_daily_note.py` — it refuses to create notes on Saturday or Sunday.
 
 ### Note on Cognitive Load Across Proficiency Levels
 
-The MUE curriculum offers **4 proficiency levels** (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), each with its own independent 28-day cycle. The same 8 categories repeat across all levels, but the **cognitive demand escalates significantly**:
+The MUE curriculum offers **4 proficiency levels** (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), each with its own independent 28-working-day cycle. The same 8 categories repeat across all levels, but the **cognitive demand escalates significantly**:
 
 | Level | Bloom's Tier | Typical Task | Cognitive Load |
 |-------|-------------|--------------|----------------|
@@ -46,7 +48,7 @@ The MUE curriculum offers **4 proficiency levels** (🌱 Foundation → 🌿 Dev
 | **🌳 L3 Operational** | Analyze & Evaluate | *Compare, detect, assess, validate independently* | High — requires quality judgment and self-correction |
 | **🏆 L4 Mastery** | Create & Evaluate | *Design, automate, optimize, mentor others* | Very high — system-level thinking, strategy, teaching |
 
-This means **28 days at L4 is not the same workload as 28 days at L1**. Learners at higher levels are expected to:
+This means **28 working days at L4 is not the same workload as 28 working days at L1**. Learners at higher levels are expected to:
 - Work with greater independence (less step-by-step guidance)
 - Produce higher-quality artifacts (validation evidence, reusable assets)
 - Demonstrate judgment, not just compliance
@@ -55,7 +57,7 @@ This means **28 days at L4 is not the same workload as 28 days at L1**. Learners
 
 ---
 
-## How the 60-Day Guide Maps to 28 Days
+## How the 60-Day Guide Maps to 28 Working Days
 
 The original 60-day guide has three phases, now mapped to four themed weeks with explicit category coverage:
 

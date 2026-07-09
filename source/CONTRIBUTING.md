@@ -9,7 +9,7 @@ Welcome — this repository is a training bundle and working kit organized aroun
 See [`source/LEARNING_CATEGORIES.md`](./LEARNING_CATEGORIES.md) for the complete category reference.
 
 ## Core rules
-- Training programs using this content must be limited to a **4-week maximum (28 calendar days)**. Any extended program must be explicitly approved and documented in a team decision note.
+- Training programs using this content must be limited to a **maximum of 28 working days (Monday–Friday; weekends are excluded)**. Any extended program must be explicitly approved and documented in a team decision note.
 - Every day of training must produce **one evidence artifact** (note, prompt, checklist, validation record, handoff draft, or reusable asset) and store it under `action/notes/` or `action/evidence/`.
 - Every daily task should be **tagged with its primary category** (🤖 ⚡ 🏗️ 📊 🔗 📦 💬 🧠).
 - Contributors must complete all 6 proof tasks (or show equivalent evidence) before making changes to production work.
@@ -49,9 +49,9 @@ MUE/
 └── README.md                 # Root overview
 ```
 
-## The 60-day guide condensed to 28 days with category tags
+## The 60-day guide condensed to 28 working days with category tags
 
-The original Execution Guide (`source/Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`) describes a full 60-day program. The [`source/4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md) condenses this into a **4-week (28-day) schedule** with explicit **category tagging**:
+The original Execution Guide (`source/Pyramid, Codex, and BI Judgment Daily Execution Guide.txt`) describes a full 60-day program. The [`source/4-Week Onboarding Map.md`](./4-Week%20Onboarding%20Map.md) condenses this into a **28-working-day schedule** with explicit **category tagging**:
 
 - **Week 1** (Days 1–5): 🏗️ Foundation — 🤖 AI · 📊 BI · 🏗️ Pyr
 - **Week 2** (Days 6–12): 🔗 Data Layer — 🔗 Data · 📊 BI · ⚡ Codex — PT1 + PT3 due
@@ -73,7 +73,7 @@ The original Execution Guide (`source/Pyramid, Codex, and BI Judgment Daily Exec
 
 ## Creating a daily note
 
-Use the helper script `source/scripts/create_daily_note.py` to create a daily note from the template. The script enforces the 4-week limit.
+Use the helper script `source/scripts/create_daily_note.py` to create a daily note from the template. The script enforces the 28-working-day limit and refuses to create notes on weekends.
 
 ```bash
 # From repo root:

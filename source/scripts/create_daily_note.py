@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 source/scripts/create_daily_note.py
-Create a daily note from the Daily Working Template and enforce 4-week (28 day) max.
+Create a daily note from the Daily Working Template and enforce 28-working-day max.
+Only weekdays (Monday-Friday) are valid — weekends are excluded from the cycle.
+
 Usage:
     # From repo root:
     python3 source/scripts/create_daily_note.py --date YYYY-MM-DD --day-number N
@@ -42,22 +44,33 @@ def write_note(date_str, day_number, template_content):
     return path
 
 
+def is_weekday(date_obj):
+    """Return True if date_obj is Monday-Friday (weekday 0-4)."""
+    return date_obj.weekday() < 5
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--date', required=True, help='Date for the note YYYY-MM-DD')
+    parser.add_argument('--date', required=True, help='Date for the note YYYY-MM-DD (must be a weekday)')
     parser.add_argument('--day-number', type=int, required=True, help='Day number in training (1..28)')
     args = parser.parse_args()
 
-    # Enforce 4-week max (28 days)
+    # Enforce 28-working-day max
     if args.day_number < 1 or args.day_number > 28:
-        print('Error: --day-number must be between 1 and 28 (4 weeks max).')
+        print('Error: --day-number must be between 1 and 28 (max 28 working days).')
         sys.exit(2)
 
-    # Validate date
+    # Validate date format
     try:
-        datetime.strptime(args.date, '%Y-%m-%d')
+        parsed = datetime.strptime(args.date, '%Y-%m-%d')
     except ValueError:
         print('Error: --date must be YYYY-MM-DD')
+        sys.exit(2)
+
+    # Enforce weekday-only — weekends are excluded from the curriculum cycle
+    if not is_weekday(parsed):
+        print(f'Error: {args.date} is a weekend. The 28-day curriculum cycle counts working days only (Monday-Friday).')
+        print('Tip: Day {0} falls on the next available weekday. Use the correct --day-number for the next working day.'.format(args.day_number))
         sys.exit(2)
 
     template = load_template()

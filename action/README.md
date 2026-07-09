@@ -9,7 +9,7 @@ This is where you do your daily work. All notes, evidence, reports, and template
 ## Quick Start
 
 ```bash
-# 1. Create today's note (enforces day ≤ 28)
+# 1. Create today's note (enforces day ≤ 28, weekday only)
 python3 ../source/scripts/create_daily_note.py --date YYYY-MM-DD --day-number N
 
 # 2. At end of week, aggregate notes

@@ -852,7 +852,7 @@ function updateSidebar() {
   const cc = DATA.change_counts || {};
   const v = DATA.version || {};
   const info = document.getElementById('sidebarInfo');
-  info.innerHTML = '<strong>' + s.total_days + '</strong> / 28 days (' + Math.min(Math.round(s.total_days/28*100),100) + '%)' +
+  info.innerHTML = '<strong>' + s.total_days + '</strong> / 28 working days (' + Math.min(Math.round(s.total_days/28*100),100) + '%)' +
     '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(s.total_days/28*100,100) + '%;background:var(--accent)"></div></div>' +
     'Classification: <strong>' + s.latest_classification + '</strong> &middot; Evidence: ' + s.evidence_count + ' files' +
     '<br>Version: <span class="version-chip">' + (v.commit || '—') + '</span>';
@@ -915,7 +915,7 @@ function startAutoRefresh() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LEVEL-AWARE CURRICULUM REVIEW (4 levels × 8 categories × 28 days)
+   LEVEL-AWARE CURRICULUM REVIEW (4 levels × 8 categories × 28 working days)
    ═══════════════════════════════════════════════════════════════════════════ */
 function setLevel(level) {
   CURRENT_LEVEL = level;
@@ -943,7 +943,7 @@ function setLevel(level) {
   const sub = document.getElementById('curriculumSubtitle');
   if (sub) {
     const lvlData = (DATA.levels || {})[level] || {};
-    sub.textContent = 'Level ' + level + ': ' + lvlData.label + ' — ' + (lvlData.subtitle || '') + ' All 8 categories, 28-day curriculum, adjusted for this proficiency tier.';
+    sub.textContent = 'Level ' + level + ': ' + lvlData.label + ' — ' + (lvlData.subtitle || '') + ' All 8 categories, 28-working-day curriculum, adjusted for this proficiency tier.';
   }
 
   // Update Third Party Review guide if visible
@@ -1065,7 +1065,7 @@ function renderCurriculumReviewContent() {
 
   // Top metrics row
   html += '<div class="metric-row">' +
-    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">4</div><div class="label">📅 Weeks</div><div class="sublabel">28 training days</div></div>' +
+    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">4</div><div class="label">📅 Weeks</div><div class="sublabel">28 working days</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-green)"><div class="value">' + Object.keys(levelCats).length + '</div><div class="label">📚 Categories</div><div class="sublabel">learning subject areas</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-yellow)"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Files</div><div class="sublabel">criteria references</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-red)"><div class="value">' + s.total_days + '</div><div class="label">✅ Days Done</div><div class="sublabel">' + (28 - s.total_days) + ' remaining</div></div>' +
@@ -1146,17 +1146,17 @@ function renderCurriculumReviewContent() {
     }).join('') +
     '</tbody></table></div>';
 
-  // Curriculum progress overview (28-day calendar)
-  html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">A 28-day training calendar — green squares show finished days, grey ones are still ahead. Each day builds on the last.</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px">' +
-    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:var(--text-muted);text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
+  // Curriculum progress overview (28 working days, Mon–Fri only)
+  html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">A 28-working-day calendar (Mon–Fri) — green squares show finished days, grey ones are still ahead. Weekends are excluded.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px">' +
+    ['Mon','Tue','Wed','Thu','Fri'].map(d => '<div style="font-size:10px;color:var(--text-muted);text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
     Array.from({length:28}, (_,i) => {
       const day = i+1;
       const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
       const done = dayNotes.length > 0;
       return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;font-weight:600;cursor:default;' +
         (done ? 'background:var(--day-cell-done);color:#fff' : 'background:var(--day-cell-pending);color:var(--day-cell-pending-text)') +
-        '" title="Day ' + day + (done ? ' — completed' : ' — pending') + '">' + day + '</div>';
+        '" title="Day ' + day + ' (working day) ' + (done ? '— completed' : '— pending') + '">' + day + '</div>';
     }).join('') +
     '</div></div>';
 

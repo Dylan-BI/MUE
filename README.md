@@ -2,9 +2,9 @@
 
 > **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
 
-A **maximum 4-week** training bundle for Pyramid, Codex, BI judgment, and team collaboration readiness — with evidence-backed results, retention learning, and a **BI team contributor** outcome.
+A **maximum 28-working-day** training bundle for Pyramid, Codex, BI judgment, and team collaboration readiness — with evidence-backed results, retention learning, and a **BI team contributor** outcome.
 
-> **Hard constraint:** This program must not exceed 28 calendar days. See `source/CONTRIBUTING.md` for extension rules.
+> **Hard constraint:** This program must not exceed 28 working days (Monday–Friday; weekends are excluded). See `source/CONTRIBUTING.md` for extension rules.
 
 ---
 
