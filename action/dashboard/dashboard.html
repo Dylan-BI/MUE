@@ -10,7 +10,11 @@
 
   /* ═══════════════════════════════════════════════════════════════════════
      CSS CUSTOM PROPERTIES — Light & Dark Theme
-     Inspired by CoreUI Bootstrap Admin Template v5.5.0
+     Color system uses tint/tone/shade terminology per Linearity guide:
+       Hue   = pure pigment (base)
+       Tint  = hue + white → lighter, softer (backgrounds, hover)
+       Tone  = hue + gray   → muted, sophisticated (borders, secondary)
+       Shade = hue + black  → darker (active states, emphasis)
      ═══════════════════════════════════════════════════════════════════════ */
   :root {
     --bg-body: #f4f5f9;
@@ -50,45 +54,104 @@
     --card-shadow: 0 1px 4px rgba(26,27,46,.06), 0 0 0 1px rgba(26,27,46,.02);
     --card-hover-shadow: 0 4px 16px rgba(26,27,46,.08), 0 0 0 1px rgba(26,27,46,.03);
 
-    --text-primary: #1a1b2e;
-    --text-secondary: #3d3e54;
-    --text-muted: #8e90a6;
-    --text-caption: #7b7d94;
-    --text-light: #abaec4;
+    /* ── Accent Purple (Hue) with systematic tint/tone/shade ── */
+    --accent-hue:        #7c73ff;  /* pure pigment */
+    --accent-tint:       #9f97ff;  /* +white: lighter hover states */
+    --accent-tone:       #8d86c9;  /* +gray: muted/de-emphasized accent */
+    --accent-shade:      #5a53c2;  /* +black: active/pressed states */
+    --accent-subtle:     #eeedff;  /* heavy tint: background wash */
+    --accent-rgb:        124, 115, 255;
+
+    /* ── Status Color Families (each with hue / tint / tone / shade / subtle) ── */
+    --success-hue:       #2b9d6e;
+    --success-tint:      #46b883;
+    --success-tone:      #5d8d76;
+    --success-shade:     #1e7a53;
+    --success-subtle:    #e6f3ed;
+
+    --warning-hue:       #d49330;
+    --warning-tint:      #e0ad5c;
+    --warning-tone:      #b8935a;
+    --warning-shade:     #a8731e;
+    --warning-subtle:    #faf3e0;
+
+    --danger-hue:        #d9445a;
+    --danger-tint:       #e56a7c;
+    --danger-tone:       #b86a76;
+    --danger-shade:      #b32d42;
+    --danger-subtle:     #faf0f0;
+
+    --info-hue:          #4a7c8c;
+    --info-tint:         #6a9aaa;
+    --info-tone:         #6a8590;
+    --info-shade:        #2d5c6e;
+    --info-subtle:       #eef3fa;
+
+    /* ── Neutral Gray Scale (cool undertone — matches purple accent) ── */
+    --gray-50:  #f7f8fc;
+    --gray-100: #edeef4;
+    --gray-200: #dbdce8;
+    --gray-300: #c4c6d4;
+    --gray-400: #8e90a6;
+    --gray-500: #6b6d82;
+    --gray-600: #3d3e54;
+    --gray-700: #2a2b40;
+    --gray-800: #1a1b2e;
+
+    /* ── Text — mapped from neutral scale with cool undertone ── */
+    --text-primary:   var(--gray-800);
+    --text-secondary: var(--gray-600);
+    --text-muted:     var(--gray-400);
+    --text-caption:   #7b7d94;
+    --text-light:     #abaec4;
     --text-sidebar: #b0b0c8;
     --text-sidebar-muted: #9999b0;
     --text-sidebar-heading: #666680;
     --text-nav-inactive: #b0b0c8;
     --text-nav-active: #ffffff;
-    --text-accent: #7c73ff;
+    --text-accent: var(--accent-hue);
     --text-on-accent: #ffffff;
-    --text-link: #7c73ff;
+    --text-link: var(--accent-hue);
     --text-green: #1a6e4a;
-    --text-code: #3d3e54;
+    --text-code: var(--gray-600);
     --text-chip-green: #1a6e4a;
     --text-chip-yellow: #8a6a1a;
     --text-alert-info: #3a6a7a;
     --text-alert-success: #1a6e4a;
     --text-alert-warning: #8a6a1a;
 
+    /* ── Borders ── */
     --border-color: #e2e3ed;
     --border-light: #ececf5;
-    --border-input: #dbdce8;
+    --border-input: var(--gray-200);
     --border-sidebar: #2a2a4a;
     --border-green: #b8dcca;
     --border-blue: #cad6ea;
     --border-yellow: #f0dfb5;
-    --border-accent: #7c73ff;
+    --border-accent: var(--accent-hue);
     --border-chip-yellow: #f0dfb5;
 
-    --accent: #7c73ff;
-    --accent-hover: #6a62e6;
-    --accent-rgb: 124, 115, 255;
+    /* ── Shorthand aliases (keep for backward compat with JS) ── */
+    --accent: var(--accent-hue);
+    --accent-hover: var(--accent-tint);
+    --success: var(--success-hue);
+    --warning: var(--warning-hue);
+    --danger: var(--danger-hue);
+    --info: var(--info-hue);
 
-    --success: #2b9d6e;
-    --warning: #d49330;
-    --danger: #d9445a;
-    --info: #4a7c8c;
+    /* ── Chart & Classification Colors (harmonious, warm-cool balanced) ── */
+    --chart-blue:        #5b8def;
+    --chart-purple:      var(--accent-hue);
+    --chart-orange:      #f5a623;
+    --chart-teal:        #4dbcc2;
+    --chart-pink:        #e86b9a;
+    --chart-green:       var(--success-hue);
+    --chart-gray:        #8e90a6;
+
+    --cls-foundational:  var(--chart-gray);
+    --cls-developing:    var(--chart-orange);
+    --cls-operational:   var(--chart-blue);
+    --cls-ready:         var(--chart-green);
 
     --sidebar-bg: #17182b;
     --sidebar-text: #9a9bb8;
@@ -111,20 +174,20 @@
     --version-chip-text: #4a7c8c;
     --version-chip-border: #d4e0ea;
 
-    --day-cell-done: #2b9d6e;
-    --day-cell-pending: #e8eaf0;
-    --day-cell-pending-text: #6b6d82;
+    --day-cell-done: var(--success-hue);
+    --day-cell-pending: var(--gray-100);
+    --day-cell-pending-text: var(--gray-500);
     --nav-badge-text: #ffffff;
-    --score-pass: #2b9d6e;
-    --score-partial: #d49330;
-    --score-fail: #d9445a;
-    --prog-bg: #e8eaf0;
-    --scrollbar-thumb: #c4c6d4;
+    --score-pass: var(--success-hue);
+    --score-partial: var(--warning-hue);
+    --score-fail: var(--danger-hue);
+    --prog-bg: var(--gray-100);
+    --scrollbar-thumb: var(--gray-300);
     --scrollbar-track: transparent;
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
-     DARK THEME OVERRIDES
+     DARK THEME OVERRIDES — follows same tint/tone/shade system
      ═══════════════════════════════════════════════════════════════════════ */
   [data-theme="dark"] {
     --bg-body: #161a24;
@@ -164,6 +227,7 @@
     --card-shadow: 0 1px 3px rgba(0,0,0,.2);
     --card-hover-shadow: 0 4px 16px rgba(0,0,0,.25);
 
+    /* ── Dark-mode text — opacity-based for readability on dark surface ── */
     --text-primary: rgba(255,255,255,0.88);
     --text-secondary: rgba(255,255,255,0.70);
     --text-muted: rgba(255,255,255,0.50);
@@ -179,6 +243,53 @@
     --text-link: #958cff;
     --text-accent: #958cff;
 
+    /* ── Dark-mode accent family (lighter on dark bg for contrast) ── */
+    --accent-hue:        #958cff;
+    --accent-tint:       #b4adff;
+    --accent-tone:       #9d96d4;
+    --accent-shade:      #6f67d6;
+    --accent-subtle:     #1c1838;
+    --accent-rgb:        149, 140, 255;
+
+    /* ── Dark-mode status families ── */
+    --success-hue:       #3dbd83;
+    --success-tint:      #5dd49b;
+    --success-tone:      #6da086;
+    --success-shade:     #2a8f5e;
+    --success-subtle:    #1a2e26;
+
+    --warning-hue:       #e0b052;
+    --warning-tint:      #ecc87a;
+    --warning-tone:      #c4a46a;
+    --warning-shade:     #b88a28;
+    --warning-subtle:    #2e2a1c;
+
+    --danger-hue:        #e86a7a;
+    --danger-tint:       #f08a96;
+    --danger-tone:       #c07a84;
+    --danger-shade:      #c44a58;
+    --danger-subtle:     #2e1c1e;
+
+    --info-hue:          #6aaabc;
+    --info-tint:         #8ac0ce;
+    --info-tone:         #7a9aa8;
+    --info-shade:        #4a8a9e;
+    --info-subtle:       #1a2438;
+
+    /* ── Dark-mode chart colors (more luminous on dark bg) ── */
+    --chart-blue:        #6b9df5;
+    --chart-purple:      var(--accent-hue);
+    --chart-orange:      #faba4a;
+    --chart-teal:        #5cced4;
+    --chart-pink:        #f07aaa;
+    --chart-green:       var(--success-hue);
+    --chart-gray:        #8a8ca2;
+
+    --cls-foundational:  var(--chart-gray);
+    --cls-developing:    var(--chart-orange);
+    --cls-operational:   var(--chart-blue);
+    --cls-ready:         var(--chart-green);
+
     --border-color: #3a3e50;
     --border-light: #2a2e40;
     --border-input: #3a3e50;
@@ -192,9 +303,12 @@
     --scrollbar-thumb: #4a4e60;
     --sidebar-footer-text: #9999b0;
 
-    --accent: #7c73ff;
-    --accent-hover: #8a82ff;
-    --accent-rgb: 124, 115, 255;
+    --accent: var(--accent-hue);
+    --accent-hover: var(--accent-tint);
+    --success: var(--success-hue);
+    --warning: var(--warning-hue);
+    --danger: var(--danger-hue);
+    --info: var(--info-hue);
 
     --sidebar-level-btn-border: #4a4a6a;
     --sidebar-level-btn-text: #aaa;
@@ -205,7 +319,7 @@
     --preview-close-hover: rgba(255,255,255,0.82);
 
     --version-chip-bg: #1a2438;
-    --version-chip-text: #7ab8fe;
+    --version-chip-text: var(--info-hue);
     --version-chip-border: #2a3a5a;
 
   }
@@ -587,9 +701,22 @@ function toggleTheme() {
 let DATA = null;
 let LAST_GENERATED = null;
 const REVIEW_EMAIL = 'dylan@bicyclebi.com';
-const CLS_COLORS = { 'foundational': '#6c757d', 'developing': '#ffc107', 'operational': '#0d6efd', 'ready for codex acceleration': '#198754' };
-const SCORE_COLORS = { 'Pass': '#198754', 'Partial': '#ffc107', 'Fail': '#dc3545' };
-const TRACK_COLORS = { 'Pyramid operations': '#0d6efd', 'Codex productivity': '#6f42c1', 'BI judgment': '#fd7e14' };
+const CLS_COLORS = {
+  'foundational': getComputedStyle(document.documentElement).getPropertyValue('--cls-foundational').trim() || '#8e90a6',
+  'developing': getComputedStyle(document.documentElement).getPropertyValue('--cls-developing').trim() || '#f5a623',
+  'operational': getComputedStyle(document.documentElement).getPropertyValue('--cls-operational').trim() || '#5b8def',
+  'ready for codex acceleration': getComputedStyle(document.documentElement).getPropertyValue('--cls-ready').trim() || '#2b9d6e'
+};
+const SCORE_COLORS = {
+  'Pass': getComputedStyle(document.documentElement).getPropertyValue('--score-pass').trim() || '#2b9d6e',
+  'Partial': getComputedStyle(document.documentElement).getPropertyValue('--score-partial').trim() || '#d49330',
+  'Fail': getComputedStyle(document.documentElement).getPropertyValue('--score-fail').trim() || '#d9445a'
+};
+const TRACK_COLORS = {
+  'Pyramid operations': getComputedStyle(document.documentElement).getPropertyValue('--chart-blue').trim() || '#5b8def',
+  'Codex productivity': getComputedStyle(document.documentElement).getPropertyValue('--chart-purple').trim() || '#7c73ff',
+  'BI judgment': getComputedStyle(document.documentElement).getPropertyValue('--chart-orange').trim() || '#f5a623'
+};
 const CLS_ORDER = ['Foundational','Developing','Operational','Ready for Codex Acceleration'];
 const REVIEWS_KEY = 'mue_reviews';
 const REVIEWER_NAME_KEY = 'mue_reviewer_name';
@@ -643,7 +770,7 @@ function updateSidebar() {
   const v = DATA.version || {};
   const info = document.getElementById('sidebarInfo');
   info.innerHTML = '<strong>' + s.total_days + '</strong> / 28 days (' + Math.min(Math.round(s.total_days/28*100),100) + '%)' +
-    '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(s.total_days/28*100,100) + '%;background:#6c63ff"></div></div>' +
+    '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(s.total_days/28*100,100) + '%;background:var(--accent)"></div></div>' +
     'Classification: <strong>' + s.latest_classification + '</strong> &middot; Evidence: ' + s.evidence_count + ' files' +
     '<br>Version: <span class="version-chip">' + (v.commit || '—') + '</span>';
   document.getElementById('sidebarMeta').textContent = 'Generated: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
@@ -665,7 +792,7 @@ function updateSidebar() {
   const learnerCount = DATA.learner_count || 0;
   const infraCount = DATA.infrastructure_count || 0;
   if (learnerCount > 0) {
-    syncEl.innerHTML = '📘 <strong>' + learnerCount + '</strong> learner change(s) · <span style="color:#888">' + infraCount + ' infra</span>';
+    syncEl.innerHTML = '📘 <strong>' + learnerCount + '</strong> learner change(s) · <span style="color:var(--text-muted)">' + infraCount + ' infra</span>';
   } else if (infraCount > 0) {
     syncEl.innerHTML = '⚙️ <strong>' + infraCount + '</strong> infrastructure change(s) only';
   } else if (rtc > 0) {
@@ -850,12 +977,12 @@ function renderCurriculumReviewContent() {
 
   let html = '<div style="margin-bottom:8px">' +
     '<div class="level-selector">' + levelBtns + '</div>' +
-    '<p style="font-size:12px;color:#888;margin-bottom:12px"><strong>Active:</strong> ' + lvlData.emoji + ' Level ' + level + ' (' + lvlData.label + ')' +
+    '<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px"><strong>Active:</strong> ' + lvlData.emoji + ' Level ' + level + ' (' + lvlData.label + ')' +
     ' — <span style="color:var(--text-secondary)">' + lvlData.subtitle + '</span></p></div>';
 
   // Top metrics row
   html += '<div class="metric-row">' +
-    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">4</div><div class="label">📅 Weeks</div><div class="sublabel">28 training days</div></div>'
+    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">4</div><div class="label">📅 Weeks</div><div class="sublabel">28 training days</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-green)"><div class="value">' + Object.keys(levelCats).length + '</div><div class="label">📚 Categories</div><div class="sublabel">learning subject areas</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-yellow)"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Files</div><div class="sublabel">criteria references</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-red)"><div class="value">' + s.total_days + '</div><div class="label">✅ Days Done</div><div class="sublabel">' + (28 - s.total_days) + ' remaining</div></div>' +
@@ -869,7 +996,7 @@ function renderCurriculumReviewContent() {
       const doneInWeek = s.total_days > 0 ? Math.max(0, Math.min(s.total_days - (w-1)*7, daysInWeek)) : 0;
       return '<div class="card" style="text-align:center;padding:16px 14px">' +
         '<div style="font-size:28px;font-weight:700;color:' + lvlColor + '">Week ' + w + '</div>' +
-        '<div style="font-size:12px;color:#888;margin-bottom:8px">Days ' + ((w-1)*7+1) + '–' + Math.min(w*7, 28) + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Days ' + ((w-1)*7+1) + '–' + Math.min(w*7, 28) + '</div>' +
         '<div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px">' +
         wkCats.map(cid => '<span style="font-size:16px" title="' + escHtml(levelCats[cid].label) + '">' + levelCats[cid].emoji + '</span>').join('') +
         '</div>' +
@@ -939,7 +1066,7 @@ function renderCurriculumReviewContent() {
   // Curriculum progress overview (28-day calendar)
   html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">A 28-day training calendar — green squares show finished days, grey ones are still ahead. Each day builds on the last.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px">' +
-    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:#888;text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:var(--text-muted);text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
     Array.from({length:28}, (_,i) => {
       const day = i+1;
       const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
@@ -1028,12 +1155,12 @@ function renderAll() {
     '<div class="metric"><div class="value">' + s.evidence_count + '</div><div class="label">📁 Evidence Artifacts</div></div>' +
     '<div class="metric"><div class="value">' + s.latest_classification + '</div><div class="label">📈 Classification</div></div></div>' +
     '<div class="metric-row">' +
-    '<div class="metric" style="background:#e8f4fd"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum-completed artifacts</div></div>' +
-    '<div class="metric" style="background:#f8f9fa"><div class="value">' + infraTotal + '</div><div class="label">⚙️ Infrastructure</div><div class="sublabel">dashboard/templates/source</div></div>' +
-    '<div class="metric" style="background:#f0fdf4"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria</div><div class="sublabel">training reference files</div></div>' +
-    '<div class="metric" style="background:#fff3cd"><div class="value">' + (rtc || 0) + '</div><div class="label">✅ Synced to review/</div><div class="sublabel">ready for assessment</div></div></div>' +
-    '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="toggleChangeSummary()">📘 Learner Artifact Changes <span id="changeSummaryToggle" style="font-size:12px;color:#6c63ff;font-weight:400">[show]</span></h3>' +
-    '<p class="caption">Showing only learner-completed curriculum artifacts (notes, evidence, reports). <span style="color:#888" id="infraToggle" onclick="toggleInfraChanges()">⚙️ Show infrastructure changes ('+infraTotal+')</span></p>' +
+    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum-completed artifacts</div></div>' +
+    '<div class="metric" style="background:var(--bg-muted)"><div class="value">' + infraTotal + '</div><div class="label">⚙️ Infrastructure</div><div class="sublabel">dashboard/templates/source</div></div>' +
+    '<div class="metric" style="background:var(--bg-metric-green)"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria</div><div class="sublabel">training reference files</div></div>' +
+    '<div class="metric" style="background:var(--bg-metric-yellow)"><div class="value">' + (rtc || 0) + '</div><div class="label">✅ Synced to review/</div><div class="sublabel">ready for assessment</div></div></div>' +
+    '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="toggleChangeSummary()">📘 Learner Artifact Changes <span id="changeSummaryToggle" style="font-size:12px;color:var(--accent);font-weight:400">[show]</span></h3>' +
+    '<p class="caption">Showing only learner-completed curriculum artifacts (notes, evidence, reports). <span style="color:var(--text-muted)" id="infraToggle" onclick="toggleInfraChanges()">⚙️ Show infrastructure changes ('+infraTotal+')</span></p>' +
     '<div id="changeSummaryBody" style="display:none">' +
     renderLearnerPageChanges('daily', 'Daily Progress') +
     renderLearnerPageChanges('evidence', 'Evidence') +
@@ -1046,7 +1173,7 @@ function renderAll() {
     renderPageChanges('source', 'Source Criteria') +
     renderPageChanges('other', 'Other') +
     '</div></div>' +
-    '<div class="card"><h3>📚 Learning Categories <span style="font-size:12px;color:#888;font-weight:400">8 subject-material areas</span></h3>' +
+    '<div class="card"><h3>📚 Learning Categories <span style="font-size:12px;color:var(--text-muted);font-weight:400">8 subject-material areas</span></h3>' +
     '<p class="caption">Education criteria organized by subject material — each category has focus areas, key skills, and weekly coverage.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px" id="categoryGrid"></div></div>' +
     '<div class="card"><h3>�📆 Program Progress</h3><div class="day-grid" id="dayGrid"></div><p class="caption">Green = completed | Grey = not yet done</p></div>' +
@@ -1140,7 +1267,7 @@ function renderAll() {
       pth+='<div class="pt-row"><div class="pt-icon">'+(d?'✅':'⬜')+'</div><div class="pt-info"><div class="pt-title">'+id+': '+escHtml(p.description)+'</div><div class="pt-days">'+(p.days&&p.days.length?'(found on days '+p.days.join(', ')+')':'')+'</div></div></div>';
       pth+=renderReviewSection('pt_'+id,'Proof Task',id+': '+p.description,id);
     });
-    pth += '<div class="card" style="margin-top:12px"><div class="flex-between"><strong>Progress: '+cmp+'/'+ptK.length+'</strong><span>'+Math.round(cmp/ptK.length*100)+'%</span></div><div class="prog-bar"><div class="prog-fill" style="width:'+cmp/ptK.length*100+'%;background:#198754"></div></div>'+(cmp===ptK.length?'<div class="alert alert-success" style="margin-top:6px">🎉 All proof tasks completed!</div>':'<p class="caption">'+(ptK.length-cmp)+' remaining.</p>')+'</div>';
+    pth += '<div class="card" style="margin-top:12px"><div class="flex-between"><strong>Progress: '+cmp+'/'+ptK.length+'</strong><span>'+Math.round(cmp/ptK.length*100)+'%</span></div><div class="prog-bar"><div class="prog-fill" style="width:'+cmp/ptK.length*100+'%;background:var(--success)"></div></div>'+(cmp===ptK.length?'<div class="alert alert-success" style="margin-top:6px">🎉 All proof tasks completed!</div>':'<p class="caption">'+(ptK.length-cmp)+' remaining.</p>')+'</div>';
   }
   addPage('proof-tasks', pth);
 
@@ -1175,7 +1302,8 @@ function renderAll() {
     chtml += '<div class="card"><div class="chart-container"><canvas id="chartClassification"></canvas></div></div><p class="caption">1=Foundational → 4=Ready for Codex Acceleration</p>';
     cs.forEach(e=>{const cl=CLS_COLORS[e.classification.toLowerCase()]||'#888',lv=CLS_ORDER.indexOf(e.classification)+1;chtml+='<div class="cls-bar" style="background:'+cl+';width:'+lv/4*100+'%;min-width:80px">Day '+e.day+' ('+(e.date||'')+') — '+e.classification+'</div>';});
     chtml += '<div class="card"><h3>💬 Classification Review</h3>'+renderReviewSection('classification_review','Classification Trend','Readiness Classification Trend','classification')+'</div>';
-    setTimeout(()=>{const c=document.getElementById('chartClassification');if(!c)return;new Chart(c,{type:'line',data:{labels:cs.map(e=>'Day '+e.day),datasets:[{label:'Level',data:cs.map(e=>CLS_ORDER.indexOf(e.classification)+1),borderColor:'#6c63ff',backgroundColor:'rgba(108,99,255,.1)',fill:true,tension:.3,pointBackgroundColor:cs.map(e=>CLS_COLORS[e.classification.toLowerCase()]||'#888'),pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:.5,max:4.5,ticks:{stepSize:1,callback:v=>CLS_ORDER[v-1]||''}},x:{grid:{display:false}}}}});},50);
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7c73ff';
+    setTimeout(()=>{const c=document.getElementById('chartClassification');if(!c)return;new Chart(c,{type:'line',data:{labels:cs.map(e=>'Day '+e.day),datasets:[{label:'Level',data:cs.map(e=>CLS_ORDER.indexOf(e.classification)+1),borderColor:accentColor,backgroundColor:hexToRgba(accentColor,.1),fill:true,tension:.3,pointBackgroundColor:cs.map(e=>CLS_COLORS[e.classification.toLowerCase()]||'#888'),pointRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:.5,max:4.5,ticks:{stepSize:1,callback:v=>CLS_ORDER[v-1]||''}},x:{grid:{display:false}}}}});},50);
   }
   addPage('classification', chtml);
 
@@ -1231,7 +1359,7 @@ function renderReviewSection(aid, type, label, filename) {
   let html = '<div class="review-section">' +
     '<div class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rf_'+aid+'\').classList.toggle(\'open\')">💬 Review</div>' +
     '<div class="review-form" id="rf_'+aid+'">' +
-    '<label>Reviewer <span style="color:#dc3545">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
+    '<label>Reviewer <span style="color:var(--danger)">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rg_'+aid+'">' +
     ropts.map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="rc_'+aid+'" placeholder="Write your review feedback here..."></textarea>' +
@@ -1244,7 +1372,7 @@ function renderReviewSection(aid, type, label, filename) {
 function reviewToggleInline(aid, type, label, filename) {
   return '<span class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rif_'+aid+'\').classList.toggle(\'open\')">💬 Review</span>' +
     '<div class="review-form" id="rif_'+aid+'" style="display:none">' +
-    '<label>Reviewer <span style="color:#dc3545">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
+    '<label>Reviewer <span style="color:var(--danger)">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rig_'+aid+'">' +
     ['👍 Pass','⚡ Needs Work','❌ Rework'].map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="ric_'+aid+'" placeholder="Write your review..."></textarea>' +
@@ -1343,7 +1471,7 @@ function submitReview(aid, type, label, filename) {
 function renderReviewList(aid) {
   const items = (getReviews()[aid]||[]).slice().reverse();
   if (!items.length) return '';
-  let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:#888">Reviews</strong>';
+  let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:var(--text-muted)">Reviews</strong>';
   items.forEach(r=>{
     const d=new Date(r.timestamp), rc=r.rating.includes('Pass')?'#198754':(r.rating.includes('Rework')?'#dc3545':'#ffc107');
     h += '<div class="review-item"><div class="r-header"><span class="r-name">'+escHtml(r.name)+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+'</div></div>';
@@ -1395,7 +1523,7 @@ function renderArtifacts(artifacts, changedFiles, reviewData) {
         const c = cats[cid];
         return c ? '<span style="font-size:10px;margin:0 1px" title="'+c.label+'">'+c.emoji+'</span>' : '';
       }).join('') : '<span class="caption">—</span>';
-      h += '<tr class="'+(isChanged?'changed-row':'')+'"><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td>'+status+'</td><td>'+syncBadge+'</td><td style="text-align:center;font-size:12px">'+catTag+'</td><td style="text-align:center"><span style="font-size:13px;color:#6c63ff;cursor:pointer" onclick="showArtifactPreview(\''+aid+'\',\''+escHtml(f.path).replace(/'/g,"\\'")+'\',\''+escHtml(f.preview?f.preview.substring(0,500).replace(/'/g,"\\'").replace(/\n/g,'\\n'):'').replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:#888">'+rc+'</span>':'')+'</td></tr>';
+      h += '<tr class="'+(isChanged?'changed-row':'')+'"><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td>'+status+'</td><td>'+syncBadge+'</td><td style="text-align:center;font-size:12px">'+catTag+'</td><td style="text-align:center"><span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="showArtifactPreview(\''+aid+'\',\''+escHtml(f.path).replace(/'/g,"\\'")+'\',\''+escHtml(f.preview?f.preview.substring(0,500).replace(/'/g,"\\'").replace(/\n/g,'\\n'):'').replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:var(--text-light)">'+rc+'</span>':'')+'</td></tr>';
     });
     h += '</tbody></table></div>';
   });
@@ -1460,7 +1588,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<p class="subtitle">Central review hub — learner artifact changes, sync integration, and per-page change monitoring. ' +
     'All comments sent to <a href="mailto:' + REVIEW_EMAIL + '">' + REVIEW_EMAIL + '</a>.</p>' +
     '<div class="metric-row">' +
-    '<div class="metric" style="background:#e8f4fd"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum artifacts</div></div>' +
+    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum artifacts</div></div>' +
     '<div class="metric"><div class="value">' + rtc + '</div><div class="label">✅ Synced to review/</div></div>' +
     '<div class="metric"><div class="value">' + rvCnt + '</div><div class="label">💬 Reviews Submitted</div></div>' +
     '<div class="metric"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria Files</div></div></div>' +
@@ -1472,7 +1600,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   // Reviewer Guide (collapsible) — expanded with category-specific criteria
   h += '<div class="card" style="border-left:3px solid var(--accent);margin-bottom:16px">' +
     '<h3 style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleReviewerGuide()">' +
-    '📋 Reviewer Guide <span id="guideToggle" style="margin-left:auto;color:#888;font-size:12px">▼ Expand</span></h3>' +
+    '📋 Reviewer Guide <span id="guideToggle" style="margin-left:auto;color:var(--text-muted);font-size:12px">▼ Expand</span></h3>' +
     '<div id="reviewerGuideContent" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light)">' +
 
     // Quick checklist
@@ -1531,84 +1659,84 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">The dashboard has 10 pages organised in two groups: <strong>Learning Data</strong> (Overview through Codex Gate) and <strong>Review &amp; Sync</strong> (Curriculum Review through Third Party Review). Press <kbd style="background:var(--bg-muted);padding:1px 5px;border-radius:3px;border:1px solid var(--border-color)">1</kbd>–<kbd style="background:var(--bg-muted);padding:1px 5px;border-radius:3px;border:1px solid var(--border-color)">9</kbd> for pages 1–9, <kbd style="background:var(--bg-muted);padding:1px 5px;border-radius:3px;border:1px solid var(--border-color)">0</kbd> for Third Party Review. <kbd style="background:var(--bg-muted);padding:1px 5px;border-radius:3px;border:1px solid var(--border-color)">G</kbd> toggles this guide.</p>' +
     '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">' +
       // Page 1
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">1</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">1</span>' +
       '<strong style="font-size:13px">📋 Overview</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Pulse check — start here</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Top-level metrics (days, weeks, evidence, classification), 📘 Learner Artifact Changes summary, infrastructure toggle, day grid (green=grey=pending), category grid, track distribution chart, program-level review.' +
       '<br><strong>Reviewer focus:</strong> Start here for a quick pulse. The 📘 Learner Artifact Changes section lists files modified since last commit — this is your entry point. Review the day grid for completion gaps. Click a page name in the change table to jump directly to those files for detailed review.</div></div>' +
       // Page 2
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">2</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">2</span>' +
       '<strong style="font-size:13px">📅 Daily Progress</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Day-by-day notes</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Chronological list of daily training notes with scorecard chips (P/F), evidence links, what-learned/next-step fields. Each note has an embedded 💬 Review form. Note artifacts in <code>action/notes/</code> shown below with change and review status.' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Chronological list of daily training notes with scorecard chips (P/F), evidence links, what-learned/next-step fields. Each note has an embedded 💬 Review form. Note artifacts in <code>action/notes/</code> shown below with change and review status.' +
       '<br><strong>Reviewer focus:</strong> Verify each day has a completed note with meaningful reflection. Check that scorecard progression trends upward. Use the 💬 Review form on each day to give feedback on specific entries. Look for missing days or sparse notes.</div></div>' +
       // Page 3
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">3</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">3</span>' +
       '<strong style="font-size:13px">🏆 Scorecard</strong>' +
-      '<span style="font-size:10px;color:#888">Competency trends</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> 7 scorecard areas (Prompt discipline, Change isolation, Validation order, etc.) with Pass/Partial/Fail history. Each area shows trend direction (📈 Improving / 📉 Needs attention). Each area has an embedded 💬 Review form.' +
+      '<span style="font-size:10px;color:var(--text-light)">Competency trends</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 7 scorecard areas (Prompt discipline, Change isolation, Validation order, etc.) with Pass/Partial/Fail history. Each area shows trend direction (📈 Improving / 📉 Needs attention). Each area has an embedded 💬 Review form.' +
       '<br><strong>Reviewer focus:</strong> Look for consistent progression. A cluster of Fails in related areas (e.g. Deployment awareness + Validation order) suggests a root cause in Pyramid/BI Judgment training. The 🏆 Scorecard → Learning Categories map (above) helps you connect low scores to the right categories. Use 💬 Review to flag concerns.</div></div>' +
       // Page 4
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">4</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">4</span>' +
       '<strong style="font-size:13px">✅ Proof Tasks</strong>' +
-      '<span style="font-size:10px;color:#888">Completion tracking</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> 6 proof tasks (e.g. BICC peer review, ticket audit validation) with completion status and the days they were found on. Overall progress bar.' +
+      '<span style="font-size:10px;color:var(--text-light)">Completion tracking</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 6 proof tasks (e.g. BICC peer review, ticket audit validation) with completion status and the days they were found on. Overall progress bar.' +
       '<br><strong>Reviewer focus:</strong> All 6 must be completed before Codex Gate. Verify that each task has genuine evidence of completion — not just a tick. Use 💬 Review to confirm or challenge each task.</div></div>' +
       // Page 5
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">5</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">5</span>' +
       '<strong style="font-size:13px">📁 Evidence</strong>' +
-      '<span style="font-size:10px;color:#888">Artifact gallery</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Evidence files (screenshots, logs, output) grouped by ISO week. Each file has a 💬 Review form. Agent-changed files highlighted with ✏️ badge.' +
+      '<span style="font-size:10px;color:var(--text-light)">Artifact gallery</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Evidence files (screenshots, logs, output) grouped by ISO week. Each file has a 💬 Review form. Agent-changed files highlighted with ✏️ badge.' +
       '<br><strong>Reviewer focus:</strong> Check that evidence files are present, correctly named, and genuinely demonstrate the claimed skill. Look for gaps where days have notes but no supporting evidence. Agent-changed files (✏️) may need closer scrutiny.</div></div>' +
       // Page 6
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">6</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">6</span>' +
       '<strong style="font-size:13px">📈 Classification</strong>' +
-      '<span style="font-size:10px;color:#888">Readiness trend</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Line chart and bar chart of readiness classification over time (Foundational → Developing → Operational → Ready for Codex Acceleration). Embedded 💬 Review form.' +
+      '<span style="font-size:10px;color:var(--text-light)">Readiness trend</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Line chart and bar chart of readiness classification over time (Foundational → Developing → Operational → Ready for Codex Acceleration). Embedded 💬 Review form.' +
       '<br><strong>Reviewer focus:</strong> The trend should show upward progression. Plateaus or regressions need investigation — check what happened on those days. The final classification determines if the learner is ready for Codex Gate.</div></div>' +
       // Page 7
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#6c63ff;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">7</span>' +
+      '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">7</span>' +
       '<strong style="font-size:13px">🚪 Codex Gate</strong>' +
-      '<span style="font-size:10px;color:#888">Final checkpoint</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> 8 gate criteria (end-to-end workflow, business logic ownership, validation evidence, proof tasks, change slice, reusable asset, etc.) each with Yes/No/— status. Overall Pass/Fail banner.' +
+      '<span style="font-size:10px;color:var(--text-light)">Final checkpoint</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 8 gate criteria (end-to-end workflow, business logic ownership, validation evidence, proof tasks, change slice, reusable asset, etc.) each with Yes/No/— status. Overall Pass/Fail banner.' +
       '<br><strong>Reviewer focus:</strong> All gates must be ✅ Yes. If any are ❌ No or ⬜ pending, the learner is not ready. Use 💬 Review to document which gates need more work and what evidence is still missing. This is the final go/no-go decision point.</div></div>' +
       // Page 8
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">8</span>' +
+      '<span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">8</span>' +
       '<strong style="font-size:13px">📚 Curriculum Review</strong>' +
-      '<span style="font-size:10px;color:#888">Full curriculum scope</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Level-aware 4-level × 8-category × 28-day curriculum view. Metrics row (weeks, categories, source files, days done). Weekly overview cards, skills summary grid, deep-dive into each category with level-adjusted skills and mapped source files. Source Criteria Index table with category tags. 28-day curriculum calendar.' +
+      '<span style="font-size:10px;color:var(--text-light)">Full curriculum scope</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Level-aware 4-level × 8-category × 28-day curriculum view. Metrics row (weeks, categories, source files, days done). Weekly overview cards, skills summary grid, deep-dive into each category with level-adjusted skills and mapped source files. Source Criteria Index table with category tags. 28-day curriculum calendar.' +
       '<br><strong>Reviewer focus:</strong> This is your bird\'s-eye view of the entire curriculum. Use the 🌱🌿🌳🏆 level selector at the top to match the learner\'s proficiency tier. Verify that all 8 categories have activity. Check that source criteria files are mapped to the right categories. The curriculum calendar shows which days are complete vs pending.</div></div>' +
       // Page 9
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">9</span>' +
+      '<span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">9</span>' +
       '<strong style="font-size:13px">📂 All Artifacts</strong>' +
-      '<span style="font-size:10px;color:#888">Complete file browser</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> All files in <code>action/</code> organised by category (Notes, Evidence, Reports, Templates, Scripts, Dashboard, Other) with icons, size, modified date, change status (✏️), sync status (✅), learning category tags, and 👁️ preview + 💬 review per file. Filterable by search, category, and learning area.' +
+      '<span style="font-size:10px;color:var(--text-light)">Complete file browser</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> All files in <code>action/</code> organised by category (Notes, Evidence, Reports, Templates, Scripts, Dashboard, Other) with icons, size, modified date, change status (✏️), sync status (✅), learning category tags, and 👁️ preview + 💬 review per file. Filterable by search, category, and learning area.' +
       '<br><strong>Reviewer focus:</strong> Use the search and category filters to zero in on specific files. The ✏️ badge highlights files the agent changed since last commit — prioritise those for review. The ✅ badge shows what\'s already synced to <code>review/</code>. Click 👁️ for a quick preview of a file\'s content.</div></div>' +
       // Page 10
-      '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
+      '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
-      '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">0</span>' +
+      '<span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">0</span>' +
       '<strong style="font-size:13px">🔍 Third Party Review</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Review hub &amp; sync (key 0)</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Central review dashboard. Top metrics (learner changes, synced files, reviews submitted, source criteria). 📘 Learner Artifact Changes table with per-page change counts and 💬 Comment buttons. ⚙️ Infrastructure changes (collapsible). 📖 Source Training Criteria table with category tags. 📤 Export and Sync buttons.' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Central review dashboard. Top metrics (learner changes, synced files, reviews submitted, source criteria). 📘 Learner Artifact Changes table with per-page change counts and 💬 Comment buttons. ⚙️ Infrastructure changes (collapsible). 📖 Source Training Criteria table with category tags. 📤 Export and Sync buttons.' +
       '<br><strong>Reviewer focus:</strong> This is your command centre. Start with the 📘 Learner Artifact Changes table — these are the files that need your attention. Use 💬 Comment to leave feedback on version changes. Use 📤 Export All Reviews to download all feedback as JSON. Use 📤 Sync to copy completed work to <code>review/</code> for formal assessment. The Source Training Criteria table at the bottom is your reference for what the learner should be demonstrating.</div></div>' +
     '</div>' +
     '<p class="caption" style="margin-bottom:12px">💡 <strong>Suggested review workflow:</strong> Overview (1) → check learner changes → jump to pages with changes → review each file with 💬 → return to Third Party Review (10) → 📤 Export Reviews → 📤 Sync when ready.</p>' +
@@ -1628,7 +1756,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<h4 style="font-size:12px;color:var(--text-accent);margin-bottom:4px">🎓 BI Academic Framework</h4>' +
     '<p style="font-size:11px;color:var(--text-muted)">The <strong>BI Academic Framework</strong> adds a BI theory layer to this curriculum — DIKW pyramid, dimensional modelling, analytics maturity, data governance, and more — mapped to each proficiency level. ' +
     'See <code>source/BI Academic Framework.md</code> for the full reference, including a 4-level analytic rubric (replacing Pass/Partial/Fail), threshold concept deep-dives, and industry standards alignment (DMBOK, TDWI, SFIA). ' +
-    '<a href="https://github.com/Dylan-BI/MUE/blob/main/source/BI%20Academic%20Framework.md" target="_blank" style="color:#6c63ff">📖 Open Academic Framework →</a></p>' +
+    '<a href="https://github.com/Dylan-BI/MUE/blob/main/source/BI%20Academic%20Framework.md" target="_blank" style="color:var(--accent)">📖 Open Academic Framework →</a></p>' +
     '</div>' +
 
     '<p class="caption" style="margin-top:8px">💡 Tip: Learner artifacts live in <code>action/notes/</code>, <code>action/evidence/</code>, <code>action/reports/</code>. Infrastructure = everything else. Use the Curriculum Review tab for a bird\'s-eye view of all learning categories. For the academic layer, see the BI Academic Framework reference above.</p>' +
@@ -1640,14 +1768,14 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   const learnerCbp = DATA.learner_changes_by_page || {};
   const activeLearnerPages = Object.keys(learnerCc).filter(p => learnerCc[p] > 0);
   if (activeLearnerPages.length) {
-    h += '<div class="card" style="border-left:3px solid #198754"><h3>📘 Learner Artifact Changes <span class="changed-badge" style="background:#d1e7dd;color:#0f5132;border-color:#badbcc">' + learnerTotal + ' total</span></h3>' +
-      '<p class="caption">Changes to learner-completed curriculum artifacts (notes, evidence, reports). <span style="color:#888;cursor:pointer" onclick="toggleTpInfra()">⚙️ Show infrastructure (' + infraTotal + ')</span></p>' +
+    h += '<div class="card" style="border-left:3px solid var(--success)"><h3>📘 Learner Artifact Changes <span class="changed-badge" style="background:var(--bg-alert-success);color:var(--text-alert-success);border-color:var(--border-green)">' + learnerTotal + ' total</span></h3>' +
+      '<p class="caption">Changes to learner-completed curriculum artifacts (notes, evidence, reports). <span style="color:var(--text-muted);cursor:pointer" onclick="toggleTpInfra()">⚙️ Show infrastructure (' + infraTotal + ')</span></p>' +
       '<table class="artifact-table"><thead><tr><th>Page</th><th style="width:60px">Changes</th><th style="width:200px">Files</th><th style="width:100px">Action</th></tr></thead><tbody>';
     activeLearnerPages.sort().forEach(p => {
       const pc = learnerCbp[p] || { count: 0, files: [] };
       const fileList = pc.files.map(f => f.path).join(', ');
-      h += '<tr><td><a href="javascript:showPage(\'' + p + '\')" style="color:#6c63ff">' + p + '</a></td>' +
-        '<td><span class="nav-badge" style="background:#198754">' + pc.count + '</span></td>' +
+      h += '<tr><td><a href="javascript:showPage(\'' + p + '\')" style="color:var(--accent)">' + p + '</a></td>' +
+        '<td><span class="nav-badge" style="background:var(--success)">' + pc.count + '</span></td>' +
         '<td class="fp" style="font-size:10px">' + escHtml(fileList.substring(0, 80)) + (fileList.length > 80 ? '…' : '') + '</td>' +
         '<td><button class="version-comment-btn" onclick="versionComment(\'' + p + '\',\'' + v.commit + '\',\'' + pc.count + ' changes\',\'Third Party Review\')">💬 Comment</button></td></tr>';
     });
@@ -1661,7 +1789,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   h += '<div id="tpInfraSection" style="display:none">';
   if (activeInfraPages.length) {
     h += '<div class="card"><h3>⚙️ Infrastructure Changes <span class="changed-badge">' + infraTotal + ' total</span></h3>' +
-      '<p class="caption">Dashboard, templates, scripts, source reference, and CI/CD changes (not learner-completed). <span style="color:#888;cursor:pointer" onclick="toggleTpInfra()">📘 Show learner artifacts</span></p>' +
+      '<p class="caption">Dashboard, templates, scripts, source reference, and CI/CD changes (not learner-completed). <span style="color:var(--text-muted);cursor:pointer" onclick="toggleTpInfra()">📘 Show learner artifacts</span></p>' +
       '<table class="artifact-table"><thead><tr><th>Page</th><th style="width:60px">Changes</th><th style="width:200px">Files</th><th style="width:100px">Action</th></tr></thead><tbody>';
     activeInfraPages.sort().forEach(p => {
       const pc = infraCbp[p] || { count: 0, files: [] };
@@ -1687,7 +1815,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       const catIds = catMap[fPath] || [];
       const catTags = catIds.map(cid => {
         const cat = cats[cid];
-        return cat ? '<span style="display:inline-block;background:#e8f4fd;color:#0c5460;font-size:10px;padding:1px 5px;border-radius:4px;margin:1px;white-space:nowrap">' + cat.emoji + ' ' + cat.label + '</span>' : '';
+        return cat ? '<span style="display:inline-block;background:var(--bg-source-tag);color:var(--text-alert-info);font-size:10px;padding:1px 5px;border-radius:4px;margin:1px;white-space:nowrap">' + cat.emoji + ' ' + cat.label + '</span>' : '';
       }).join('') || '<span class="caption">—</span>';
       h += '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + catTags + '</td></tr>';
     });
@@ -1700,7 +1828,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     // Section 2: Learner artifact changes (from git diff)
     const learnerFiles = DATA.learner_changed_files || [];
     if (learnerFiles.length) {
-      h += '<div class="card" style="border-left:3px solid #198754"><h3>📘 Learner Artifact Changes <span class="changed-badge" style="background:#d1e7dd;color:#0f5132;border-color:#badbcc">' + learnerFiles.length + ' file(s)</span></h3>' +
+      h += '<div class="card" style="border-left:3px solid var(--success)"><h3>📘 Learner Artifact Changes <span class="changed-badge" style="background:var(--bg-alert-success);color:var(--text-alert-success);border-color:var(--border-green)">' + learnerFiles.length + ' file(s)</span></h3>' +
         '<p class="caption">Learner-completed curriculum artifacts (notes, evidence, reports) modified since last commit. These are the primary review targets.</p>' +
         '<table class="artifact-table"><thead><tr><th>File</th><th style="width:80px">Version</th><th style="width:80px">Review</th></tr></thead><tbody>';
       learnerFiles.forEach(f => {
@@ -1714,7 +1842,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     const infraFiles = DATA.infrastructure_changed_files || [];
     if (infraFiles.length) {
       h += '<div class="card"><h3>⚙️ Infrastructure Changes <span class="changed-badge">' + infraFiles.length + ' file(s)</span></h3>' +
-        '<p class="caption">Dashboard, templates, scripts, source, and CI/CD files changed. <span style="color:#888;cursor:pointer" onclick="toggleInfraPending()">📘 Show learner artifacts only</span></p>' +
+        '<p class="caption">Dashboard, templates, scripts, source, and CI/CD files changed. <span style="color:var(--text-muted);cursor:pointer" onclick="toggleInfraPending()">📘 Show learner artifacts only</span></p>' +
         '<table class="artifact-table" id="infraPendingTable"><thead><tr><th>File</th><th style="width:80px">Version</th><th style="width:80px">Review</th></tr></thead><tbody>';
       infraFiles.forEach(f => {
         const aid = 'if_' + f.replace(/[^a-zA-Z0-9]/g, '_');
@@ -1743,7 +1871,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     // Section 4: Run sync command instruction
     h += '<div class="card"><h3>⚙️ Sync from action/ to review/</h3>' +
       '<p class="caption">Run the sync script to copy completed learner work for third-party review:</p>' +
-      '<pre style="background:#f8f9fa;padding:10px;border-radius:6px;margin:8px 0;font-size:12px">python review/scripts/sync-from-action.py</pre>' +
+      '<pre style="background:var(--bg-muted);padding:10px;border-radius:6px;margin:8px 0;font-size:12px">python review/scripts/sync-from-action.py</pre>' +
       '<p class="caption">After syncing, click <strong>Refresh Now</strong> in the sidebar to reload.</p></div>';
   }
 
@@ -1805,7 +1933,7 @@ function renderPageChanges(pageId, pageLabel) {
       '<div class="caption">' + dt + '</div>';
     if (f.has_diff) {
       const ghUrl = 'https://github.com/Dylan-BI/MUE/commit/' + escHtml(f.commit);
-      h += '<div class="diff-preview"><a href="' + ghUrl + '" target="_blank" style="color:#6c63ff">🔍 View diff on GitHub ↗</a></div>';
+      h += '<div class="diff-preview"><a href="' + ghUrl + '" target="_blank" style="color:var(--accent)">🔍 View diff on GitHub ↗</a></div>';
     }
     h += '</div>';
   });
@@ -1817,7 +1945,7 @@ function renderLearnerPageChanges(pageId, pageLabel) {
   const lcbp = DATA.learner_changes_by_page || {};
   const pageChanges = lcbp[pageId] || { count: 0, files: [] };
   if (!pageChanges.count || !pageChanges.files.length) return '';
-  let h = '<div class="card" style="border-left:3px solid #198754"><h3>📘 Learner Artifacts — ' + pageLabel + ' <span class="changed-badge" style="background:#d1e7dd;color:#0f5132;border-color:#badbcc">' + pageChanges.count + ' change(s)</span></h3>';
+  let h = '<div class="card" style="border-left:3px solid var(--success)"><h3>📘 Learner Artifacts — ' + pageLabel + ' <span class="changed-badge" style="background:var(--bg-alert-success);color:var(--text-alert-success);border-color:var(--border-green)">' + pageChanges.count + ' change(s)</span></h3>';
   pageChanges.files.forEach(f => {
     const dt = f.timestamp ? new Date(f.timestamp).toLocaleString() : '—';
     h += '<div class="change-group"><div class="change-group-header">' +
@@ -1828,7 +1956,7 @@ function renderLearnerPageChanges(pageId, pageLabel) {
       '<div class="caption">' + dt + '</div>';
     if (f.has_diff) {
       const ghUrl = 'https://github.com/Dylan-BI/MUE/commit/' + escHtml(f.commit);
-      h += '<div class="diff-preview"><a href="' + ghUrl + '" target="_blank" style="color:#6c63ff">🔍 View diff on GitHub ↗</a></div>';
+      h += '<div class="diff-preview"><a href="' + ghUrl + '" target="_blank" style="color:var(--accent)">🔍 View diff on GitHub ↗</a></div>';
     }
     h += '</div>';
   });
@@ -1902,6 +2030,15 @@ function clearAllReviews() {
    UTILITIES
    ═══════════════════════════════════════════════════════════════════════════ */
 function escHtml(s) { if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML; }
+function hexToRgba(hex, alpha) {
+  if (!hex) return 'rgba(124,115,255,'+alpha+')';
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const r = parseInt(hex.substring(0,2),16);
+  const g = parseInt(hex.substring(2,4),16);
+  const b = parseInt(hex.substring(4,6),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INIT
