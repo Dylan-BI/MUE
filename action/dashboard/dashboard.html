@@ -705,7 +705,7 @@ function startAutoRefresh() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LEVEL-AWARE CURRICULUM REVIEW (4 levels × 7 categories × 28 days)
+   LEVEL-AWARE CURRICULUM REVIEW (4 levels × 8 categories × 28 days)
    ═══════════════════════════════════════════════════════════════════════════ */
 function setLevel(level) {
   CURRENT_LEVEL = level;
@@ -733,7 +733,7 @@ function setLevel(level) {
   const sub = document.getElementById('curriculumSubtitle');
   if (sub) {
     const lvlData = (DATA.levels || {})[level] || {};
-    sub.textContent = 'Level ' + level + ': ' + lvlData.label + ' — ' + (lvlData.subtitle || '') + ' All 7 categories, 28-day curriculum, adjusted for this proficiency tier.';
+    sub.textContent = 'Level ' + level + ': ' + lvlData.label + ' — ' + (lvlData.subtitle || '') + ' All 8 categories, 28-day curriculum, adjusted for this proficiency tier.';
   }
 
   // Update Third Party Review guide if visible
@@ -882,7 +882,7 @@ function renderCurriculumReviewContent() {
   // Level-specific skills summary
   html += '<div class="card" style="border-left:3px solid ' + lvlColor + '">' +
     '<h3>' + lvlData.emoji + ' Level ' + level + ' Skills — ' + lvlData.label + '</h3>' +
-    '<p class="caption">At this level, learners focus on the following skills across all 7 categories:</p>' +
+    '<p class="caption">At this level, learners focus on the following skills across all 8 categories:</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px">' +
     Object.values(levelCats).map(cat =>
       '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color)">' +
@@ -1046,7 +1046,7 @@ function renderAll() {
     renderPageChanges('source', 'Source Criteria') +
     renderPageChanges('other', 'Other') +
     '</div></div>' +
-    '<div class="card"><h3>� Learning Categories <span style="font-size:12px;color:#888;font-weight:400">7 subject-material areas</span></h3>' +
+    '<div class="card"><h3>📚 Learning Categories <span style="font-size:12px;color:#888;font-weight:400">8 subject-material areas</span></h3>' +
     '<p class="caption">Education criteria organized by subject material — each category has focus areas, key skills, and weekly coverage.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px" id="categoryGrid"></div></div>' +
     '<div class="card"><h3>�📆 Program Progress</h3><div class="day-grid" id="dayGrid"></div><p class="caption">Green = completed | Grey = not yet done</p></div>' +
@@ -1484,7 +1484,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<li>📊 <strong>Reports</strong> — Are weekly retention reviews and readiness reports filed?</li>' +
     '<li>🏆 <strong>Scorecard</strong> — Do scores show progression from Foundational → Developing → Operational?</li>' +
     '<li>🚪 <strong>Codex Gate</strong> — Has the learner completed end-to-end workflows unassisted?</li>' +
-    '<li>📚 <strong>Curriculum breadth</strong> — Is there work across all 7 categories (AI, Codex, Pyramid, BI, Lineage, Delivery, Readiness)?</li>' +
+    '<li>📚 <strong>Curriculum breadth</strong> — Is there work across all 8 categories (AI, Codex, Pyramid, BI, Lineage, Delivery, Team, Readiness)?</li>' +
     '</ul></div>' +
 
     // Category-specific review hints (level-aware)
@@ -1592,8 +1592,8 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<span style="background:#FF9800;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">8</span>' +
       '<strong style="font-size:13px">📚 Curriculum Review</strong>' +
       '<span style="font-size:10px;color:#888">Full curriculum scope</span></div>' +
-      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Level-aware 4-level × 7-category × 28-day curriculum view. Metrics row (weeks, categories, source files, days done). Weekly overview cards, skills summary grid, deep-dive into each category with level-adjusted skills and mapped source files. Source Criteria Index table with category tags. 28-day curriculum calendar.' +
-      '<br><strong>Reviewer focus:</strong> This is your bird\'s-eye view of the entire curriculum. Use the 🌱🌿🌳🏆 level selector at the top to match the learner\'s proficiency tier. Verify that all 7 categories have activity. Check that source criteria files are mapped to the right categories. The curriculum calendar shows which days are complete vs pending.</div></div>' +
+      '<div style="font-size:11px;color:#555;line-height:1.6"><strong>Shows:</strong> Level-aware 4-level × 8-category × 28-day curriculum view. Metrics row (weeks, categories, source files, days done). Weekly overview cards, skills summary grid, deep-dive into each category with level-adjusted skills and mapped source files. Source Criteria Index table with category tags. 28-day curriculum calendar.' +
+      '<br><strong>Reviewer focus:</strong> This is your bird\'s-eye view of the entire curriculum. Use the 🌱🌿🌳🏆 level selector at the top to match the learner\'s proficiency tier. Verify that all 8 categories have activity. Check that source criteria files are mapped to the right categories. The curriculum calendar shows which days are complete vs pending.</div></div>' +
       // Page 9
       '<div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +

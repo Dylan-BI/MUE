@@ -1,11 +1,11 @@
 # MUE Learning Categories
 
-> Master reference for the 7 subject-material categories used across the MUE curriculum.
+> Master reference for the 8 subject-material categories used across the MUE curriculum.
 
 ```
 🤖 AI & Copilot     ⚡ Codex Productivity     🏗️ Pyramid Platform
 📊 BI Judgment      🔗 Data & Lineage         📦 Delivery & Handoff
-🧠 Retention & Readiness
+🧠 Retention & Readiness                      💬 Team Communication & Task Management
 ```
 
 ---
@@ -69,7 +69,18 @@
 | **Artifacts** | Weekly scorecards, retention reviews, readiness reports, Codex Gate checklists |
 | **Weeks Active** | 1–4 (cumulative) |
 
+## 💬 Team Communication & Task Management
+| Aspect | Detail |
+|--------|--------|
+| **Focus** | Team collaboration, status communication, task tracking, feedback, blocker escalation, shared workflows |
+| **Key Skills** | Daily standup updates, status reporting, asking for help effectively, giving/receiving feedback, using GitHub Issues/Projects for task tracking, breaking down work into assignable units, prioritization, blocker communication, team decision documentation |
+| **Artifacts** | Standup notes, status updates, task board snapshots, feedback notes, team decision records, priority lists |
+| **Weeks Active** | 1–4 (introduced Week 1, practised weekly) |
+| **Mastery Signal** | Can give a clear 30-second standup update, track own tasks in shared board, escalate blockers promptly, and incorporate feedback without defensive reaction |
+
 ---
+
+## Category Coverage by Week
 
 ## Category Coverage by Week
 
@@ -84,6 +95,7 @@ Foundation ──► Data Layer ──► Operations ──► Contribution
 🔗 Data & Lineage ───────────────────►
 📦 Delivery & Handoff ───────────────────────►
 🧠 Retention & Readiness ──────────────────────────────────────►
+💬 Team Comm & Task Mgmt ───────────────────────────────────────►
                         ▲                    ▲                    ▲
                    PT1 + PT3            PT4 + PT5            PT2 + PT6
 ```
@@ -100,4 +112,5 @@ Each daily task in the Onboarding Map includes a **category tag**:
 [🔗 Data]   Data & Lineage skill
 [📦 Del]    Delivery & Handoff skill
 [🧠 Ret]    Retention & Readiness skill
+[💬 Team]   Team Communication & Task Management skill
 ```

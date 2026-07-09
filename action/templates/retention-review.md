@@ -37,9 +37,15 @@ Use this at the **start of each week** (before beginning new material) to reinfo
 - [ ] Have I created at least one reusable team asset?
 - [ ] Can I scope a change slice and document before/after?
 
+### 💬 Team Communication & Task Management — From Weeks 1–4
+- [ ] Can I give a clear 30-second standup update (what I did, what's next, blockers)?
+- [ ] Are my tasks tracked in a shared board with current status?
+- [ ] Have I escalated a blocker or asked for help this week?
+- [ ] Have I given or received feedback constructively this week?
+
 ### Cross-Category Reflection
 1. What concept from a prior week am I still using daily?
-2. Which category (AI / Codex / Pyramid / BI / Data / Delivery) have I advanced most?
+2. Which category (AI / Codex / Pyramid / BI / Data / Delivery / Team) have I advanced most?
 3. Which category needs the most attention this week?
 
 ### Self-Assessment

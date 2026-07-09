@@ -2,12 +2,15 @@
 
 ## Overview
 
-This module lays out a practical improvement path for becoming an experienced Pyramid contributor who can operate inside a mature BI team. The plan is intentionally broader than dashboard building. In this workspace, Pyramid work sits inside a larger delivery model that includes prompt discipline, repository analysis, change isolation, source validation, deployment sequencing, QC, security awareness, and reviewer handoff.
+> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
 
-This plan is organized across three complementary tracks:
+This module lays out a practical improvement path for becoming a reliable **BI team contributor** who can operate inside a mature analytics organization. The plan is intentionally broader than dashboard building. In this workspace, Pyramid work sits inside a larger delivery model that includes prompt discipline, repository analysis, change isolation, source validation, deployment sequencing, QC, security awareness, and reviewer handoff.
+
+This plan is organized across three complementary tracks, reinforced by a fourth cross-cutting skill:
 - Pyramid training for platform-specific modeling, deployment, and reviewer-ready delivery.
 - Codex productivity training for workflow orientation, context synthesis, handoff fluency, and targeted follow-up.
 - BI judgment training for tool-agnostic reasoning about business questions, metrics, grain, validation evidence, and trusted delivery.
+- 💬 Team communication and task management — practised in parallel with all three tracks, covering standups, status updates, task tracking, feedback, blocker escalation, and collaborative workflows.
 
 This plan is intended to be used as a four-week learning cycle. In week 1, the learner establishes the frame and the Copilot habits. In week 2, the learner practices reusable workflows. In week 3, the learner applies the readiness model in a more structured way. In week 4, the learner uses daily execution and reflection to build fluency.
 
@@ -42,9 +45,9 @@ Each day should be tagged with the primary track it advances, and each unit shou
 
 The goal is to become operationally reliable before using Codex as a force multiplier. That means learning the workflow well enough to explain it, validate it, and hand it off cleanly without depending on AI to invent the missing logic.
 
-## Target Outcome
+## Target Outcome — BI Team Contributor
 
-By the end of this plan, you should be able to:
+**By the end of this plan, you should be a reliable BI team contributor who can:**
 
 - explain the dependency order from source loads to reporting outputs
 - create reliable prompts for analysis, validation, and review tasks
@@ -54,6 +57,8 @@ By the end of this plan, you should be able to:
 - use Codex to speed up proven workflows instead of replacing understanding
 - orient work quickly with Codex, summarize current state, identify next actions, and hand off progress clearly
 - apply BI judgment to decide what business question is being answered, what metrics are appropriate, and what evidence a reviewer needs to trust the output
+- **communicate effectively with the team:** give clear standup updates, escalate blockers promptly, share findings with peers, and participate in team discussions
+- **manage tasks within a team context:** break work into assignable units, track progress on a shared board, prioritise across competing demands, and incorporate feedback constructively
 
 ## How This Plan Is Structured
 
@@ -78,6 +83,9 @@ Each day should also be tagged with the primary track it advances: Pyramid opera
 6. Leave behind reusable prompts, checklists, or runbooks.
 7. Treat Pyramid as one useful platform context, Codex as a bounded accelerator, and BI judgment as the core decision layer.
 8. Learn to separate platform mechanics from business reasoning.
+9. **Communicate early and often.** Share progress, blockers, and findings with your team before they ask. A 30-second standup update saves an hour of context recovery.
+10. **Track your work in the open.** Use task tracking tools (GitHub Issues, project boards) so your team knows what you're working on and what's coming next.
+11. **Treat feedback as data, not criticism.** When receiving feedback, listen first, ask clarifying questions, then decide what to act on. When giving feedback, be specific and actionable.
 
 ## Day-By-Day Plan
 

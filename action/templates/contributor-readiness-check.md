@@ -1,6 +1,8 @@
-# Standard Equipped Team Contributor — Readiness Checklist
+# Business Intelligence (BI) Team Contributor — Readiness Checklist
 
-> **7-Category Assessment** — all must be complete to certify readiness.
+> **Overarching Goal:** Become a confident, operationally reliable **BI team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+>
+> **8-Category Assessment** — all must be complete to certify readiness.
 
 Use this at the **end of Week 4** (Day 28) to certify readiness.
 
@@ -43,6 +45,14 @@ Use this at the **end of Week 4** (Day 28) to certify readiness.
 - [ ] Can prepare a reviewer handoff package consumable without clarification
 - [ ] Has created at least one reusable team asset (prompt library, checklist, template, runbook)
 
+## 💬 Team Communication & Task Management Readiness
+- [ ] Can give a clear 30-second standup update (what I did, what's next, blockers)
+- [ ] Can track own tasks in a shared board (GitHub Issues / project) and keep status current
+- [ ] Can escalate a blocker to the right person with context and suggested resolution
+- [ ] Can receive feedback without defensive reaction and incorporate it into work
+- [ ] Can give specific, actionable feedback to a peer
+- [ ] Can break down a work item into assignable tasks with clear acceptance criteria
+
 ## 🧠 Retention & Readiness
 - [ ] All 6 proof tasks complete and documented in `evidence/`
 - [ ] At least 1 reusable team asset created, tested, and published
@@ -66,9 +76,10 @@ Use this at the **end of Week 4** (Day 28) to certify readiness.
 | 📊 BI Judgment | | |
 | 🔗 Data & Lineage | | |
 | 📦 Delivery & Handoff | | |
+| 💬 Team Communication & Task Management | | |
 | 🧠 Retention & Readiness | | |
 
-**Overall:** Standard Equipped Team Contributor ✅ / Not Yet ❌
+**Overall:** BI Team Contributor ✅ / Not Yet ❌
 
 **If Not Yet — Missing Gates:**
 1.

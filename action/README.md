@@ -1,5 +1,7 @@
 # Education Actioning — MUE Daily Learner Workspace
 
+> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+
 ## Purpose
 
 This is where you do your daily work. All notes, evidence, reports, and templates live here. The training materials themselves are in `../source/` — you reference them but do not modify them.

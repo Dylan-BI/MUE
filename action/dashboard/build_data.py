@@ -179,7 +179,7 @@ SOURCE_CATEGORY_MAP = {
 }
 
 # ── 4-Level Curriculum Framework ──────────────────────────────────────────
-# Each level has its own independent 28-day curriculum across all 7 categories.
+# Each level has its own independent 28-day curriculum across all 8 categories.
 # Level 1 (Foundation) is for complete amateurs; Level 4 (Mastery) for expert-ready.
 
 LEVELS = {

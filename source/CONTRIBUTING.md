@@ -1,15 +1,17 @@
 # Contributing to MUE (Multifaceted User Education)
 
-> **7 Learning Categories** · 4-Week Program · Evidence-Backed Readiness
+> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
 
-Welcome — this repository is a training bundle and working kit organized around **7 subject-material categories**: 🤖 AI & Copilot, ⚡ Codex Productivity, 🏗️ Pyramid Platform, 📊 BI Judgment, 🔗 Data & Lineage, 📦 Delivery & Handoff, and 🧠 Retention & Readiness.
+> **8 Learning Categories** · 4-Week Program · Evidence-Backed Readiness
+
+Welcome — this repository is a training bundle and working kit organized around **8 subject-material categories**: 🤖 AI & Copilot, ⚡ Codex Productivity, 🏗️ Pyramid Platform, 📊 BI Judgment, 🔗 Data & Lineage, 📦 Delivery & Handoff, 💬 Team Communication & Task Management, and 🧠 Retention & Readiness.
 
 See [`source/LEARNING_CATEGORIES.md`](./LEARNING_CATEGORIES.md) for the complete category reference.
 
 ## Core rules
 - Training programs using this content must be limited to a **4-week maximum (28 calendar days)**. Any extended program must be explicitly approved and documented in a team decision note.
 - Every day of training must produce **one evidence artifact** (note, prompt, checklist, validation record, handoff draft, or reusable asset) and store it under `action/notes/` or `action/evidence/`.
-- Every daily task should be **tagged with its primary category** (🤖 ⚡ 🏗️ 📊 🔗 📦 🧠).
+- Every daily task should be **tagged with its primary category** (🤖 ⚡ 🏗️ 📊 🔗 📦 💬 🧠).
 - Contributors must complete all 6 proof tasks (or show equivalent evidence) before making changes to production work.
 - Start each week with the retention review in `action/templates/retention-review.md`.
 - End the program with the contributor readiness check in `action/templates/contributor-readiness-check.md`.

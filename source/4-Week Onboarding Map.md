@@ -1,6 +1,6 @@
 # 4-Week Onboarding Map — MUE (Multifaceted User Education)
 
-> **A sleek, category-driven learning process** — 7 subject-material categories across 4 weeks.
+> **A sleek, category-driven learning process** — 8 subject-material categories across 4 weeks.
 > Every day is tagged by category, each week has a clear theme, and all learning compounds toward the Codex Gate.
 
 ```
@@ -23,18 +23,21 @@ Week 1                  Week 2                  Week 3                  Week 4
 | 🔗 Data | Data & Lineage | Source-to-model lineage, rollups, snapshots, dependencies |
 | 📦 Del | Delivery & Handoff | Change isolation, review packages, assets, handoff |
 | 🧠 Ret | Retention & Readiness | Scorecards, proof tasks, gates, readiness checks |
+| 💬 Team | Team Communication & Task Management | Standups, status updates, task tracking, feedback, blockers |
 
 ---
 
 ## Purpose
 
-This map condenses the 60-day `Pyramid, Codex, and BI Judgment Daily Execution Guide` into a **maximum 4-week (28-day) program** while preserving all six proof tasks, the seven learning categories, and the evidence-backed readiness gates. It is the single source of truth for scheduling.
+> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+
+This map condenses the 60-day `Pyramid, Codex, and BI Judgment Daily Execution Guide` into a **maximum 4-week (28-day) program** while preserving all six proof tasks, the eight learning categories, and the evidence-backed readiness gates. It is the single source of truth for scheduling. Every week builds directly toward the BI team contributor outcome.
 
 > **Rule:** This program must not exceed 28 calendar days. If you need more time, open an issue with rationale and get explicit team sign-off per `CONTRIBUTING.md`.
 
 ### Note on Cognitive Load Across Proficiency Levels
 
-The MUE curriculum offers **4 proficiency levels** (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), each with its own independent 28-day cycle. The same 7 categories repeat across all levels, but the **cognitive demand escalates significantly**:
+The MUE curriculum offers **4 proficiency levels** (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), each with its own independent 28-day cycle. The same 8 categories repeat across all levels, but the **cognitive demand escalates significantly**:
 
 | Level | Bloom's Tier | Typical Task | Cognitive Load |
 |-------|-------------|--------------|----------------|
@@ -76,6 +79,7 @@ Category                    Wk1      Wk2      Wk3      Wk4
 🔗 Data & Lineage         ████     ██████   ██       
 📦 Delivery & Handoff     ██                ████     ██████
 🧠 Retention & Readiness  ██       ██       ██       ██████
+💬 Team Comm & Task Mgmt  ████     ██       ██       ██████
 ```
 
 ---
@@ -87,10 +91,10 @@ This curriculum now includes a **BI Academic Framework** that adds BI theory, fo
 **Quick map by level:**
 | Level | Academic Focus | Key Concepts |
 |-------|---------------|--------------|
-| 🌱 L1 Foundation | Theoretical vocabulary | DIKW pyramid, descriptive vs. diagnostic analytics, what is a data model, why visualisation matters |
-| 🌿 L2 Development | Guided application of theory | Analytics maturity (4 types), ETL/ELT, dimensional modelling basics, grain as a threshold concept |
-| 🌳 L3 Operational | Independent analysis with rigour | Kimball lifecycle, data governance, star schemas, validation chain methodology, row ownership |
-| 🏆 L4 Mastery | Strategic integration & transfer | BI maturity models, industry standards (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone |
+| 🌱 L1 Foundation | Theoretical vocabulary + team norms | DIKW pyramid, descriptive vs. diagnostic analytics, what is a data model, why visualisation matters, team communication channels, standup format |
+| 🌿 L2 Development | Guided application of theory + task tracking | Analytics maturity (4 types), ETL/ELT, dimensional modelling basics, grain as a threshold concept, breaking down work, GitHub Issues |
+| 🌳 L3 Operational | Independent analysis with rigour + feedback | Kimball lifecycle, data governance, star schemas, validation chain methodology, row ownership, giving/receiving feedback, blocker escalation |
+| 🏆 L4 Mastery | Strategic integration & transfer + team leadership | BI maturity models, industry standards (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone, mentoring, task prioritisation across team |
 
 ---
 
@@ -102,11 +106,11 @@ This curriculum now includes a **BI Academic Framework** that adds BI theory, fo
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
-| 1 | 1 | 🤖 AI | **AI Modes & Prompts:** Learn Ask/Edit/Agent/Plan modes, prompt structure, context limits | Readiness note explaining modes, prompt structure, context-window limits | — |
+| 1 | 1 | 🤖 AI 💬 Team | **AI Modes & Prompts + Team Norms:** Learn Ask/Edit/Agent/Plan modes, prompt structure, context limits. Learn team communication channels, standup format, and how to ask for help effectively | Readiness note explaining modes, prompt structure, context-window limits, team channels, standup structure | — |
 | 2 | 2 | 🤖 AI ⚡ Codex | **Prompt Crafting + Codex Loop Intro:** Build 3 reusable prompts (repo analysis, model validation, deployment/QC). **Codex Exercise 1: Handoff Reading** — extract 5 facts from any handoff in <60s | Three working prompts + revision log (first failure + fix) + Handoff Reading exercise result | Re-read Day 1; explain one mode change from memory |
-| 3 | 3 | 📊 BI 📦 Del | **Change Isolation:** Narrow-scope review behavior, isolate a reviewable change slice | Clean review draft: purpose, audience, focus, reviewer questions | Explain prompt structure without looking |
+| 3 | 3 | 📊 BI 📦 Del 💬 Team | **Change Isolation + First Standup:** Narrow-scope review behavior, isolate a reviewable change slice. Give your first 30-second standup update on your change slice | Clean review draft: purpose, audience, focus, reviewer questions + standup note | Explain prompt structure without looking |
 | 4 | 4 | 🏗️ Pyr 🔗 Data | **Model Lineage:** Trace source → transformation → snapshot → rollup → QC | One-page dependency map naming each layer | Trace lineage from memory; identify risk layer |
-| 5 | 5 | 🏗️ Pyr 📦 Del 🧠 Ret | **Operations Checklist:** Build deployment, migration, security, access, rerun checklist | v1 deployment + handoff checklist + **Week 1 Scorecard** | Name 3 data quality risks without notes |
+| 5 | 5 | 🏗️ Pyr 📦 Del 🧠 Ret 💬 Team | **Operations Checklist + Task Tracking:** Build deployment, migration, security, access, rerun checklist. Set up task tracking for your work items (GitHub Issues or project board) | v1 deployment + handoff checklist + task board snapshot + **Week 1 Scorecard** | Name 3 data quality risks without notes |
 
 **Week 1 Scorecard Areas:** Prompt discipline, repo/workspace analysis, change isolation, validation order, deployment awareness, reviewer handoff, reusability, Codex handoff fluency, Codex bounded use
 
@@ -122,10 +126,10 @@ This curriculum now includes a **BI Academic Framework** that adds BI theory, fo
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
-| 6 | 6 | 📊 BI 🔗 Data | **Source-to-Output Inventory:** Map source inputs, target outputs, reporting grain | Source-to-output inventory | Name all 4 Copilot modes + when to use each |
+| 6 | 6 | 📊 BI 🔗 Data 💬 Team | **Source-to-Output Inventory + Status Update:** Map source inputs, target outputs, reporting grain. Communicate your findings as a brief status update to a peer | Source-to-output inventory + status update note | Name all 4 Copilot modes + when to use each |
 | 7 | 7 | 🔗 Data 📊 BI | **Row Ownership & Deduplication:** Identify who owns row selection, dedup logic, history | Row ownership + deduplication note | Recall which layer owns row sets |
 | 8 | 8 | 🔗 Data 📊 BI | **Aggregation Boundaries:** Identify double-counting risks, grain boundaries | Aggregation boundary note | Explain 3 prompts from Week 1 |
-| 9 | 9 | ⚡ Codex 🧠 Ret | **📌 PT1: Repository Analysis Brief:** Business purpose, dependency order, key I/O, risks, safe change point. **Codex Exercise 2: Context Pull** — use Pattern 1 to pull context, evaluate scope, refine | Completed PT1 brief + Context Pull exercise with before/after prompt comparison | Re-state dependency order from Day 4 map |
+| 9 | 9 | ⚡ Codex 🧠 Ret 💬 Team | **📌 PT1: Repository Analysis Brief:** Business purpose, dependency order, key I/O, risks, safe change point. **Codex Exercise 2: Context Pull** — use Pattern 1 to pull context, evaluate scope, refine. Share a one-paragraph finding with your team | Completed PT1 brief + Context Pull exercise with before/after prompt comparison + team update note | Re-state dependency order from Day 4 map |
 | 10 | 10–11 | 🏗️ Pyr 🔗 Data | **Hierarchy & Structure:** Close data-foundation layer, validate hierarchy | Week 2 scorecard + hierarchy validation note | Explain grain, hierarchy levels, goal evaluation point |
 | 11 | 12 | 🏗️ Pyr 📊 BI | **Measure & Service Logic:** Validate active/inactive rows, cancellations | Active-row logic note | State what each model layer owns in one sentence |
 | 12 | 13–14 | ⚡ Codex 🔗 Data 🧠 Ret | **Time Logic & Parameters:** Validate time/target logic, list/parameter/level behavior. **Codex Exercise 3: State Summary** — draft 3-sentence state summary using Pattern 2, test on peer | Time logic note + list/parameter note + State Summary exercise result + **Week 2 Scorecard** | Name top 3 data risks from memory |
@@ -148,11 +152,11 @@ This curriculum now includes a **BI Academic Framework** that adds BI theory, fo
 |-----|----------|------|---------------|-------------------|-----------------|
 | 13 | 15–16 | 📊 BI 🔗 Data | **📌 PT3: Metric Lineage Walkthrough:** Counting grain, active-row rules, period definitions, calc point, rollup path + snapshot validation | PT3 walkthrough + snapshot validation note | Explain why upstream defect contaminates downstream rollups |
 | 14 | 17 | 📊 BI 🔗 Data | **Rollup Behavior:** Validate lowest grain → summaries, weighted/summed/derived totals | Rollup behavior note | Explain where double-counting could happen |
-| 15 | 18 | ⚡ Codex 📦 Del | **📌 Start PT4: QC Plan + Codex Validation Practice:** What to check, expected outcomes, anomaly classification. Use Pattern 4 (Validation Check) to classify gaps | QC evidence template (first pass) + Validation Check prompt result | Recall 3 prompts from Week 1; test one on current work |
+| 15 | 18 | ⚡ Codex 📦 Del 💬 Team | **📌 Start PT4: QC Plan + Codex Validation Practice:** What to check, expected outcomes, anomaly classification. Use Pattern 4 (Validation Check) to classify gaps. Escalate any anomalies to a peer for discussion | QC evidence template (first pass) + Validation Check prompt result + anomaly escalation note | Recall 3 prompts from Week 1; test one on current work |
 | 16 | 19 | ⚡ Codex 🧠 Ret | **📌 Complete PT4: QC Evidence Pack + Handoff Draft:** Run checks, separate defects from limitations. Use Pattern 3 (Handoff Draft) to record findings | Completed PT4 QC evidence pack + Handoff Draft exercise result | Name 3 data quality risks without notes |
-| 17 | 21–22 | 🏗️ Pyr 📦 Del | **Deployment Preflight:** Map deployment sequence + access/reviewer boundaries | Preflight checklist + access note | State deployment sequence from memory |
+| 17 | 21–22 | 🏗️ Pyr 📦 Del 💬 Team | **Deployment Preflight + Task Breakdown:** Map deployment sequence + access/reviewer boundaries. Break deployment into assignable tasks and share with team | Preflight checklist + access note + task breakdown | State deployment sequence from memory |
 | 18 | 23–24 | 🏗️ Pyr 🧠 Ret | **📌 PT5: Deployment Rehearsal:** Draft sequence → dry run → record | Completed PT5 deployment rehearsal record | Explain whether error is source/transform/snapshot/rollup/presentation |
-| 19 | 25 | 🏗️ Pyr 📦 Del 🧠 Ret | **Close Operations Layer:** Finalize deployment, QC, and handoff readiness | **Week 3 Scorecard** + deployment closeout | Name all 6 proof tasks from memory |
+| 19 | 25 | 🏗️ Pyr 📦 Del 🧠 Ret 💬 Team | **Close Operations Layer + Team Sync:** Finalize deployment, QC, and handoff readiness. Give a summary update of what was completed to your team | **Week 3 Scorecard** + deployment closeout + team sync note | Name all 6 proof tasks from memory |
 
 **Proof Tasks Due This Week:**
 - ✅ **PT3: Metric Lineage Walkthrough** (Day 13) — 📊 BI / 🔗 Data
@@ -165,21 +169,21 @@ This curriculum now includes a **BI Academic Framework** that adds BI theory, fo
 
 ## Week 4 — 📦 Contribution & Handoff (Days 20–28)
 
-**Theme:** Deliver a reviewable change slice, create a reusable asset, and pass the Codex Gate.
-**Categories:** 📦 Delivery & Handoff · ⚡ Codex Productivity · 🏗️ Pyramid Platform · 📊 BI Judgment · 🧠 Retention & Readiness
-**🎓 Academic concepts this week:** BI maturity models (TDWI/Gartner), industry standards alignment (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone, bounded Codex as metacognition
+**Theme:** Deliver a reviewable change slice, create a reusable asset, and pass the Codex Gate — communicating effectively with your team throughout.
+**Categories:** 📦 Delivery & Handoff · ⚡ Codex Productivity · 🏗️ Pyramid Platform · 📊 BI Judgment · 🧠 Retention & Readiness · 💬 Team Communication & Task Management
+**🎓 Academic concepts this week:** BI maturity models (TDWI/Gartner), industry standards alignment (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone, bounded Codex as metacognition, task prioritisation across team, giving/receiving feedback
 
 | Day | Exec Day | Tags | Today's Focus | Evidence Artifact | Retention Check |
 |-----|----------|------|---------------|-------------------|-----------------|
-| 20 | 26–27 | 🏗️ Pyr 📦 Del | **Content Movement & Handoff Path:** Validate artifact movement, build reviewer path | Content-movement checklist + handoff draft | Trace one KPI end-to-end from memory |
+| 20 | 26–27 | 🏗️ Pyr 📦 Del 💬 Team | **Content Movement & Handoff Path + Task Board:** Validate artifact movement, build reviewer path. Update your task board with current status and next steps | Content-movement checklist + handoff draft + task board update | Trace one KPI end-to-end from memory |
 | 21 | 28–29 | ⚡ Codex 📦 Del 🧠 Ret | **📌 PT2: Review Dry Run + PT6: Handoff Test + Codex Exercise 4:** Complete both proof tasks. Use Pattern 6 (Change Impact) to scope review package, then Pattern 3 to draft handoff | PT2 review package + PT6 handoff test + Change Impact prompt result | Pass Codex Gate check (all 6 gates) |
-| 22 | 31–33 | 📊 BI 📦 Del | **Change Slice:** Select narrow change, establish baseline, identify owning surface | Change-slice charter + baseline note + owning-surface note | State where business logic lives for this change |
+| 22 | 31–33 | 📊 BI 📦 Del 💬 Team | **Change Slice + Feedback Practice:** Select narrow change, establish baseline, identify owning surface. Share your change slice with a peer and practise receiving feedback | Change-slice charter + baseline note + owning-surface note + feedback reception note | State where business logic lives for this change |
 | 23 | 34–36 | 🏗️ Pyr ⚡ Codex | **Fix Path & Validate + Bounded Codex Practice:** Draft smallest fix, run validation cycle, repair. **Codex Exercise 6: Bounded Codex Simulation** — write bounded prompt with 2+ "Do NOT" constraints, test, refine | Fix-path draft + validation record + iteration note + Bounded Codex exercise result | Reproduce deployment sequence from memory |
-| 24 | 37–40 | ⚡ Codex 📦 Del 🧠 Ret | **Review Package + Handoff Mastery:** Record before/after, prepare review package, stress-test, close slice. Use Pattern 3 to draft handoff, grade against Quality Rubric | Before/after note + review package + closed contribution + handoff graded against rubric + **Week 4 Scorecard** | All 6 PTs complete? If not, list missing |
-| 25 | 41–44 | 📊 BI 📦 Del | **Handoff Rehearsal:** Practice surface recommendation, validate parameters, build reviewer explanation | Surface recommendation + reviewer summary + final handoff rehearsal | Explain whether issue is source/transform/snapshot/rollup/presentation |
-| 26 | 46–50 | ⚡ Codex 📦 Del | **📌 Reusable Asset (v1) — Codex Prompt Library:** Charter → draft → test → revise. Create a reusable Codex prompt template (Pattern 1–7) as your asset | Asset charter + draft v1 + test note + v2 + prompt pattern as asset | Asset addresses real team problem |
-| 27 | 51–55 | 🏗️ Pyr 📦 Del | **📌 Reusable Asset (v2):** Add platform specificity, example use case, external review, publish | Surface-aware revision + example + gap list + v3 + final asset | Asset is consumable by another developer without translation |
-| 28 | 56–60 | 🧠 Ret 🤖 AI ⚡ Codex | **📌 Codex Gate & Closeout:** Bounded Codex test, **Exercise 5: Manual-vs-Codex Comparison**, final readiness summary, gate decision. Run full Comparison Template for one defined task | Codex comparison note + final readiness statement + **Final Readiness Package** + all 5 Codex exercises completed | **Final Codex Gate + closeout** |
+| 24 | 37–40 | ⚡ Codex 📦 Del 🧠 Ret 💬 Team | **Review Package + Handoff Mastery + Status Update:** Record before/after, prepare review package, stress-test, close slice. Use Pattern 3 to draft handoff, grade against Quality Rubric. Give a final status update to your team | Before/after note + review package + closed contribution + handoff graded against rubric + **Week 4 Scorecard** + status update note | All 6 PTs complete? If not, list missing |
+| 25 | 41–44 | 📊 BI 📦 Del 💬 Team | **Handoff Rehearsal + Peer Review:** Practice surface recommendation, validate parameters, build reviewer explanation. Walk through your handoff with a peer and incorporate their input | Surface recommendation + reviewer summary + final handoff rehearsal + peer feedback log | Explain whether issue is source/transform/snapshot/rollup/presentation |
+| 26 | 46–50 | ⚡ Codex 📦 Del 💬 Team | **📌 Reusable Asset (v1) — Codex Prompt Library:** Charter → draft → test → revise. Create a reusable Codex prompt template (Pattern 1–7) as your asset. Share draft with a teammate for early feedback | Asset charter + draft v1 + test note + v2 + prompt pattern as asset + early feedback note | Asset addresses real team problem |
+| 27 | 51–55 | 🏗️ Pyr 📦 Del 💬 Team | **📌 Reusable Asset (v2) + Team Handoff:** Add platform specificity, example use case, external review, publish. Hand off the completed asset to a teammate with a brief walkthrough | Surface-aware revision + example + gap list + v3 + final asset + team handoff record | Asset is consumable by another developer without translation |
+| 28 | 56–60 | 🧠 Ret 🤖 AI ⚡ Codex 💬 Team | **📌 Codex Gate & Closeout + Final Team Communication:** Bounded Codex test, **Exercise 5: Manual-vs-Codex Comparison**, final readiness summary, gate decision. Run full Comparison Template for one defined task. Share your readiness conclusion with your team and discuss next steps | Codex comparison note + final readiness statement + **Final Readiness Package** + all 5 Codex exercises completed + team closeout note | **Final Codex Gate + closeout** |
 
 **Proof Tasks Due This Week:**
 - ✅ **PT2: Review Workflow Dry Run** (Day 21) — ⚡ Codex / 📦 Del
@@ -336,7 +340,7 @@ Run this on Day 28. All must be **Yes** to begin bounded Codex use.
 
 | File | Categories | Purpose |
 |---|---|---|
-| `source/LEARNING_CATEGORIES.md` | 🧠 | **Master category reference** — all 7 categories defined |
+| `source/LEARNING_CATEGORIES.md` | 🧠 💬 | **Master category reference** — all 8 categories defined including team communication |
 | `source/4-Week Onboarding Map.md` | 🧠 | **This file** — condensed daily/weekly plan with categories, evidence, and gates |
 | `source/Copilot Reference for MUE.md` | 🤖 AI | Copilot modes, custom instructions, prompt files, context management |
 | `source/Pyramid Platform Reference.md` | 🏗️ Pyr | **NEW — Comprehensive Pyramid reference:** model architecture, deployment sequencing, QC, security, artifact migration, reviewer path |

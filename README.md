@@ -1,6 +1,8 @@
 # Multifaceted User Education (MUE)
 
-A **maximum 4-week** training bundle for Pyramid, Codex, and BI judgment readiness — with evidence-backed results, retention learning, and a standard equipped team contributor outcome.
+> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+
+A **maximum 4-week** training bundle for Pyramid, Codex, BI judgment, and team collaboration readiness — with evidence-backed results, retention learning, and a **BI team contributor** outcome.
 
 > **Hard constraint:** This program must not exceed 28 calendar days. See `source/CONTRIBUTING.md` for extension rules.
 
@@ -24,10 +26,10 @@ This repo is organized into three folders:
 
 | Week | Focus | Proof Tasks Due | Evidence |
 |------|-------|-----------------|----------|
-| **1** | Foundation — tracks, Copilot habits, baseline readiness | — | Readiness note, 3 prompts, dependency map, ops checklist |
-| **2** | Data foundation & model layer validation | PT1 (Repo Analysis), PT3 (Metric Lineage) | Source inventory, row ownership, hierarchy/measure notes |
-| **3** | Snapshots, rollups, QC, deployment rehearsal | PT4 (QC Evidence), PT5 (Deployment Rehearsal) | QC pack, snapshot/rollup notes, preflight checklist |
-| **4** | Contribution, handoff, reusable asset, Codex Gate | PT2 (Review Dry Run), PT6 (Handoff Test) | Change slice, handoff package, reusable asset, readiness package |
+| **1** | Foundation — tracks, Copilot habits, team norms, baseline readiness | — | Readiness note, 3 prompts, dependency map, ops checklist, team norms note |
+| **2** | Data foundation & model layer validation | PT1 (Repo Analysis), PT3 (Metric Lineage) | Source inventory, row ownership, hierarchy/measure notes, status updates |
+| **3** | Snapshots, rollups, QC, deployment rehearsal, team sync | PT4 (QC Evidence), PT5 (Deployment Rehearsal) | QC pack, snapshot/rollup notes, preflight checklist, task breakdown |
+| **4** | Contribution, handoff, team communication, reusable asset, Codex Gate | PT2 (Review Dry Run), PT6 (Handoff Test) | Change slice, handoff package, feedback log, reusable asset, readiness package |
 
 ---
 

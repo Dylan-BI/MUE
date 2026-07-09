@@ -1,5 +1,7 @@
 # Codex Productivity Training Handoff
 
+> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+
 ## Purpose
 
 This handoff explains how the current Pyramid readiness plan should be revised before it is used as a broader learning plan.
@@ -35,6 +37,21 @@ These are not Pyramid-specific skills. They are everyday workflow skills for wor
 ### 3. Business Intelligence Judgment
 
 The larger goal is not simply learning Pyramid technology. The more important goal is learning how to apply BI concepts in real-world scenarios, independent of the tool being used.
+
+### 💬 4. Team Communication & Task Management (Cross-Cutting)
+
+None of the above tracks exist in isolation. A BI team contributor must also communicate progress, track work, escalate blockers, and collaborate with peers. These skills should be practised **alongside** Pyramid, Codex, and BI judgment — not treated as a separate phase.
+
+Practical team skills include:
+
+- giving a clear 30-second standup update (what was done, what's next, blockers)
+- tracking personal tasks in a shared board (GitHub Issues, project board)
+- breaking down work into assignable units with clear acceptance criteria
+- escalating blockers with context and suggested resolution
+- receiving feedback without defensiveness and incorporating it
+- giving specific, actionable feedback to peers
+
+These skills compound across all four weeks. A learner who can validate a metric but cannot communicate a blocker is not yet a reliable team contributor.
 
 The plan should help the learner reason through:
 

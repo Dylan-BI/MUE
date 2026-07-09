@@ -1,5 +1,8 @@
 PYRAMID READINESS DAILY EXECUTION GUIDE
 
+OVERARCHING GOAL
+Become a confident, operationally reliable Business Intelligence (BI) team contributor who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+
 PURPOSE
 This file turns the guidance in pyramid-readiness-coach.md into a complete working-day execution plan.
 Use it as a daily operating guide across three phases and three training tracks:
@@ -8,7 +11,7 @@ Use it as a daily operating guide across three phases and three training tracks:
 - Operational Phase
 - Contribution Phase
 
-The tracks are Pyramid operations, Codex productivity, and BI judgment.
+The tracks are Pyramid operations, Codex productivity, and BI judgment — reinforced by team communication and task management skills practised daily.
 
 This is a working-day plan, not a calendar-day plan.
 It is designed to make you operationally reliable before you rely heavily on Codex.
@@ -38,9 +41,14 @@ Start every day with these steps before doing the day-specific work.
 6. End the day with a short closeout.
    Record what you did, what it proved, what remains open, and what the next narrow step should be.
 
-7. Record whether the day primarily advanced Pyramid operations, Codex productivity, or BI judgment.
+7. Communicate with the team.
+   - If you have a blocker, escalate it before end of day.
+   - If you completed something notable, share it in team channel or standup.
+   - Update your task board with current status.
 
-8. End each day with a short daily report using this structure:
+8. Record whether the day primarily advanced Pyramid operations, Codex productivity, BI judgment, or team communication.
+
+9. End each day with a short daily report using this structure:
    - What I learned today
    - What I should be able to do tomorrow
    - What evidence I produced

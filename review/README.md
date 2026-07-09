@@ -1,5 +1,7 @@
 # Third Party Review — MUE
 
+> **Overarching Goal:** Assess whether the learner has become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+
 ## Purpose
 
 This folder synchronizes completed work from `../action/` for independent reviewer assessment. It provides a clean, isolated view of what the learner has produced — without the working context, templates, or in-progress notes.
