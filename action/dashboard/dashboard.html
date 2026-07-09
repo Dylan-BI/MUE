@@ -1146,17 +1146,30 @@ function renderCurriculumReviewContent() {
     }).join('') +
     '</tbody></table></div>';
 
-  // Curriculum progress overview (28 working days, Mon–Fri only)
-  html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">A 28-working-day calendar (Mon–Fri) — green squares show finished days, grey ones are still ahead. Weekends are excluded.</p>' +
-    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px">' +
-    ['Mon','Tue','Wed','Thu','Fri'].map(d => '<div style="font-size:10px;color:var(--text-muted);text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
-    Array.from({length:28}, (_,i) => {
-      const day = i+1;
-      const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
-      const done = dayNotes.length > 0;
-      return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;font-weight:600;cursor:default;' +
-        (done ? 'background:var(--day-cell-done);color:#fff' : 'background:var(--day-cell-pending);color:var(--day-cell-pending-text)') +
-        '" title="Day ' + day + ' (working day) ' + (done ? '— completed' : '— pending') + '">' + day + '</div>';
+  // Curriculum progress overview — full weeks (Mon–Sun), day numbers only on weekdays
+  html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">Full calendar weeks — day numbers count only on weekdays (Mon–Fri). Weekends are shown muted and excluded from the 28-day count.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px">' +
+    ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:var(--text-muted);text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
+    // 6 calendar-week rows needed to fit 28 working days (5 per week + partial final week)
+    Array.from({length:6}, (_, row) => {
+      return Array.from({length:7}, (_, col) => {
+        // col 0-4 = Mon-Fri (working days), col 5-6 = Sat-Sun (weekend)
+        if (col < 5) {
+          const day = row * 5 + col + 1;
+          if (day > 28) {
+            // Past day 28 — empty cell
+            return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px">&nbsp;</div>';
+          }
+          const dayNotes = (DATA.notes||[]).filter(n => n.day_number === day);
+          const done = dayNotes.length > 0;
+          return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;font-weight:600;cursor:default;' +
+            (done ? 'background:var(--day-cell-done);color:#fff' : 'background:var(--day-cell-pending);color:var(--day-cell-pending-text)') +
+            '" title="Day ' + day + ' (working day) ' + (done ? '— completed' : '— pending') + '">' + day + '</div>';
+        } else {
+          // Weekend cell — muted, no day number
+          return '<div style="text-align:center;padding:6px 2px;border-radius:6px;font-size:11px;background:var(--bg-muted);color:var(--text-muted);opacity:0.35">—</div>';
+        }
+      }).join('');
     }).join('') +
     '</div></div>';
 
