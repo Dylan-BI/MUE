@@ -1,0 +1,285 @@
+{
+  "generated": "2026-07-09T00:00:00.000000",
+  "version": {
+    "commit": "local-dev",
+    "timestamp": "2026-07-09T00:00:00"
+  },
+  "notes": [],
+  "evidence": [],
+  "reports": [],
+  "artifacts": {
+    "notes": [],
+    "evidence": [],
+    "reports": [],
+    "templates": []
+  },
+  "page_artifacts": {},
+  "changed_files": [],
+  "changes_by_page": {},
+  "all_file_changes": [],
+  "change_counts": {},
+  "source_criteria": [],
+  "review_data": {},
+  "synced_reviews": {},
+  "summary": {
+    "total_days": 0,
+    "latest_classification": "—",
+    "evidence_count": 0
+  },
+  "categories": {
+    "ai-copilot": {
+      "id": "ai-copilot",
+      "emoji": "🤖",
+      "label": "AI & Copilot",
+      "description": "Chat modes, prompt engineering, custom instructions, context management, tool use. Learners practice mode selection, prompt structure, and drift avoidance.",
+      "weeks": [1, 2, 3, 4],
+      "skills": ["Mode selection", "Prompt structure", "Instruction files", "Prompt files", "Context management", "Drift avoidance"]
+    },
+    "codex": {
+      "id": "codex",
+      "emoji": "⚡",
+      "label": "Codex Productivity",
+      "description": "Workflow orientation, handoff fluency, context synthesis, targeted AI use, bounded automation, Codex loop mastery (Pull \u2192 Summarize \u2192 Identify \u2192 Execute \u2192 Record).",
+      "weeks": [1, 2, 3, 4],
+      "skills": ["Codex Loop", "Handoff extraction", "Context pull", "Bounded prompt design", "Manual-vs-Codex evaluation"]
+    },
+    "pyramid": {
+      "id": "pyramid",
+      "emoji": "\ud83c\udfd7\ufe0f",
+      "label": "Pyramid Platform",
+      "description": "Model logic, deployment sequencing, QC, security, artifact movement, reviewer access. Learners build deployment checklists and QC evidence packs.",
+      "weeks": [2, 3, 4],
+      "skills": ["Model lineage", "Deployment preflight", "Artifact migration", "QC execution", "Access policy"]
+    },
+    "bi-judgment": {
+      "id": "bi-judgment",
+      "emoji": "\ud83d\udcca",
+      "label": "BI Judgment",
+      "description": "Business reasoning, metric definition, grain, validation, trusted delivery, tool-agnostic thinking. Learners articulate business questions and validate metrics.",
+      "weeks": [1, 2, 3, 4],
+      "skills": ["Business question articulation", "Metric selection", "Grain/filter/exclusion definition", "Validation evidence"]
+    },
+    "data-lineage": {
+      "id": "data-lineage",
+      "emoji": "\ud83d\udd17",
+      "label": "Data & Lineage",
+      "description": "Source-to-model lineage, aggregation, rollups, snapshots, dependency mapping, row ownership. Learners trace dependencies and map data flows.",
+      "weeks": [1, 2, 3],
+      "skills": ["Dependency tracing", "Row ownership identification", "Deduplication logic", "Aggregation boundaries"]
+    },
+    "delivery-handoff": {
+      "id": "delivery-handoff",
+      "emoji": "\ud83d\udce6",
+      "label": "Delivery & Handoff",
+      "description": "Change isolation, review packages, handoff drafting, reusable assets, reviewer readiness. Learners prepare change charters and review packages.",
+      "weeks": [3, 4],
+      "skills": ["Change-slice scoping", "Review package preparation", "Handoff note generation", "Asset creation"]
+    },
+    "readiness": {
+      "id": "readiness",
+      "emoji": "\ud83e\udde0",
+      "label": "Retention & Readiness",
+      "description": "Weekly retention checks, scorecards, proof tasks, Codex Gate, readiness classification. Learners self-assess across all tracks and track progress.",
+      "weeks": [1, 2, 3, 4],
+      "skills": ["Cross-track recall", "Self-assessment", "Proof task tracking", "Gate readiness evaluation"]
+    }
+  },
+  "source_category_map": {
+    "Copilot Reference for MUE.md": ["ai-copilot"],
+    "Custom Workflows for MUE.md": ["ai-copilot", "delivery-handoff"],
+    "Copilot Best Practices Guide.md": ["ai-copilot"],
+    "Codex Productivity Training Handoff.md": ["codex"],
+    "Codex Productivity.md": ["codex"],
+    "Agentic Workflow Patterns.md": ["codex", "delivery-handoff"],
+    "Pyramid Platform Reference.md": ["pyramid"],
+    "Pyramid, Codex, and BI Judgment Daily Execution Guide.txt": ["pyramid", "codex", "bi-judgment"],
+    "Pyramid, Codex, and BI Judgment Daily Working Template.txt": ["pyramid", "codex", "bi-judgment"],
+    "Pyramid, Codex, and BI Judgment Readiness Plan.md": ["pyramid", "codex", "bi-judgment", "readiness"],
+    "Code Review and Handoff Standards.md": ["delivery-handoff", "codex"],
+    "CONTRIBUTING.md": ["delivery-handoff"],
+    "GitHub Well-Architected Principles.md": ["pyramid", "bi-judgment", "delivery-handoff"],
+    "4-Week Onboarding Map.md": ["ai-copilot", "codex", "pyramid", "bi-judgment", "data-lineage", "delivery-handoff", "readiness"],
+    "LEARNING_CATEGORIES.md": ["ai-copilot", "codex", "pyramid", "bi-judgment", "data-lineage", "delivery-handoff", "readiness"],
+    "BI Academic Framework.md": ["ai-copilot", "codex", "pyramid", "bi-judgment", "data-lineage", "delivery-handoff", "readiness"]
+  },
+  "levels": {
+    "1": {
+      "id": 1,
+      "label": "Foundation",
+      "emoji": "\ud83c\udf31",
+      "subtitle": "For complete amateurs \u2014 no prior experience needed. Learn vocabulary and basic concepts with maximum guidance.",
+      "color": "#4CAF50"
+    },
+    "2": {
+      "id": 2,
+      "label": "Development",
+      "emoji": "\ud83c\udf3f",
+      "subtitle": "For learners with some experience \u2014 build competence through guided application and practice.",
+      "color": "#2196F3"
+    },
+    "3": {
+      "id": 3,
+      "label": "Operational",
+      "emoji": "\ud83c\udf33",
+      "subtitle": "For confident practitioners \u2014 deep concepts with significant independence and quality focus.",
+      "color": "#FF9800"
+    },
+    "4": {
+      "id": 4,
+      "label": "Mastery",
+      "emoji": "\ud83c\udfc6",
+      "subtitle": "For expert-ready learners \u2014 advanced optimization, automation, and strategic thinking with full autonomy.",
+      "color": "#9C27B0"
+    }
+  },
+  "level_categories": {
+    "1": {
+      "ai-copilot": {
+        "description": "What is an AI coding assistant? Learn to chat, ask simple questions, and understand basic responses. No prior experience needed \u2014 just curiosity.",
+        "skills": ["Basic chat interaction", "Simple question asking", "Understanding AI responses", "AI assistant overview"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "codex": {
+        "description": "Introduction to the Codex workflow. Learn what the Codex Loop is and practice following simple guided prompts step by step.",
+        "skills": ["Codex Loop vocabulary", "Following guided prompts", "Basic observation skills", "Simple note-taking"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "pyramid": {
+        "description": "What is a data platform? Learn basic vocabulary \u2014 models, deployments, QC \u2014 and see examples of each. Build awareness of the analytics ecosystem.",
+        "skills": ["Platform vocabulary", "Model awareness", "Deployment concept", "QC overview"],
+        "weeks": [2, 3, 4]
+      },
+      "bi-judgment": {
+        "description": "What is business intelligence? Learn to identify simple business questions and understand what metrics are at a basic level.",
+        "skills": ["BI vocabulary", "Business question awareness", "Metric concept", "Simple data observation"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "data-lineage": {
+        "description": "What is data lineage? Learn where data comes from and where it goes. Build simple dependency awareness and follow data flows.",
+        "skills": ["Lineage vocabulary", "Source-to-destination concept", "Simple dependency awareness", "Data flow overview"],
+        "weeks": [1, 2, 3]
+      },
+      "delivery-handoff": {
+        "description": "What does it mean to deliver work? Learn about change tracking, review concepts, and why communication matters.",
+        "skills": ["Delivery vocabulary", "Change awareness", "Review concept introduction", "Communication basics"],
+        "weeks": [3, 4]
+      },
+      "readiness": {
+        "description": "How do we track learning? Learn about progress tracking, simple check-ins, and basic self-assessment of your own work.",
+        "skills": ["Progress tracking", "Simple check-ins", "Basic self-assessment", "Learning awareness"],
+        "weeks": [1, 2, 3, 4]
+      }
+    },
+    "2": {
+      "ai-copilot": {
+        "description": "Move beyond basic chat. Learn to craft clear prompts, switch modes intentionally, and use Copilot for guided task execution.",
+        "skills": ["Intentional mode switching", "Prompt refinement", "Task-guided prompting", "Context window management"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "codex": {
+        "description": "Build Codex Loop fluency. Practice pulling context, summarizing state, and identifying next steps using the Codex patterns.",
+        "skills": ["Context pull practice", "State summarization", "Next-step identification", "Pattern application"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "pyramid": {
+        "description": "Apply Pyramid vocabulary to real models. Trace model logic, identify surfaces, and understand deployment mechanics.",
+        "skills": ["Model logic tracing", "Surface identification", "Deployment step awareness", "QC checklist basics"],
+        "weeks": [2, 3, 4]
+      },
+      "bi-judgment": {
+        "description": "Apply BI reasoning to guided tasks. Practice defining metrics, identifying grain, and validating simple outputs.",
+        "skills": ["Metric definition", "Grain identification", "Output validation basics", "Business question mapping"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "data-lineage": {
+        "description": "Map real data flows from source through transformation to output. Identify dependencies and downstream impacts.",
+        "skills": ["Data flow mapping", "Dependency identification", "Impact analysis basics", "Lineage documentation"],
+        "weeks": [1, 2, 3]
+      },
+      "delivery-handoff": {
+        "description": "Prepare review packages and draft handoff notes. Learn change-slice scoping and reviewer communication.",
+        "skills": ["Review package basics", "Handoff note drafting", "Change-slice scoping", "Reviewer communication"],
+        "weeks": [3, 4]
+      },
+      "readiness": {
+        "description": "Track weekly progress against proof tasks. Self-assess across tracks and identify gaps before gates.",
+        "skills": ["Progress self-assessment", "Proof task tracking", "Gap identification", "Gate readiness awareness"],
+        "weeks": [1, 2, 3, 4]
+      }
+    },
+    "3": {
+      "ai-copilot": {
+        "description": "Use Copilot as a thought partner. Drive complex workflows with structured prompts, custom instructions, and prompt files.",
+        "skills": ["Structured prompt design", "Custom instruction authoring", "Prompt file management", "Complex workflow orchestration"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "codex": {
+        "description": "Use Codex autonomously for validation, quality control, and handoff preparation. Apply patterns 1\u20137 independently.",
+        "skills": ["Autonomous Codex use", "Pattern 1\u20137 fluency", "Validation automation", "QC evidence synthesis"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "pyramid": {
+        "description": "Independently manage deployment preflight, QC execution, and artifact movement across environments.",
+        "skills": ["Deployment preflight ownership", "QC execution", "Artifact migration", "Environment management"],
+        "weeks": [2, 3, 4]
+      },
+      "bi-judgment": {
+        "description": "Independently validate metrics and business logic. Detect grain mismatches, filter errors, and double-counting risks.",
+        "skills": ["Independent metric validation", "Grain mismatch detection", "Filter error analysis", "Double-counting risk assessment"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "data-lineage": {
+        "description": "Analyze complex lineage chains with multiple sources, transformations, and rollup paths. Validate dependencies independently.",
+        "skills": ["Complex lineage analysis", "Multi-source tracing", "Rollup path validation", "Dependency sign-off"],
+        "weeks": [1, 2, 3]
+      },
+      "delivery-handoff": {
+        "description": "Own the end-to-end delivery process: change charter, review package, handoff, and reviewer follow-up.",
+        "skills": ["End-to-end delivery ownership", "Change charter preparation", "Review package quality assurance", "Reviewer follow-up"],
+        "weeks": [3, 4]
+      },
+      "readiness": {
+        "description": "Demonstrate operational readiness through completed proof tasks and consistent scorecard performance.",
+        "skills": ["Readiness demonstration", "Scorecard consistency", "Proof task completion", "Gate readiness validation"],
+        "weeks": [1, 2, 3, 4]
+      }
+    },
+    "4": {
+      "ai-copilot": {
+        "description": "Design and share reusable prompt libraries. Teach others prompt discipline and context management strategies.",
+        "skills": ["Prompt library design", "Teaching prompt discipline", "Reusable asset creation", "Strategy documentation"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "codex": {
+        "description": "Create reusable Codex patterns for the team. Evaluate Codex vs. manual workflows and make strategic tool choices.",
+        "skills": ["Pattern authoring", "Manual-vs-Codex evaluation", "Strategic tool selection", "Team workflow optimization"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "pyramid": {
+        "description": "Design deployment strategies, write QC standards, and mentor others on platform operations and artifact management.",
+        "skills": ["Deployment strategy design", "QC standard authoring", "Mentoring and review", "Platform optimization"],
+        "weeks": [2, 3, 4]
+      },
+      "bi-judgment": {
+        "description": "Mentor others on BI judgment. Review metric definitions, validate logic chains, and set quality standards.",
+        "skills": ["BI mentoring", "Metric definition review", "Logic chain validation", "Quality standard setting"],
+        "weeks": [1, 2, 3, 4]
+      },
+      "data-lineage": {
+        "description": "Design lineage documentation standards and mentor others on dependency mapping and impact analysis.",
+        "skills": ["Lineage standard design", "Mentoring dependency mapping", "Impact analysis leadership", "Documentation best practices"],
+        "weeks": [1, 2, 3]
+      },
+      "delivery-handoff": {
+        "description": "Define delivery standards, review handoff quality, and mentor others on effective reviewer communication.",
+        "skills": ["Delivery standard definition", "Handoff quality review", "Mentoring delivery practices", "Cross-team coordination"],
+        "weeks": [3, 4]
+      },
+      "readiness": {
+        "description": "Certify others\u2019 readiness, design gate criteria, and continuously improve the MUE framework based on delivery outcomes.",
+        "skills": ["Readiness certification", "Gate criteria design", "Framework improvement", "Outcome-based iteration"],
+        "weeks": [1, 2, 3, 4]
+      }
+    }
+  }
+}
