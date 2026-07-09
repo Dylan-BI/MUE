@@ -1311,7 +1311,7 @@ function renderAll() {
     '<div class="metric" style="background:var(--bg-muted)"><div class="value">' + infraTotal + '</div><div class="label">⚙️ Infrastructure</div><div class="sublabel">dashboard/templates/source</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-green)"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria</div><div class="sublabel">training reference files</div></div>' +
     '<div class="metric" style="background:var(--bg-metric-yellow)"><div class="value">' + (rtc || 0) + '</div><div class="label">✅ Synced to review/</div><div class="sublabel">ready for assessment</div></div></div>' +
-    '<div class="card"><h3>🎯 Learner Progress & Requirements <span style="font-size:12px;color:var(--text-muted);font-weight:400">target vs actual</span></h3>' +
+    '<div class="card"><h3>🎯 Overview Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">overview target fulfillment</span></h3>' +
     '<div class="progress-ring-container" style="flex-direction:row;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:8px">' +
     renderProgressRing(s.total_days||0, 28, 52) + '<div style="text-align:left"><strong>📅 Days</strong><br><span style="font-size:11px;color:var(--text-muted)">' + (s.total_days||0) + '/28 working days</span></div>' +
     renderProgressRing(s.evidence_count||0, Math.max(s.evidence_count||0, Math.ceil((s.total_days||0)/2)), 52) + '<div style="text-align:left"><strong>📁 Evidence</strong><br><span style="font-size:11px;color:var(--text-muted)">' + (s.evidence_count||0) + ' artifacts</span></div>' +
@@ -1375,7 +1375,7 @@ function renderAll() {
   const daysWithEvidence = notes.filter(n => n.required_artifact && n.required_artifact.trim()).length;
   const daysWithScorecard = notes.filter(n => n.scorecard && Object.keys(n.scorecard).length > 0).length;
   const totalDaysCount = notes.length;
-  dh += '<div class="card"><h3>📊 Daily Requirements Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">learner input vs expected</span></h3>' +
+  dh += '<div class="card"><h3>📊 Daily Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">daily requirements fulfillment</span></h3>' +
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">' +
     '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
     renderProgressRing(daysWithNotes, Math.max(totalDaysCount,1), 40) +
@@ -1596,7 +1596,7 @@ function renderAll() {
   const artTotal = Object.values(arts).reduce((a, arr) => a + arr.length, 0);
   const artReviewed = Object.keys(getAllReviews()).filter(k => k.startsWith('art_') || k.startsWith('pa_')).length;
   addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Complete file listing of <code>action/</code> — review per file. <span class="changed-badge">✏️ Agent</span> = changed, <span class="synced-badge">✅ Synced</span> = synced to review/</p>' +
-    '<div class="card"><h3>📊 Artifact Overview <span style="font-size:12px;color:var(--text-muted);font-weight:400">files by category & review status</span></h3>' +
+    '<div class="card"><h3>📊 Artifacts Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">review coverage & targets</span></h3>' +
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
     artCats.slice(0, 5).map(cat => {
       const count = (arts[cat] || []).length;
@@ -2210,7 +2210,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<button class="export-btn" style="background:var(--danger)" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>' +
 
   // ≡≡≡ Third-Party Review Progress Widget — review coverage ≡≡≡
-  '<div class="card"><h3>📊 Review Coverage Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">reviews submitted vs artifacts</span></h3>' +
+  '<div class="card"><h3>📊 Third Party Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">review coverage & targets</span></h3>' +
   '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
   '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
   renderProgressRing(rvCnt, Math.max(Object.keys(allRv).length,1), 40) +
