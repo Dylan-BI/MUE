@@ -773,6 +773,50 @@ function saveReview(artifactPath, review) {
 }
 function getAllReviews() { return getReviews(); }
 
+/* ── Synced reviews from review/reviews.json (via data.json) ── */
+function getSyncedReviews() {
+  try { return (DATA && DATA.synced_reviews) || {}; } catch { return {}; }
+}
+
+/* ── Merge local and synced reviews for a given artifact ── */
+function getMergedReviews(aid) {
+  const local = getReviews();
+  const synced = getSyncedReviews();
+  const localRev = local[aid] || [];
+  const syncedRev = synced[aid] || [];
+  // Return local first, then synced; tag each with source
+  const merged = [];
+  localRev.forEach(r => merged.push({ ...r, _source: 'local' }));
+  syncedRev.forEach(r => merged.push({ ...r, _source: 'synced' }));
+  return merged;
+}
+
+/* ── Save all local reviews to review/reviews.json (downloads JSON file) ── */
+function saveReviewsToReview() {
+  const all = getReviews();
+  const keys = Object.keys(all);
+  if (!keys.length) { alert('No reviews to save. Add some reviews first.'); return; }
+
+  const exportData = JSON.stringify(all, null, 2);
+  const blob = new Blob([exportData], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reviews-export-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+
+  alert(
+    '✅ Saved ' + keys.length + ' artifact(s) with reviews.\n\n' +
+    'Next steps:\n' +
+    '  1. Place the downloaded file in the repo as review/reviews.json\n' +
+    '  2. Run: python review/scripts/save-reviews.py path/to/downloaded-file.json\n' +
+    '     (or just copy the file to review/reviews.json)\n' +
+    '  3. Run: python action/dashboard/build_data.py\n' +
+    '  4. Refresh the dashboard to see synced reviews.\n\n' +
+    '💡 Reviews are one-way: local → review/. They never affect action/.'
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    LOAD DATA & AUTO-REFRESH (30 min polling)
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1508,13 +1552,22 @@ function submitReview(aid, type, label, filename) {
 }
 
 function renderReviewList(aid) {
-  const items = (getReviews()[aid]||[]).slice().reverse();
+  const items = getMergedReviews(aid).reverse();
   if (!items.length) return '';
   let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:var(--text-muted)">Reviews</strong>';
   items.forEach(r=>{
     const d=new Date(r.timestamp), rc=r.rating.includes('Pass')?'#198754':(r.rating.includes('Rework')?'#dc3545':'#ffc107');
-    h += '<div class="review-item"><div class="r-header"><span class="r-name">'+escHtml(r.name)+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+'</div></div>';
+    const sourceBadge = r._source === 'synced'
+      ? '<span style="font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin-left:4px">📥 Synced</span>'
+      : '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:4px">💻 Local</span>';
+    h += '<div class="review-item"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+'</div></div>';
   });
+  // Add sync count info
+  const syncedAll = getSyncedReviews();
+  const totalSynced = Object.keys(syncedAll).reduce((a,k)=>a+syncedAll[k].length,0);
+  if (totalSynced > 0) {
+    h += '<div style="margin-top:4px;font-size:10px;color:var(--text-muted);border-top:1px solid var(--border-light);padding-top:4px">📥 ' + totalSynced + ' synced review(s) from review/reviews.json</div>';
+  }
   h += '</div>';
   return h;
 }
@@ -1957,6 +2010,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<div class="metric"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria Files</div></div></div>' +
     '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">' +
     '<button class="export-btn" onclick="exportReviews()">📤 Export All Reviews</button>' +
+    '<button class="export-btn" style="background:var(--info-tint)" onclick="saveReviewsToReview()">💾 Save to review/reviews.json</button>' +
     '<button class="export-btn" style="background:var(--success)" onclick="runSync()">📤 Sync action/ → review/</button>' +
     '<button class="export-btn" style="background:var(--danger)" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>';
 
@@ -2380,10 +2434,46 @@ function runSync() {
 function exportReviews() {
   const all = getAllReviews(), keys = Object.keys(all);
   if (!keys.length) { alert('No reviews to export.'); return; }
-  let t = 'MUE Review Export\nGenerated: '+new Date().toISOString()+'\n'+'='.repeat(60)+'\n\n';
-  keys.forEach(k=>{const rvs=all[k];t+='Artifact: '+k+'\n'+'-'.repeat(40)+'\n';rvs.forEach(r=>{t+='  Reviewer: '+r.name+'\n  Rating:   '+r.rating+'\n  Type:     '+(r.type||'')+'\n  File:     '+(r.filename||'')+'\n  Date:     '+r.timestamp+'\n  Comment:  '+r.text+'\n\n';});});
-  const blob = new Blob([t],{type:'text/plain'}), a = document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='mue-review-export-'+new Date().toISOString().slice(0,10)+'.txt'; a.click(); URL.revokeObjectURL(a.href);
+  // Export two formats: .txt (human-readable) and .json (machine-readable for review/)
+  const dateStr = new Date().toISOString().slice(0, 10);
+
+  // 1. Text export
+  let t = 'MUE Review Export\nGenerated: ' + new Date().toISOString() + '\n' + '='.repeat(60) + '\n\n';
+  keys.forEach(k => {
+    const rvs = all[k];
+    t += 'Artifact: ' + k + '\n' + '-'.repeat(40) + '\n';
+    rvs.forEach(r => {
+      t += '  Reviewer: ' + r.name + '\n  Rating:   ' + r.rating + '\n  Type:     ' + (r.type || '') + '\n  File:     ' + (r.filename || '') + '\n  Date:     ' + r.timestamp + '\n  Comment:  ' + r.text + '\n\n';
+    });
+  });
+  const blobTxt = new Blob([t], { type: 'text/plain' });
+  const aTxt = document.createElement('a');
+  aTxt.href = URL.createObjectURL(blobTxt);
+  aTxt.download = 'mue-review-export-' + dateStr + '.txt';
+  aTxt.click();
+  URL.revokeObjectURL(aTxt.href);
+
+  // 2. JSON export (ready for review/reviews.json via save-reviews.py)
+  const jsonStr = JSON.stringify(all, null, 2);
+  const blobJson = new Blob([jsonStr], { type: 'application/json' });
+  const aJson = document.createElement('a');
+  aJson.href = URL.createObjectURL(blobJson);
+  aJson.download = 'reviews-export-' + dateStr + '.json';
+  aJson.click();
+  URL.revokeObjectURL(aJson.href);
+
+  alert(
+    '✅ Exported ' + keys.length + ' artifact(s) with reviews.\n\n' +
+    'Downloads:\n' +
+    '  📄 mue-review-export-' + dateStr + '.txt  (human-readable)\n' +
+    '  📄 reviews-export-' + dateStr + '.json  (for review/ import)\n\n' +
+    'To persist reviews in the repo:\n' +
+    '  1. Place the .json file in the repo as review/reviews.json\n' +
+    '     or run: python review/scripts/save-reviews.py reviews-export-' + dateStr + '.json\n' +
+    '  2. Run: python action/dashboard/build_data.py\n' +
+    '  3. Refresh the dashboard.\n\n' +
+    '💡 Reviews are stored in review/ — they never touch action/.'
+  );
 }
 
 function clearAllReviews() {

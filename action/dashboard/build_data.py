@@ -5,6 +5,13 @@ Scans action/, source/, and review/ then generates data.json consumed by
 dashboard.html. Tracks per-page version changes, git diffs, source criteria
 alignment, and provides version-based review metadata.
 
+🔒 ONE-WAY SYNC SAFETY:
+  - This script READS from action/, source/, and review/ — it only WRITES to
+    action/dashboard/data.json (a generated build artifact, not learner work).
+  - It NEVER writes to review/ or modifies learner files in action/.
+  - Synced reviews from review/reviews.json are read-only and merged with
+    localStorage reviews in the dashboard for display only.
+
 Usage:
     python action/dashboard/build_data.py
     # Output: action/dashboard/data.json
@@ -907,6 +914,20 @@ def main():
     review_total = sum(len(v) for v in review_data.values())
     print(f'  Found {review_total} synced file(s) in review/')
 
+    print('Reading synced reviews from review/reviews.json...')
+    synced_reviews = {}
+    reviews_path = os.path.join(REVIEW_DIR, 'reviews.json')
+    if os.path.exists(reviews_path):
+        try:
+            with open(reviews_path, 'r', encoding='utf-8') as f:
+                synced_reviews = json.load(f)
+            rcount = sum(len(v) for v in synced_reviews.values())
+            print(f'  Loaded {rcount} synced review(s) across {len(synced_reviews)} artifact(s)')
+        except (json.JSONDecodeError, OSError) as e:
+            print(f'  ⚠️  Warning: could not read {reviews_path}: {e}')
+    else:
+        print('  No review/reviews.json found — no synced reviews yet.')
+
     print('Scanning source/ criteria...')
     source_criteria = get_source_criteria()
     print(f'  Found {len(source_criteria)} source criteria file(s)')
@@ -939,6 +960,7 @@ def main():
         'change_counts': change_counts,
         'source_criteria': source_criteria,
         'review_data': review_data,
+        'synced_reviews': synced_reviews,
         'summary': summary,
         'categories': CATEGORIES,
         'source_category_map': SOURCE_CATEGORY_MAP,

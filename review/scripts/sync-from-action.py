@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """
 review/scripts/sync-from-action.py
-Sync completed learner work from action/ into review/ for third-party assessment.
+ONE-WAY SYNC: action/ → review/ only.
+Syncs completed learner work from action/ into review/ for third-party assessment.
 Copies daily notes, evidence artifacts, and reports — but not templates or
 in-progress files.
+
+🔒 SAFETY GUARANTEE:
+  - This script ONLY copies FROM action/ TO review/. It NEVER reads from review/
+    or writes to action/. Learner work flows in one direction only.
+  - Reviewer comments are managed separately by review/scripts/save-reviews.py
+    which writes to review/reviews.json — also one-way (review/ only, never action/).
+  - The dashboard reads data.json which is built from both action/ and review/,
+    but the build script (build_data.py) only reads — it never modifies source files.
 
 Usage:
     python3 review/scripts/sync-from-action.py
