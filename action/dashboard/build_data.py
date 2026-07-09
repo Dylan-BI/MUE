@@ -729,7 +729,9 @@ def compute_summary(notes):
 
 
 def scan_all_artifacts():
-    """Recursively scan the entire action/ directory and categorize every file."""
+    """Recursively scan the entire action/ directory and categorize every file.
+    Now embeds full content for text files < 50 KB so the dashboard preview
+    can show the complete artifact without a GitHub fetch."""
     categories = {
         'notes': [],
         'evidence': [],
@@ -756,22 +758,30 @@ def scan_all_artifacts():
 
             mtime = datetime.fromtimestamp(os.path.getmtime(fp)).isoformat()
             is_markdown = f.endswith('.md')
+            is_text = is_markdown or f.endswith(('.txt', '.py', '.ps1', '.json', '.html', '.css', '.js', '.yml', '.yaml', '.cfg', '.ini', '.csv'))
             preview = None
-            if is_markdown:
+            content = None
+            file_size = os.path.getsize(fp)
+            if is_text:
                 try:
-                    with open(fp, 'r', encoding='utf-8') as fh:
-                        preview = fh.read(500)
+                    with open(fp, 'r', encoding='utf-8', errors='replace') as fh:
+                        full = fh.read()
+                        preview = full[:500]
+                        if file_size <= 51200:
+                            content = full
                 except Exception:
-                    preview = None
+                    pass
 
             entry = {
                 'path': rel,
                 'filename': f,
                 'folder': rel_dir,
-                'size': os.path.getsize(fp),
+                'size': file_size,
                 'modified': mtime,
                 'preview': preview,
+                'content': content,
                 'is_markdown': is_markdown,
+                'is_text': is_text,
                 'page_category': classify_path_to_page(os.path.join('action', rel)),
             }
 
@@ -809,127 +819,22 @@ def scan_review_dir():
                     continue
                 fp = os.path.join(root, f)
                 rel = os.path.relpath(fp, REVIEW_DIR)
+                file_size = os.path.getsize(fp)
+                is_text = f.endswith(('.md', '.txt', '.py', '.ps1', '.json', '.html', '.css', '.js'))
+                preview = None
+                if is_text and file_size <= 51200:
+                    try:
+                        with open(fp, 'r', encoding='utf-8', errors='replace') as fh:
+                            preview = fh.read(2000)
+                    except Exception:
+                        pass
                 synced[sub].append({
                     'path': rel,
                     'filename': f,
-                    'size': os.path.getsize(fp),
+                    'size': file_size,
                     'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
-                })
-    return synced
-
-
-def build_page_artifacts(artifacts, changed_set):
-    """Group artifacts by dashboard page category for per-page review sections."""
-    page_map = {
-        'daily': [],
-        'evidence': [],
-        'reports': [],
-        'templates': [],
-        'scripts': [],
-        'dashboard': [],
-        'other': [],
-    }
-    for cat, items in artifacts.items():
-        for item in items:
-            pc = item.get('page_category', 'other')
-            item['action_cat'] = cat
-            item['was_changed'] = (
-                'action/' + item['path'].replace('\\', '/') in changed_set
-                or item['path'].replace('\\', '/') in changed_set
-            )
-            if pc in page_map:
-                page_map[pc].append(item)
-            else:
-                page_map['other'].append(item)
-    return page_map
-
-
-def scan_all_artifacts():
-    """Recursively scan the entire action/ directory and categorize every file."""
-    categories = {
-        'notes': [],
-        'evidence': [],
-        'reports': [],
-        'templates': [],
-        'scripts': [],
-        'dashboard': [],
-        'other': [],
-    }
-
-    if not os.path.isdir(ACTION_DIR):
-        return categories
-
-    for root, dirs, fnames in os.walk(ACTION_DIR):
-        if '.git' in root.split(os.sep):
-            continue
-        rel_dir = os.path.relpath(root, ACTION_DIR)
-
-        for f in sorted(fnames):
-            if f == '.gitkeep' or f.endswith('.pyc'):
-                continue
-            fp = os.path.join(root, f)
-            rel = os.path.relpath(fp, ACTION_DIR)
-
-            mtime = datetime.fromtimestamp(os.path.getmtime(fp)).isoformat()
-            is_markdown = f.endswith('.md')
-            preview = None
-            if is_markdown:
-                try:
-                    with open(fp, 'r', encoding='utf-8') as fh:
-                        preview = fh.read(500)
-                except Exception:
-                    preview = None
-
-            entry = {
-                'path': rel,
-                'filename': f,
-                'folder': rel_dir,
-                'size': os.path.getsize(fp),
-                'modified': mtime,
-                'preview': preview,
-                'is_markdown': is_markdown,
-                'page_category': classify_path_to_page(rel),
-            }
-
-            # Categorize
-            if rel.startswith('notes') or rel.startswith('notes\\') or rel.startswith('notes/'):
-                categories['notes'].append(entry)
-            elif rel.startswith('evidence') or rel.startswith('evidence\\') or rel.startswith('evidence/'):
-                categories['evidence'].append(entry)
-            elif rel.startswith('reports') or rel.startswith('reports\\') or rel.startswith('reports/'):
-                categories['reports'].append(entry)
-            elif rel.startswith('templates') or rel.startswith('templates\\') or rel.startswith('templates/'):
-                categories['templates'].append(entry)
-            elif rel.startswith('scripts') or rel.startswith('scripts\\') or rel.startswith('scripts/'):
-                categories['scripts'].append(entry)
-            elif rel.startswith('dashboard') or rel.startswith('dashboard\\') or rel.startswith('dashboard/'):
-                categories['dashboard'].append(entry)
-            else:
-                categories['other'].append(entry)
-
-    return categories
-
-
-def scan_review_dir():
-    """Scan the review/ directory for files synced from action/."""
-    synced = {'notes': [], 'evidence': [], 'reports': []}
-    if not os.path.isdir(REVIEW_DIR):
-        return synced
-    for sub in ['notes', 'evidence', 'reports']:
-        subdir = os.path.join(REVIEW_DIR, sub)
-        if not os.path.isdir(subdir):
-            continue
-        for root, dirs, fnames in os.walk(subdir):
-            for f in fnames:
-                if f == '.gitkeep':
-                    continue
-                fp = os.path.join(root, f)
-                rel = os.path.relpath(fp, REVIEW_DIR)
-                synced[sub].append({
-                    'path': rel,
-                    'filename': f,
-                    'size': os.path.getsize(fp),
-                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                    'is_text': is_text,
+                    'preview': preview,
                 })
     return synced
 

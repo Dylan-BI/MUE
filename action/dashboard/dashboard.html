@@ -439,12 +439,51 @@
   .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
   .filter-bar input, .filter-bar select { padding: 6px 12px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 12px; background: var(--bg-card); color: var(--text-primary); }
   .filter-bar input { flex: 1; min-width: 150px; }
+  /* ── Enhanced Preview Overlay ── */
   .preview-overlay { display: none; position: fixed; inset: 0; background: var(--preview-overlay); z-index: 100; justify-content: center; align-items: center; }
   .preview-overlay.open { display: flex; }
-  .preview-box { background: var(--preview-box-bg); border-radius: 12px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 24px; position: relative; color: var(--text-primary); }
-  .preview-box .close-btn { position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer; color: var(--preview-close); background: none; border: none; }
+  .preview-overlay.fullscreen .preview-box { max-width: 98vw; max-height: 98vh; width: 98vw; height: 98vh; }
+  .preview-box { background: var(--preview-box-bg); border-radius: 12px; max-width: 900px; width: 92%; max-height: 88vh; overflow: hidden; display:flex; flex-direction:column; position: relative; color: var(--text-primary); box-shadow: 0 8px 40px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06); }
+  .preview-box .close-btn { position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer; color: var(--preview-close); background: none; border: none; z-index:5; }
   .preview-box .close-btn:hover { color: var(--preview-close-hover); }
-  .preview-box pre { background: var(--bg-preview); padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-code); }
+  .preview-box .preview-header { padding: 14px 48px 10px 20px; border-bottom: 1px solid var(--border-light); flex-shrink:0; display:flex; flex-direction:column; gap:4px; position:relative; }
+  .preview-box .preview-header .preview-path { font-size:14px; font-weight:600; color:var(--text-primary); word-break:break-all; }
+  .preview-box .preview-header .preview-meta { display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:11px; color:var(--text-muted); }
+  .preview-box .preview-header .preview-actions { position:absolute; top:12px; right:48px; display:flex; gap:4px; }
+  .preview-box .preview-header .preview-actions button { background:var(--bg-muted); border:1px solid var(--border-light); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--text-secondary); }
+  .preview-box .preview-header .preview-actions button:hover { background:var(--bg-hover); color:var(--text-primary); }
+  .preview-box .preview-nav { position:absolute; top:50%; transform:translateY(-50%); font-size:28px; color:var(--text-muted); cursor:pointer; padding:12px 8px; background:var(--preview-box-bg); border:1px solid var(--border-light); border-radius:8px; z-index:4; user-select:none; line-height:1; }
+  .preview-box .preview-nav:hover { color:var(--accent); border-color:var(--accent-tint); }
+  .preview-box .preview-nav.prev { left:8px; }
+  .preview-box .preview-nav.next { right:8px; }
+  .preview-box .preview-body { flex:1; overflow-y:auto; padding:20px; }
+  .preview-box .preview-loading { display:flex; align-items:center; justify-content:center; gap:8px; padding:40px; color:var(--text-muted); font-size:14px; }
+  .preview-box .preview-loading::before { content:''; width:20px; height:20px; border:2px solid var(--border-color); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .preview-box .preview-error { padding:24px; text-align:center; color:var(--danger-hue); }
+  .preview-box .preview-body pre { background: var(--bg-preview); padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-code); }
+
+  /* ── Markdown content styling ── */
+  .preview-body.markdown-content { line-height:1.7; font-size:13px; color:var(--text-primary); }
+  .preview-body.markdown-content h1 { font-size:20px; margin:20px 0 10px; padding-bottom:6px; border-bottom:1px solid var(--border-light); }
+  .preview-body.markdown-content h2 { font-size:17px; margin:18px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--border-light); }
+  .preview-body.markdown-content h3 { font-size:15px; margin:16px 0 6px; }
+  .preview-body.markdown-content h4 { font-size:14px; margin:14px 0 4px; }
+  .preview-body.markdown-content p { margin:0 0 10px; }
+  .preview-body.markdown-content ul, .preview-body.markdown-content ol { padding-left:22px; margin:4px 0 10px; }
+  .preview-body.markdown-content li { margin:2px 0; }
+  .preview-body.markdown-content code { background:var(--bg-code); padding:1px 5px; border-radius:4px; font-size:12px; color:var(--text-code); font-family:'SF Mono','Consolas',monospace; }
+  .preview-body.markdown-content pre { background:var(--bg-code); padding:12px; border-radius:8px; overflow-x:auto; margin:10px 0; border:1px solid var(--border-light); }
+  .preview-body.markdown-content pre code { background:none; padding:0; border-radius:0; }
+  .preview-body.markdown-content blockquote { border-left:3px solid var(--accent-tint); margin:8px 0; padding:4px 12px; color:var(--text-secondary); background:var(--bg-muted); border-radius:0 6px 6px 0; }
+  .preview-body.markdown-content blockquote p { margin:4px 0; }
+  .preview-body.markdown-content table { border-collapse:collapse; width:100%; margin:10px 0; font-size:12px; }
+  .preview-body.markdown-content th, .preview-body.markdown-content td { border:1px solid var(--border-color); padding:6px 10px; text-align:left; }
+  .preview-body.markdown-content th { background:var(--bg-table-header); font-weight:600; }
+  .preview-body.markdown-content hr { border:none; border-top:1px solid var(--border-light); margin:16px 0; }
+  .preview-body.markdown-content a { color:var(--accent-hue); }
+  .preview-body.markdown-content img { max-width:100%; border-radius:6px; margin:8px 0; }
+  .preview-body.markdown-content strong { font-weight:600; }
   .nav-badge { display: inline-block; background: var(--nav-badge-bg); color: var(--nav-badge-text); font-size: 9px; padding: 0 5px; border-radius: 8px; margin-left: 4px; font-weight: 700; line-height: 16px; min-width: 16px; text-align: center; vertical-align: middle; }
   .nav-badge.zero { background: var(--nav-badge-zero-bg); color: var(--nav-badge-zero-text); }
   .nav-badge.dashboard { background: #ffc107; color: #333; }
@@ -1229,7 +1268,7 @@ function renderAll() {
     dailyArts.forEach(a=>{
       const sz=a.size>1024?(a.size/1024).toFixed(1)+' KB':a.size+' B';
       const st=a.was_changed ? '<span class="changed-badge">✏️ Agent</span>' : '<span class="caption">Base</span>';
-      dh += '<tr><td class="fp">'+escHtml(a.path)+'</td><td class="caption">'+sz+'</td><td>'+st+'</td><td>' + reviewToggleInline('pa_'+a.path.replace(/[^a-zA-Z0-9]/g,'_'), 'Note Artifact', a.path, a.path) + '</td></tr>';
+      dh += '<tr><td class="fp"><span style="font-size:13px;color:var(--accent);cursor:pointer;margin-right:4px" onclick="previewArtifactByPath(\''+escHtml(a.path).replace(/'/g,"\\'")+'\')" title="Preview">👁️</span>'+escHtml(a.path)+'</td><td class="caption">'+sz+'</td><td>'+st+'</td><td>' + reviewToggleInline('pa_'+a.path.replace(/[^a-zA-Z0-9]/g,'_'), 'Note Artifact', a.path, a.path) + '</td></tr>';
     });
     dh += '</tbody></table></div>';
   }
@@ -1286,7 +1325,7 @@ function renderAll() {
         const d=new Date(e.modified),sz=(e.size/1024).toFixed(1),aid='ev_'+e.path.replace(/[^a-zA-Z0-9]/g,'_');
         const changed = evArts.some(a=>a.filename===e.path || a.path===e.path) || false;
         const badge = changed ? ' <span class="changed-badge">✏️ Agent</span>' : '';
-        ehtml+='<div class="ev-item">📄 <code>'+escHtml(e.path)+'</code> '+badge+'<span class="ev-meta"> ('+sz+' KB, '+d.toLocaleDateString()+')</span>'+renderReviewSection(aid,'Evidence',e.path,e.path)+'</div>';
+        ehtml+='<div class="ev-item"><span style="font-size:13px;color:var(--accent);cursor:pointer;margin-right:4px" onclick="previewArtifactByPath(\''+escHtml(e.path).replace(/'/g,"\\'")+'\')" title="Preview">👁️</span>📄 <code>'+escHtml(e.path)+'</code> '+badge+'<span class="ev-meta"> ('+sz+' KB, '+d.toLocaleDateString()+')</span>'+renderReviewSection(aid,'Evidence',e.path,e.path)+'</div>';
       });
       ehtml+='</div>';
     });
@@ -1523,7 +1562,7 @@ function renderArtifacts(artifacts, changedFiles, reviewData) {
         const c = cats[cid];
         return c ? '<span style="font-size:10px;margin:0 1px" title="'+c.label+'">'+c.emoji+'</span>' : '';
       }).join('') : '<span class="caption">—</span>';
-      h += '<tr class="'+(isChanged?'changed-row':'')+'"><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td>'+status+'</td><td>'+syncBadge+'</td><td style="text-align:center;font-size:12px">'+catTag+'</td><td style="text-align:center"><span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="showArtifactPreview(\''+aid+'\',\''+escHtml(f.path).replace(/'/g,"\\'")+'\',\''+escHtml(f.preview?f.preview.substring(0,500).replace(/'/g,"\\'").replace(/\n/g,'\\n'):'').replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:var(--text-light)">'+rc+'</span>':'')+'</td></tr>';
+      h += '<tr class="'+(isChanged?'changed-row':'')+'"><td>'+icon+'</td><td class="fp">'+escHtml(f.path)+'</td><td class="caption">'+sz+'</td><td class="caption">'+md.toLocaleDateString()+'</td><td>'+status+'</td><td>'+syncBadge+'</td><td style="text-align:center;font-size:12px">'+catTag+'</td><td style="text-align:center"><span style="font-size:13px;color:var(--accent);cursor:pointer" onclick="previewArtifactByPath(\''+escHtml(f.path).replace(/'/g,"\\'")+'\')">👁️</span>'+(rc?' <span style="font-size:10px;color:var(--text-light)">'+rc+'</span>':'')+'</td></tr>';
     });
     h += '</tbody></table></div>';
   });
@@ -1558,15 +1597,339 @@ function filterArtifacts() {
   });
 }
 
-function showArtifactPreview(aid, path, preview) {
-  const overlay = document.getElementById('previewOverlay'), content = document.getElementById('previewContent');
-  let h = '<h3 style="margin-bottom:8px">📄 '+escHtml(path)+'</h3>';
-  h += preview ? '<pre>'+escHtml(preview)+'</pre><p class="caption">First 500 characters</p>' : '<div class="alert alert-info">No preview available.</div>';
-  h += renderReviewSection(aid, 'Artifact', path, path);
-  content.innerHTML = h;
-  overlay.classList.add('open');
+/* ═══════════════════════════════════════════════════════════════════════════
+   MARKDOWN RENDERER — lightweight conversion (no external lib needed)
+   ═══════════════════════════════════════════════════════════════════════════ */
+function renderMarkdown(md) {
+  if (!md) return '';
+  // Escape HTML first
+  let h = escHtml(md);
+  
+  // ── Phase 1: Extract code blocks so their contents aren't processed by inline rules ──
+  const codeBlocks = [];
+  h = h.replace(/```(\w*)\n([\s\S]*?)```/g, function(m, lang, code) {
+    const idx = codeBlocks.length;
+    codeBlocks.push('<pre><code>' + code + '</code></pre>');
+    return '%%%CODEBLOCK' + idx + '%%%';
+  });
+  
+  // Inline code
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // ── Phase 2: Block-level transforms ──
+  // Headings
+  h = h.replace(/^###### (.*$)/gm, '<h6>$1</h6>');
+  h = h.replace(/^##### (.*$)/gm, '<h5>$1</h5>');
+  h = h.replace(/^#### (.*$)/gm, '<h4>$1</h4>');
+  h = h.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+  h = h.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+  h = h.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+  
+  // Horizontal rules
+  h = h.replace(/^---$/gm, '<hr>');
+  h = h.replace(/^\*\*\*$/gm, '<hr>');
+  
+  // Blockquotes
+  h = h.replace(/^&gt;\s?(.*$)/gm, '<blockquote><p>$1</p></blockquote>');
+  
+  // Unordered lists — convert lines starting with * or - to <li> then wrap in <ul>
+  h = h.replace(/^[\*\-]\s+(.*$)/gm, '<li>$1</li>');
+  h = h.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+  
+  // Ordered lists — lines starting with digit. Convert to <ol> after
+  // protecting already-wrapped <ul> content from double-wrapping.
+  var orderedHtml = h;
+  orderedHtml = orderedHtml.replace(/^\d+\.\s+(.*$)/gm, '<li>$1</li>');
+  // Wrap consecutive <li> blocks in <ol> only if not inside <ul> or <ol> already
+  // Use a placeholder to protect <ul> regions
+  var protectedUl = [];
+  orderedHtml = orderedHtml.replace(/<ul>[\s\S]*?<\/ul>/g, function(m) {
+    var idx = protectedUl.length;
+    protectedUl.push(m);
+    return '%%%ULBLOCK' + idx + '%%%';
+  });
+  orderedHtml = orderedHtml.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ol>$1</ol>');
+  // Restore protected <ul> blocks
+  orderedHtml = orderedHtml.replace(/%%%ULBLOCK(\d+)%%%/g, function(m, idx) {
+    return protectedUl[parseInt(idx)];
+  });
+  h = orderedHtml;
+  
+  // Tables
+  h = h.replace(/^(\|.+\|)$/gm, function(m) {
+    if (/^\|[\s\-:]+\|/.test(m)) return '';
+    return '<tr>' + m.split('|').filter(function(c){return c.trim();}).map(function(c){
+      var trimmed = c.trim();
+      if (trimmed.startsWith('**') && trimmed.endsWith('**')) return '<th>' + trimmed.slice(2,-2) + '</th>';
+      return '<td>' + trimmed + '</td>';
+    }).join('') + '</tr>';
+  });
+  h = h.replace(/((?:<tr>.*<\/tr>\n?)+)/g, '<table>$1</table>');
+  
+  // ── Phase 3: Inline transforms ──
+  // Bold & italic
+  h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  
+  // Images
+  h = h.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">');
+  
+  // Links
+  h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  
+  // ── Phase 4: Restore code blocks ──
+  h = h.replace(/%%%CODEBLOCK(\d+)%%%/g, function(m, idx) {
+    return codeBlocks[parseInt(idx)];
+  });
+  
+  // ── Phase 5: Paragraph wrapping ──
+  // Line breaks
+  h = h.replace(/\n\n/g, '</p><p>');
+  h = h.replace(/\n/g, '<br>');
+  
+  // Wrap in paragraphs if not already wrapped in a block-level element
+  if (!h.startsWith('<h') && !h.startsWith('<p') && !h.startsWith('<pre') && !h.startsWith('<table') && !h.startsWith('<ul') && !h.startsWith('<ol') && !h.startsWith('<blockquote')) {
+    h = '<p>' + h + '</p>';
+  }
+  
+  return h;
 }
-function closePreview() { document.getElementById('previewOverlay').classList.remove('open'); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENHANCED ARTIFACT PREVIEW — full content, markdown rendering, metadata,
+   navigation, version context, full-screen toggle
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showArtifactPreview(aid, path, previewContent, opts) {
+  opts = opts || {};
+  const overlay = document.getElementById('previewOverlay');
+  const content = document.getElementById('previewContent');
+  const isMd = opts.isMarkdown !== undefined ? opts.isMarkdown : (path.endsWith('.md') || path.endsWith('.txt'));
+  const version = opts.version || (DATA.version || {}).commit || '';
+  const fileMeta = opts.fileMeta || {};
+  const allItems = opts.allItems || null;
+  const currentIdx = opts.currentIdx !== undefined ? opts.currentIdx : -1;
+  const fullContent = opts.content || null;
+  
+  // Build header
+  let h = '<div class="preview-header">';
+  h += '<div class="preview-path">📄 ' + escHtml(path) + '</div>';
+  h += '<div class="preview-meta">';
+  // Version chip
+  if (version) h += '<span class="version-chip">' + escHtml(version) + '</span>';
+  // Size
+  if (fileMeta.size) {
+    const sz = fileMeta.size > 1024 ? (fileMeta.size/1024).toFixed(1)+' KB' : fileMeta.size+' B';
+    h += '<span>' + sz + '</span>';
+  }
+  // Modified date
+  if (fileMeta.modified) {
+    try { h += '<span>' + new Date(fileMeta.modified).toLocaleDateString() + '</span>'; } catch(e) {}
+  }
+  // Change status badge
+  if (fileMeta.isChanged) h += '<span class="changed-badge">✏️ Changed</span>';
+  // Sync status badge
+  if (fileMeta.isSynced) h += '<span class="synced-badge">✅ Synced</span>';
+  // Category tags
+  if (fileMeta.catTags) h += fileMeta.catTags;
+  h += '</div>'; // .preview-meta
+  h += '<div class="preview-actions">';
+  // Full screen toggle
+  h += '<button onclick="event.stopPropagation();document.getElementById(\'previewOverlay\').classList.toggle(\'fullscreen\')">⛶</button>';
+  h += '</div>';
+  h += '</div>'; // .preview-header
+  
+  // Navigation (prev/next)
+  if (allItems && allItems.length > 1 && currentIdx >= 0) {
+    if (currentIdx > 0) {
+      h += '<div class="preview-nav prev" onclick="navigatePreview(' + (currentIdx-1) + ')">‹</div>';
+    }
+    if (currentIdx < allItems.length - 1) {
+      h += '<div class="preview-nav next" onclick="navigatePreview(' + (currentIdx+1) + ')">›</div>';
+    }
+  }
+  
+  // Body: render content
+  h += '<div class="preview-body' + (isMd ? ' markdown-content' : '') + '" id="previewBody">';
+  
+  if (fullContent) {
+    if (isMd) {
+      h += renderMarkdown(fullContent);
+    } else {
+      h += '<pre>' + escHtml(fullContent) + '</pre>';
+    }
+  } else if (previewContent) {
+    if (isMd) {
+      h += renderMarkdown(previewContent);
+    } else {
+      h += '<pre>' + escHtml(previewContent) + '</pre>';
+    }
+    // Add load-more button if we only have a preview (not full content)
+    if (!fullContent && previewContent) {
+      h += '<div style="text-align:center;margin:12px 0"><button class="version-comment-btn" onclick="loadFullContent(\'' + escHtml(path).replace(/'/g,"\\'") + '\',\'previewBody\',' + (isMd ? 'true' : 'false') + ')">📥 Load full content from GitHub</button></div>';
+    }
+  } else {
+    // Try to load from GitHub raw
+    h += '<div class="preview-loading" id="previewLoading">Loading content…</div>';
+  }
+  h += '</div>'; // .preview-body
+  
+  // Review section at bottom (inside a footer area)
+  h += '<div style="padding:0 20px 16px;flex-shrink:0;border-top:1px solid var(--border-light)">' +
+    renderReviewSection(aid, 'Artifact', path, path) +
+    '</div>';
+  
+  content.innerHTML = h;
+  overlay.classList.remove('fullscreen');
+  overlay.classList.add('open');
+  
+  // If no content and no preview, try fetching from GitHub
+  if (!fullContent && !previewContent) {
+    loadFullContent(path, 'previewBody', isMd);
+  }
+  
+  // Store navigation context
+  window._previewNav = { items: allItems, currentIdx: currentIdx };
+}
+
+/* ── Navigation between artifacts ── */
+function navigatePreview(newIdx) {
+  const nav = window._previewNav;
+  if (!nav || !nav.items || newIdx < 0 || newIdx >= nav.items.length) return;
+  const item = nav.items[newIdx];
+  if (!item) return;
+  const aid = 'art_' + item.path.replace(/[^a-zA-Z0-9]/g, '_');
+  const v = DATA.version || {};
+  const catMap = DATA.source_category_map || {};
+  const cats = DATA.categories || {};
+  const fPath = item.path.replace(/\\/g,'/');
+  const fileCatIds = catMap[fPath] || catMap['source/'+fPath] || [];
+  const catTags = fileCatIds.length ? fileCatIds.map(cid => {
+    const c = cats[cid];
+    return c ? '<span style="display:inline-block;font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin:1px">' + c.emoji + ' ' + c.label + '</span>' : '';
+  }).join('') : '';
+  
+  showArtifactPreview(aid, item.path, item.preview, {
+    content: item.content,
+    version: v.commit,
+    isMarkdown: item.is_markdown,
+    allItems: nav.items,
+    currentIdx: newIdx,
+    fileMeta: {
+      size: item.size,
+      modified: item.modified,
+      isChanged: item.was_changed,
+      catTags: catTags,
+    }
+  });
+}
+
+/* ── Load full file content from GitHub raw URL ── */
+function loadFullContent(path, targetId, isMd) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  target.innerHTML = '<div class="preview-loading">Fetching from GitHub…</div>';
+  
+  // Normalize path — strip action/ prefix if needed
+  let cleanPath = path.replace(/\\/g,'/');
+  if (cleanPath.startsWith('action/')) cleanPath = cleanPath.substring(7);
+  
+  const rawUrl = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/' + cleanPath;
+  
+  fetch(rawUrl)
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(text => {
+      if (isMd) {
+        target.innerHTML = renderMarkdown(text);
+      } else {
+        target.innerHTML = '<pre>' + escHtml(text) + '</pre>';
+      }
+    })
+    .catch(err => {
+      target.innerHTML = '<div class="preview-error">⚠️ Could not load content: ' + escHtml(err.message) + '<br><span style="font-size:11px;color:var(--text-muted)">File may not be committed yet. Run <code>python action/dashboard/build_data.py</code> to embed content locally.</span></div>';
+    });
+}
+
+function closePreview() { 
+  document.getElementById('previewOverlay').classList.remove('open');
+  document.getElementById('previewOverlay').classList.remove('fullscreen');
+  document.getElementById('previewContent').innerHTML = '';
+  window._previewNav = null;
+}
+
+/* ── Preview helper: looks up artifact by path in DATA.artifacts ── */
+function previewArtifactByPath(path) {
+  // Normalize
+  const searchPath = path.replace(/\\/g,'/');
+  const arts = DATA.artifacts || {};
+  const catMap = DATA.source_category_map || {};
+  const cats = DATA.categories || {};
+  const v = DATA.version || {};
+  
+  // Search all categories
+  let found = null;
+  for (const cat of Object.keys(arts)) {
+    for (const item of arts[cat]) {
+      const itemPath = item.path.replace(/\\/g,'/');
+      if (itemPath === searchPath) {
+        found = item;
+        break;
+      }
+    }
+    if (found) break;
+  }
+  
+  if (!found) {
+    // Fallback: show preview with just the path and no content
+    showArtifactPreview('preview_' + searchPath.replace(/[^a-zA-Z0-9]/g,'_'), path, null, { version: v.commit });
+    return;
+  }
+  
+  // Build category tags
+  const fPath = found.path.replace(/\\/g,'/');
+  const fileCatIds = catMap[fPath] || catMap['source/'+fPath] || [];
+  const catTags = fileCatIds.length ? fileCatIds.map(cid => {
+    const c = cats[cid];
+    return c ? '<span style="display:inline-block;font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin:1px">' + c.emoji + ' ' + c.label + '</span>' : '';
+  }).join('') : '';
+  
+  // Collect all artifacts from all categories for navigation
+  const allItems = [];
+  const catOrder = ['notes','evidence','reports','templates','scripts','dashboard','other'];
+  const changedSet = new Set((DATA.changed_files || []).map(f=>f.replace(/\\/g,'/')));
+  const actionPath = 'action/' + fPath;
+  catOrder.forEach(c => {
+    (arts[c] || []).forEach(item => {
+      allItems.push({
+        ...item,
+        was_changed: changedSet.has('action/' + item.path.replace(/\\/g,'/'))
+      });
+    });
+  });
+  const currentIdx = allItems.findIndex(item => item.path.replace(/\\/g,'/') === fPath);
+  
+  showArtifactPreview(
+    'art_' + searchPath.replace(/[^a-zA-Z0-9]/g,'_'),
+    found.path,
+    found.preview,
+    {
+      content: found.content,
+      version: v.commit,
+      isMarkdown: found.is_markdown,
+      allItems: allItems,
+      currentIdx: currentIdx,
+      fileMeta: {
+        size: found.size,
+        modified: found.modified,
+        isChanged: changedSet.has(actionPath),
+        catTags: catTags,
+      }
+    }
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    THIRD PARTY REVIEW — sync-from-action.py integration
@@ -1777,7 +2140,9 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       h += '<tr><td><a href="javascript:showPage(\'' + p + '\')" style="color:var(--accent)">' + p + '</a></td>' +
         '<td><span class="nav-badge" style="background:var(--success)">' + pc.count + '</span></td>' +
         '<td class="fp" style="font-size:10px">' + escHtml(fileList.substring(0, 80)) + (fileList.length > 80 ? '…' : '') + '</td>' +
-        '<td><button class="version-comment-btn" onclick="versionComment(\'' + p + '\',\'' + v.commit + '\',\'' + pc.count + ' changes\',\'Third Party Review\')">💬 Comment</button></td></tr>';
+        '<td style="display:flex;gap:4px">' +
+        (pc.files.length === 1 ? '<button class="version-comment-btn" style="background:var(--info-tint)" onclick="previewArtifactByPath(\'' + escHtml(pc.files[0].path).replace(/'/g,"\\'") + '\')">👁️ Preview</button>' : '') +
+        '<button class="version-comment-btn" onclick="versionComment(\'' + p + '\',\'' + v.commit + '\',\'' + pc.count + ' changes\',\'Third Party Review\')">💬 Comment</button></td></tr>';
     });
     h += '</tbody></table></div>';
   }
@@ -1833,7 +2198,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
         '<table class="artifact-table"><thead><tr><th>File</th><th style="width:80px">Version</th><th style="width:80px">Review</th></tr></thead><tbody>';
       learnerFiles.forEach(f => {
         const aid = 'lc_' + f.replace(/[^a-zA-Z0-9]/g, '_');
-        h += '<tr><td class="fp">📄 ' + escHtml(f) + '</td><td><span class="version-chip">' + v.commit + '</span></td><td>' + reviewToggleInline(aid, 'Learner Artifact', f, f) + '</td></tr>';
+        h += '<tr><td class="fp">📄 ' + escHtml(f) + '</td><td><span class="version-chip">' + v.commit + '</span></td><td style="display:flex;gap:4px"><span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewArtifactByPath(\'' + escHtml(f).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>' + reviewToggleInline(aid, 'Learner Artifact', f, f) + '</td></tr>';
       });
       h += '</tbody></table></div>';
     }
@@ -1846,7 +2211,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
         '<table class="artifact-table" id="infraPendingTable"><thead><tr><th>File</th><th style="width:80px">Version</th><th style="width:80px">Review</th></tr></thead><tbody>';
       infraFiles.forEach(f => {
         const aid = 'if_' + f.replace(/[^a-zA-Z0-9]/g, '_');
-        h += '<tr><td class="fp">⚙️ ' + escHtml(f) + '</td><td><span class="version-chip">' + v.commit + '</span></td><td>' + reviewToggleInline(aid, 'Infrastructure', f, f) + '</td></tr>';
+        h += '<tr><td class="fp">⚙️ ' + escHtml(f) + '</td><td><span class="version-chip">' + v.commit + '</span></td><td style="display:flex;gap:4px"><span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewArtifactByPath(\'' + escHtml(f).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>' + reviewToggleInline(aid, 'Infrastructure', f, f) + '</td></tr>';
       });
       h += '</tbody></table></div>';
     }
@@ -1863,7 +2228,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
         const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
         const md = new Date(f.modified);
         const aid = 'sync_' + f.path.replace(/[^a-zA-Z0-9]/g, '_');
-        h += '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td class="caption">' + md.toLocaleDateString() + '</td><td>' + reviewToggleInline(aid, 'Synced Artifact', f.path, f.path) + '</td></tr>';
+        h += '<tr><td class="fp"><span style="font-size:13px;color:var(--accent);cursor:pointer;margin-right:4px" onclick="previewArtifactByPath(\'' + escHtml('review/'+f.path).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td class="caption">' + md.toLocaleDateString() + '</td><td>' + reviewToggleInline(aid, 'Synced Artifact', f.path, f.path) + '</td></tr>';
       });
       h += '</tbody></table></div>';
     });
@@ -1929,6 +2294,7 @@ function renderPageChanges(pageId, pageLabel) {
       '<span class="file-path">' + escHtml(f.path) + '</span>' +
       '<span><span class="version-chip">' + escHtml(f.version) + '</span> ' +
       (f.diff_stat ? '<span class="caption">' + escHtml(f.diff_stat) + '</span>' : '') +
+      ' <button class="version-comment-btn" style="background:var(--info-tint)" onclick="previewArtifactByPath(\'' + escHtml(f.path).replace(/'/g,"\\'") + '\')">👁️ Preview</button>' +
       ' <button class="version-comment-btn" onclick="versionComment(\'' + escHtml(f.path).replace(/'/g,"\\'") + '\',\'' + escHtml(f.version) + '\',\'' + escHtml(f.diff_stat || '') + '\',\'' + pageLabel + '\')">💬 Comment on Version</button></span></div>' +
       '<div class="caption">' + dt + '</div>';
     if (f.has_diff) {
@@ -1952,6 +2318,7 @@ function renderLearnerPageChanges(pageId, pageLabel) {
       '<span class="file-path">📄 ' + escHtml(f.path) + '</span>' +
       '<span><span class="version-chip">' + escHtml(f.version) + '</span> ' +
       (f.diff_stat ? '<span class="caption">' + escHtml(f.diff_stat) + '</span>' : '') +
+      ' <button class="version-comment-btn" style="background:var(--info-tint)" onclick="previewArtifactByPath(\'' + escHtml(f.path).replace(/'/g,"\\'") + '\')">👁️ Preview</button>' +
       ' <button class="version-comment-btn" onclick="versionComment(\'' + escHtml(f.path).replace(/'/g,"\\'") + '\',\'' + escHtml(f.version) + '\',\'' + escHtml(f.diff_stat || '') + '\',\'' + pageLabel + '\')">💬 Comment on Version</button></span></div>' +
       '<div class="caption">' + dt + '</div>';
     if (f.has_diff) {
