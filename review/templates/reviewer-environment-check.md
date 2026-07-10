@@ -1,30 +1,29 @@
 # Reviewer Environment Readiness Check
 
-> **Purpose:** Verify that the reviewer has the necessary tools and access to review all learner artifacts before proceeding with assessment.
+> **Purpose:** Verify that the reviewer can access and interact with learner artifacts through GitHub — no local repo needed.
 
 ## Required Environment
 
-### Core Tools
-- [ ] **VS Code** (or compatible Markdown editor) — for viewing `.md` files
-- [ ] **Git** — for version control operations
-- [ ] **GitHub account** — for review comments and issue tracking
-- [ ] **Python 3.x** — for running sync and build scripts
-
-### File Format Support
-- [ ] **Markdown** (`.md`) — daily notes, evidence, reports, templates
-- [ ] **JSON** (`.json`) — data files, configuration, reviews
-- [ ] **Text** (`.txt`) — reference documents, templates
+### Minimum Requirements
+- [ ] **Web browser** — Chrome, Firefox, Edge, or Safari (recent version)
+- [ ] **GitHub account** — for submitting review feedback via Issues
+- [ ] **Internet access** — to reach GitHub Pages dashboard
 
 ### Access Requirements
-- [ ] **Repository access** — read access to `Dylan-BI/MUE`
-- [ ] **GitHub Pages** — access to deployed dashboard (if applicable)
-- [ ] **Pyramid access** (if reviewing platform-related artifacts)
+- [ ] **Dashboard access** — [MUE Dashboard](https://dylan-bi.github.io/MUE/dashboard.html) loads correctly
+- [ ] **Issues access** — can create Issues in `Dylan-BI/MUE` repository
+- [ ] **Read permissions** — can view repository contents
 
-### Curriculum Documentation Formats
-- [ ] **Markdown files** — training materials in `source/`
-- [ ] **Reference documents** — `.txt` files in `source/`
-- [ ] **Dashboard data** — `action/dashboard/data.json`
-- [ ] **Review artifacts** — synced in `review/`
+### Dashboard Verification
+- [ ] **Dashboard loads** — open https://dylan-bi.github.io/MUE/dashboard.html
+- [ ] **Learner artifacts visible** — daily notes, evidence, reports appear
+- [ ] **Scorecards display** — progression data renders correctly
+- [ ] **Evidence previews** — file contents are readable in-browser
+
+### Curriculum Documentation Formats (viewed in dashboard)
+- [ ] **Markdown** (`.md`) — daily notes, evidence, reports, templates
+- [ ] **Text** (`.txt`) — reference documents, execution guides
+- [ ] **JSON** (`.json`) — data files, configuration
 
 ## Environment Confirmation
 
@@ -33,41 +32,22 @@
 **Date:** _________________
 
 **Environment Status:**
-- [ ] ✅ **Adequate** — All required tools and access are available
-- [ ] ❌ **Not Adequate** — Missing tools or access (see details below)
+- [ ] ✅ **Adequate** — Can access dashboard and submit Issues
+- [ ] ❌ **Not Adequate** — Cannot access dashboard or submit Issues
 
-**Missing Items (if not adequate):**
-- [ ] Missing tool: _________________
-- [ ] Missing access: _________________
-- [ ] Format support issue: _________________
+**If Not Adequate:**
+1. Submit an [Environment Request](../../issues/new?template=reviewer-environment-request.md) via GitHub Issues
+2. Describe what is missing or blocked
+3. Wait for resolution before proceeding
 
-**Action Required:**
-- [ ] Request environment update via GitHub Issues
-- [ ] Request specific access via team lead
-- [ ] Use alternative review method
+## Verification Steps
 
-## Next Steps
-
-### If Environment is Adequate:
-1. Proceed with reviewer workflow
-2. Run sync script if needed: `python3 review/scripts/sync-from-action.py`
-3. Review artifacts in `review/` folder
-4. Complete assessment using feedback template
-
-### If Environment is Not Adequate:
-1. **Submit GitHub Issue** using the `reviewer-environment-request.md` template
-2. **Tag appropriate team members** for resolution
-3. **Wait for environment update** before proceeding with review
-4. **Use alternative access** if available (e.g., web-based review)
-
-## Environment Request Process
-
-1. **Create Issue:** Use the GitHub issue template for environment requests
-2. **Describe Missing Item:** Specify tool, access, or format support needed
-3. **Priority Level:** Indicate if this blocks review completion
-4. **Resolution:** Team lead or admin will address the request
-5. **Confirmation:** Reviewer confirms environment is updated before proceeding
+1. **Open** https://dylan-bi.github.io/MUE/dashboard.html
+2. **Confirm** dashboard loads and shows learner data
+3. **Open** https://github.com/Dylan-BI/MUE/issues/new?template=reviewer-feedback.md
+4. **Confirm** the Issue template loads correctly
+5. **Proceed** with review if both work
 
 ---
 
-**Note:** Do not proceed with review until environment is confirmed adequate. This ensures consistent and complete assessment of learner artifacts.
+**Note:** If the dashboard does not load or you cannot create Issues, stop and submit an environment request. Do not proceed with review until your environment is confirmed adequate.

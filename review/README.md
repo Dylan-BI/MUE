@@ -6,115 +6,90 @@
 
 This folder synchronizes completed work from `../action/` for independent reviewer assessment. It provides a clean, isolated view of what the learner has produced — without the working context, templates, or in-progress notes.
 
-## How It Works
-
-The review folder is populated by running the sync script:
-
-```bash
-python3 review/scripts/sync-from-action.py
-```
-
-This copies the following from `action/` into `review/`:
-- All completed daily notes (from `action/notes/`)
-- All evidence artifacts (from `action/evidence/`)
-- All generated reports (from `action/reports/`)
-- The latest scorecard and readiness summary
-- The contributor readiness check (if completed)
-
-The sync script **does not** copy:
-- Templates (these are working tools, not evidence)
-- In-progress notes (only completed days)
-- Empty directories
-
-## Reviewer Workflow
-
-### Step 0: Environment Check (Required)
-
-**Before starting any review, confirm your environment is adequate.**
-
-1. **Open** `review/templates/reviewer-environment-check.md`
-2. **Verify** all required tools, access, and format support are available
-3. **Confirm** environment status:
-   - ✅ **Adequate** → Proceed to Step 1
-   - ❌ **Not Adequate** → Submit environment request via GitHub Issues using the `reviewer-environment-request.md` template
-
-**Environment Requirements:**
-- VS Code (or Markdown-compatible editor)
-- Git and GitHub access
-- Python 3.x
-- Markdown/JSON/text file support
-- Repository read access
-
-**For curriculum documentation:** Ensure you can view all formats used in `source/` (Markdown, text files, etc.)
+**No local repo required.** All reviewer interaction happens through GitHub.
 
 ---
 
-### Step 1: Sync Learner Output
+## Quick Start for Reviewers
 
-1. **Run the sync** to get the latest learner output
-2. **Review the readiness report** at `reports/readiness-YYYY-WW.md` for scores and progression
-3. **Review evidence artifacts** in `evidence/` for proof task completeness
-4. **Review daily notes** in `notes/` for depth, retention, and independence
-5. **Complete the reviewer feedback** using the template below
+### 1. Open the Dashboard
 
-**If environment issues arise during review:**
-- Stop review and submit environment request
-- Do not proceed until environment is confirmed adequate
-- Document any workarounds used
+**→ [MUE Dashboard on GitHub Pages](https://dylan-bi.github.io/MUE/dashboard.html)**
 
-## Reviewer Feedback Template
+The dashboard shows all learner artifacts, progress, scorecards, and evidence — synced automatically from `action/`.
 
-```markdown
-# Review — {Learner Name} — Week {N}
+### 2. Review Learner Artifacts
 
-## Readiness Classification
-Current: {Foundational / Developing / Operational / Ready For Codex Acceleration}
+Browse the dashboard to review:
+- **Daily notes** — depth, retention, independence
+- **Evidence artifacts** — proof task completeness
+- **Reports** — scorecards, readiness summaries
+- **Classification & Codex Gate** — progression status
 
-## Scorecard
-| Area | Score | Notes |
-|------|-------|-------|
-| Prompt discipline | Pass/Partial/Fail | |
-| Repo/workspace analysis | Pass/Partial/Fail | |
-| Change isolation | Pass/Partial/Fail | |
-| Validation order | Pass/Partial/Fail | |
-| Deployment awareness | Pass/Partial/Fail | |
-| Reviewer handoff | Pass/Partial/Fail | |
-| Reusability | Pass/Partial/Fail | |
+### 3. Submit Feedback
 
-## Proof Task Completion
-- PT1: ✅ / ❌
-- PT2: ✅ / ❌
-- PT3: ✅ / ❌
-- PT4: ✅ / ❌
-- PT5: ✅ / ❌
-- PT6: ✅ / ❌
+Open a **GitHub Issue** using the [Reviewer Feedback template](../../issues/new?template=reviewer-feedback.md):
 
-## Observations
-- Strengths:
-- Areas for improvement:
-- Retention demonstrated:
-- Next week focus:
+1. Go to **Issues → New Issue**
+2. Select **Reviewer Feedback**
+3. Fill in: learner name, week, rating, feedback
+4. Submit
 
-## Codex Gate
-- All gates met: Yes / No
-- Decision: Begin bounded Codex use / Stay with standard Copilot workflows
-```
+**That's it.** The feedback automatically syncs to the dashboard on the next deploy. No scripts, no local tools.
 
-## Directory Layout After Sync
+### 4. Check Status
+
+After submitting, the feedback appears on the dashboard under the relevant artifact. Check the dashboard to confirm your review was captured.
+
+---
+
+## How Synchronization Works
+
+| Step | What Happens | Where |
+|------|-------------|-------|
+| Learner pushes to `main` | GitHub Actions syncs `action/` → `review/` | GitHub Actions |
+| Reviewer submits Issue | GitHub Actions parses feedback into `review/reviews.json` | GitHub Actions |
+| Dashboard rebuilds | `build_data.py` reads `action/` + `review/` → `data.json` | GitHub Actions |
+| Deploy to Pages | Dashboard updates at `dylan-bi.github.io/MUE/` | GitHub Pages |
+
+**Reviewers never need to:**
+- Clone the repo locally
+- Run sync scripts
+- Run build scripts
+- Edit files directly
+
+---
+
+## Environment Requirements
+
+Reviewers need only:
+- **A web browser** — to access the GitHub Pages dashboard
+- **A GitHub account** — to submit feedback via Issues
+- **Repository read access** — to view the dashboard and issues
+
+**For curriculum documentation:** The dashboard renders all formats (Markdown, text, JSON) in-browser. No special viewers needed.
+
+If your environment is inadequate, submit a request using the [Environment Request template](../../issues/new?template=reviewer-environment-request.md).
+
+---
+
+## Directory Layout
 
 ```
 review/
-├── README.md
-├── scripts/
-│   └── sync-from-action.py
-├── notes/                # Synced from action/notes/
-├── evidence/             # Synced from action/evidence/
-├── reports/              # Synced from action/reports/
-└── feedback/             # Reviewer feedback notes (created by reviewer)
+├── README.md              ← this file
+├── reviews.json           ← reviewer feedback (auto-populated by GitHub Actions)
+├── notes/                 ← synced from action/notes/
+├── evidence/              ← synced from action/evidence/
+├── reports/               ← synced from action/reports/
+├── archive/               ← archived reviews
+└── templates/
+    └── reviewer-environment-check.md
 ```
 
 ## Notes
 
-- The review folder is a **snapshot**, not a live workspace. Re-sync to get the latest.
-- Reviewers should provide feedback in `review/feedback/` as markdown files.
+- The `review/` folder is a **synced snapshot** — populated automatically by GitHub Actions.
+- Reviewer feedback flows through **GitHub Issues** — never edited directly in `review/reviews.json`.
 - Do not modify files in `action/` — the reviewer's job is to assess, not to edit learner work.
+- Local scripts (`sync-from-action.py`, `save-reviews.py`) exist for manual/local use but are not required for the standard reviewer workflow.

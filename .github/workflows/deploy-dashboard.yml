@@ -11,6 +11,8 @@ on:
       - action/templates/**
       - source/**
       - review/**
+  issues:
+    types: [labeled]
   schedule:
     - cron: '0 6 * * *'   # daily at 06:00 UTC — auto-sync changes
   workflow_dispatch:
@@ -19,6 +21,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  issues: read
 
 concurrency:
   group: pages
@@ -38,16 +41,77 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Regenerate data.json with version tracking
-        run: |
-          python3 action/dashboard/build_data.py || echo "Build script completed"
-
       - name: Sync to review/ folder
         run: |
           python3 review/scripts/sync-from-action.py || echo "Sync skipped (no new files)"
-          python3 action/dashboard/build_data.py || echo "Re-run build after sync"
 
-      - name: Commit updated data.json (if changed)
+      - name: Process reviewer feedback from Issues
+        if: github.event_name == 'issues' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // Find issues labeled 'review-feedback'
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'review-feedback',
+              state: 'all',
+              per_page: 100,
+            });
+
+            const reviewsPath = 'review/reviews.json';
+            let existing = {};
+            if (fs.existsSync(reviewsPath)) {
+              try { existing = JSON.parse(fs.readFileSync(reviewsPath, 'utf8')); } catch(e) {}
+            }
+
+            let merged = { ...existing };
+            let newCount = 0;
+
+            for (const issue of issues.data) {
+              const body = issue.body || '';
+
+              // Parse structured review from issue body
+              const learnerMatch = body.match(/\*\*Learner:?\*\*\s*(.+)/i);
+              const weekMatch = body.match(/\*\*Week:?\*\*\s*(\d+)/i);
+              const ratingMatch = body.match(/\*\*Rating:?\*\*\s*(.+)/i);
+              const textMatch = body.match(/\*\*Feedback:?\*\*\s*([\s\S]*?)(?=\n---|$)/i);
+
+              const learner = learnerMatch ? learnerMatch[1].trim() : 'unknown';
+              const week = weekMatch ? weekMatch[1].trim() : '0';
+              const rating = ratingMatch ? ratingMatch[1].trim() : 'Pass';
+              const text = textMatch ? textMatch[1].trim() : body.substring(0, 500);
+
+              const artifactId = `week-${week}-feedback`;
+              if (!merged[artifactId]) merged[artifactId] = [];
+
+              // Deduplicate by issue number
+              const existingIssueNums = merged[artifactId].map(r => r.issue_number).filter(Boolean);
+              if (existingIssueNums.includes(issue.number)) continue;
+
+              merged[artifactId].push({
+                name: issue.user.login,
+                rating: rating,
+                text: `**Learner:** ${learner}\n**Week:** ${week}\n**Issue:** #${issue.number}\n\n${text}`,
+                timestamp: issue.created_at,
+                issue_number: issue.number,
+                issue_url: issue.html_url,
+                id: `gh-${issue.number}`,
+              });
+              newCount++;
+            }
+
+            fs.writeFileSync(reviewsPath, JSON.stringify(merged, null, 2));
+            console.log(`Processed ${issues.data.length} issue(s), added ${newCount} new review(s)`);
+
+      - name: Rebuild data.json with review feedback
+        run: |
+          python3 action/dashboard/build_data.py
+
+      - name: Commit updated review data and dashboard (if changed)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -55,7 +119,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: auto-sync dashboard data and review [skip ci]"
+            git commit -m "chore: sync dashboard data and review feedback [skip ci]"
             git push
           fi
 

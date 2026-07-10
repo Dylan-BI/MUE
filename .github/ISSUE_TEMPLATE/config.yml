@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📊 Open MUE Dashboard
+    url: https://dylan-bi.github.io/MUE/dashboard.html
+    about: View learner artifacts, progress, and scorecards before submitting feedback
+  - name: 📋 Environment Request
+    url: https://github.com/Dylan-BI/MUE/issues/new?template=reviewer-environment-request.md
+    about: Report a blocked or inadequate review environment
