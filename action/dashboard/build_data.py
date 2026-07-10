@@ -793,6 +793,10 @@ def scan_reports():
 
 def compute_summary(notes):
     if not notes:
+        # Detect earliest artifact even with no notes (evidence/reports may exist)
+        earliest_artifact = detect_earliest_learner_artifact()
+        # Build empty level progression for consistent dashboard state
+        empty_progression = detect_level_progression([])
         return {
             'total_days': 0,
             'unique_weeks': 0,
@@ -804,13 +808,15 @@ def compute_summary(notes):
             'codex_gate_status': {},
             'proof_tasks': {},
             'current_week': 0,
-            'curriculum_start_date': None,
+            'curriculum_start_date': earliest_artifact,  # still detect from evidence/reports
             'curriculum_current_day': 0,
             'calendar_days_elapsed': 0,
             'working_days_elapsed': 0,
             'calendar_status': 'no_data',
             'week_progress': [],
             'learner_level': 1,
+            'level_progression': empty_progression,
+            'earliest_artifact_date': earliest_artifact,
             'today': date.today().isoformat(),
         }
 

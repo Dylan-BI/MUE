@@ -1593,6 +1593,38 @@ function renderAll() {
   const ev = DATA.evidence || [];
   const rtc = (rd.notes||[]).length + (rd.evidence||[]).length + (rd.reports||[]).length;
 
+  // ── No-learner-data state ──
+  const hasLearnerData = notes.length > 0 || ev.length > 0 || (s.evidence_count || 0) > 0;
+  if (!hasLearnerData) {
+    const emptyHtml = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">' +
+      '<div style="font-size:64px;margin-bottom:16px">🪺</div>' +
+      '<h2 style="margin:0 0 8px;color:var(--text-primary)">Awaiting Learner Input</h2>' +
+      '<p style="color:var(--text-secondary);max-width:500px;margin:0 0 20px;line-height:1.5">' +
+      'No learner artifacts found yet. The dashboard will populate automatically once the learner submits their first ' +
+      'curriculum fulfillment artifact (note, evidence, or report) in the <code>action/</code> directory.</p>' +
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">' +
+      '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 16px;text-align:left;font-size:13px">' +
+      '<strong>📝 How it works:</strong><br>' +
+      '• Learner writes daily notes in <code>action/notes/</code><br>' +
+      '• Build script scans artifacts and generates <code>data.json</code><br>' +
+      '• Dashboard reflects real-time progress per level<br>' +
+      '• Levels 2–4 unlock sequentially after 28 days each</div>' +
+      '</div>' +
+      '<div style="margin-top:24px;font-size:12px;color:var(--text-muted)">' +
+      '🔄 Auto-refreshes every 30 minutes &middot; ' +
+      'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
+    document.getElementById('main').innerHTML = emptyHtml;
+    // Update sidebar to show empty state info
+    const sidebarInfo = document.getElementById('sidebarInfo');
+    if (sidebarInfo) sidebarInfo.innerHTML = '<strong>0</strong> / 28 working days (0%)<div class="prog-bar"><div class="prog-fill" style="width:0%;background:var(--accent)"></div></div>Classification: <strong>—</strong> &middot; Evidence: 0 files<br>Version: <span class="version-chip">' + ((DATA.version||{}).commit || '—') + '</span>';
+    // Still render level progression so the user can see the framework
+    const lvlProgEl = document.getElementById('sidebarLevelProgression');
+    if (lvlProgEl) lvlProgEl.innerHTML = renderLevelProgressionSidebar();
+    document.getElementById('sidebarMeta').textContent = 'Generated: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
+    document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-refresh active (30 min)';
+    return;
+  }
+
   // ── PAGE 1: OVERVIEW ──
   const learnerTotal = DATA.learner_count || 0;
   const infraTotal = DATA.infrastructure_count || 0;
