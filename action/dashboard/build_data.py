@@ -656,17 +656,34 @@ def compute_page_change_counts(changes_by_page):
 
 
 def get_source_criteria():
-    """Scan source/ folder and return list of reference criteria files."""
+    """Scan source/ folder and return list of reference criteria files with content."""
     files = []
     if not os.path.isdir(SOURCE_DIR):
         return files
     for f in sorted(os.listdir(SOURCE_DIR)):
         fpath = os.path.join(SOURCE_DIR, f)
         if os.path.isfile(fpath) and not f.startswith('.'):
+            file_size = os.path.getsize(fpath)
+            is_text = f.endswith(('.md', '.txt', '.py', '.json', '.html', '.css', '.js', '.yml', '.yaml', '.csv'))
+            preview = None
+            content = None
+            if is_text:
+                try:
+                    with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
+                        full = fh.read()
+                        preview = full[:500]
+                        if file_size <= 204800:
+                            content = full
+                except Exception:
+                    pass
             files.append({
                 'path': f,
-                'size': os.path.getsize(fpath),
+                'size': file_size,
                 'modified': datetime.fromtimestamp(os.path.getmtime(fpath)).isoformat(),
+                'is_markdown': f.endswith('.md'),
+                'is_text': is_text,
+                'preview': preview,
+                'content': content,
             })
     return files
 
@@ -1021,8 +1038,9 @@ def compute_summary(notes):
 
 def scan_all_artifacts():
     """Recursively scan the entire action/ directory and categorize every file.
-    Now embeds full content for text files < 50 KB so the dashboard preview
-    can show the complete artifact without a GitHub fetch."""
+    Embeds full content for text files < 200 KB so the dashboard preview
+    can show the complete artifact without a GitHub fetch. Larger files
+    get a 500-char preview with a fallback to GitHub raw URL."""
     categories = {
         'notes': [],
         'evidence': [],
@@ -1049,7 +1067,7 @@ def scan_all_artifacts():
 
             mtime = datetime.fromtimestamp(os.path.getmtime(fp)).isoformat()
             is_markdown = f.endswith('.md')
-            is_text = is_markdown or f.endswith(('.txt', '.py', '.ps1', '.json', '.html', '.css', '.js', '.yml', '.yaml', '.cfg', '.ini', '.csv'))
+            is_text = is_markdown or f.endswith(('.txt', '.py', '.ps1', '.json', '.html', '.css', '.js', '.yml', '.yaml', '.cfg', '.ini', '.csv', '.mdown', '.markdown'))
             preview = None
             content = None
             file_size = os.path.getsize(fp)
@@ -1058,7 +1076,7 @@ def scan_all_artifacts():
                     with open(fp, 'r', encoding='utf-8', errors='replace') as fh:
                         full = fh.read()
                         preview = full[:500]
-                        if file_size <= 51200:
+                        if file_size <= 204800:  # 200 KB limit for embedded content
                             content = full
                 except Exception:
                     pass
@@ -1111,12 +1129,17 @@ def scan_review_dir():
                 fp = os.path.join(root, f)
                 rel = os.path.relpath(fp, REVIEW_DIR)
                 file_size = os.path.getsize(fp)
-                is_text = f.endswith(('.md', '.txt', '.py', '.ps1', '.json', '.html', '.css', '.js'))
+                is_markdown = f.endswith('.md')
+                is_text = is_markdown or f.endswith(('.txt', '.py', '.ps1', '.json', '.html', '.css', '.js', '.yml', '.yaml', '.csv'))
                 preview = None
-                if is_text and file_size <= 51200:
+                content = None
+                if is_text:
                     try:
                         with open(fp, 'r', encoding='utf-8', errors='replace') as fh:
-                            preview = fh.read(2000)
+                            full = fh.read()
+                            preview = full[:500]
+                            if file_size <= 204800:
+                                content = full
                     except Exception:
                         pass
                 synced[sub].append({
@@ -1124,8 +1147,10 @@ def scan_review_dir():
                     'filename': f,
                     'size': file_size,
                     'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                    'is_markdown': is_markdown,
                     'is_text': is_text,
                     'preview': preview,
+                    'content': content,
                 })
     return synced
 

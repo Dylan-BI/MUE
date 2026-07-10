@@ -1624,7 +1624,7 @@ function renderCurriculumReviewContent() {
 
   // Source criteria quick reference
   html += '<div class="card"><h3>📖 Source Criteria Index</h3><p class="caption">All ' + srcCrit.length + ' training reference files in <code>source/</code> that spell out what learners need to learn and do.</p>' +
-    '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>Categories</th></tr></thead><tbody>' +
+    '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>Categories</th><th style="width:40px">View</th></tr></thead><tbody>' +
     srcCrit.map(f => {
       const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
       const fPath = f.path.replace(/\\/g,'/');
@@ -1633,7 +1633,8 @@ function renderCurriculumReviewContent() {
         const c = cats[cid];
         return c ? '<span style="display:inline-block;background:var(--bg-metric-blue);color:var(--text-code);font-size:10px;padding:1px 6px;border-radius:4px;margin:1px;white-space:nowrap">' + c.emoji + ' ' + c.label + '</span>' : '';
       }).join('');
-      return '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + (catTags || '<span class="caption">—</span>') + '</td></tr>';
+      const viewBtn = '<span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewSourceFile(\'' + escHtml(fPath).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>';
+      return '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + (catTags || '<span class="caption">—</span>') + '</td><td>' + viewBtn + '</td></tr>';
     }).join('') +
     '</tbody></table></div>';
 
@@ -2631,11 +2632,31 @@ function loadFullContent(path, targetId, isMd) {
   if (!target) return;
   target.innerHTML = '<div class="preview-loading">Fetching from GitHub…</div>';
   
-  // Normalize path — strip action/ prefix if needed
+  // Normalize path — determine repo directory prefix from file path
   let cleanPath = path.replace(/\\/g,'/');
-  if (cleanPath.startsWith('action/')) cleanPath = cleanPath.substring(7);
+  let repoDir = 'action/'; // default
+  const dirPrefixes = ['action/', 'source/', 'review/', 'templates/', 'notes/', 'evidence/', 'reports/', 'scripts/', 'dashboard/', 'archive/'];
+  const dirMap = {
+    'action/': 'action/',
+    'source/': 'source/',
+    'review/': 'review/',
+    'templates/': 'action/templates/',
+    'notes/': 'action/notes/',
+    'evidence/': 'action/evidence/',
+    'reports/': 'action/reports/',
+    'scripts/': 'action/scripts/',
+    'dashboard/': 'action/dashboard/',
+    'archive/': 'review/',
+  };
+  for (const prefix of dirPrefixes) {
+    if (cleanPath.startsWith(prefix)) {
+      repoDir = dirMap[prefix];
+      cleanPath = cleanPath.substring(prefix.length);
+      break;
+    }
+  }
   
-  const rawUrl = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/' + cleanPath;
+  const rawUrl = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/' + repoDir + cleanPath;
   
   fetch(rawUrl)
     .then(r => {
@@ -2650,8 +2671,41 @@ function loadFullContent(path, targetId, isMd) {
       }
     })
     .catch(err => {
-      target.innerHTML = '<div class="preview-error">⚠️ Could not load content: ' + escHtml(err.message) + '<br><span style="font-size:11px;color:var(--text-muted)">File may not be committed yet. Run <code>python action/dashboard/build_data.py</code> to embed content locally.</span></div>';
+      target.innerHTML = '<div class="preview-error">⚠️ Could not load content: ' + escHtml(err.message) + '<br><span style="font-size:11px;color:var(--text-muted)">File may not be committed yet or is outside the dashboard scope.</span></div>';
     });
+}
+
+/* ── Preview source/ curriculum documentation file ── */
+function previewSourceFile(path) {
+  const srcCrit = DATA.source_criteria || [];
+  const scMap = DATA.source_category_map || {};
+  const cats = DATA.categories || {};
+  const v = DATA.version || {};
+  
+  // Find the file in source_criteria
+  const found = srcCrit.find(f => f.path === path || f.path.replace(/\\/g,'/') === path);
+  
+  // Build category tags
+  const catIds = scMap[path] || scMap['source/' + path] || [];
+  const catTags = catIds.length ? catIds.map(cid => {
+    const c = cats[cid];
+    return c ? '<span style="display:inline-block;font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin:1px">' + c.emoji + ' ' + c.label + '</span>' : '';
+  }).join('') : '';
+  
+  const fullContent = found ? found.content : null;
+  const preview = found ? found.preview : null;
+  const isMd = found ? found.is_markdown : path.endsWith('.md');
+  
+  showArtifactPreview('src_' + path.replace(/[^a-zA-Z0-9]/g, '_'), 'source/' + path, preview, {
+    content: fullContent,
+    version: v.commit,
+    isMarkdown: isMd,
+    fileMeta: {
+      size: found ? found.size : 0,
+      modified: found ? found.modified : '',
+      catTags: catTags,
+    }
+  });
 }
 
 function closePreview() { 
@@ -2990,7 +3044,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     const catMap = DATA.source_category_map || {};
     const cats = DATA.categories || {};
     h += '<div class="card"><h3>📖 Source Training Criteria</h3><p class="caption">Reference files in <code>source/</code> that define the education criteria. Agent changes should align with these.</p>' +
-      '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th style="width:100px">Category</th></tr></thead><tbody>';
+      '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th style="width:100px">Category</th><th style="width:40px">View</th></tr></thead><tbody>';
     srcCrit.forEach(f => {
       const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
       const fPath = f.path.replace(/\\/g,'/');
@@ -2999,7 +3053,8 @@ function renderThirdPartyReview(reviewData, changedFiles) {
         const cat = cats[cid];
         return cat ? '<span style="display:inline-block;background:var(--bg-source-tag);color:var(--text-alert-info);font-size:10px;padding:1px 5px;border-radius:4px;margin:1px;white-space:nowrap">' + cat.emoji + ' ' + cat.label + '</span>' : '';
       }).join('') || '<span class="caption">—</span>';
-      h += '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + catTags + '</td></tr>';
+      const viewBtn = '<span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewSourceFile(\'' + escHtml(fPath).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>';
+      h += '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + catTags + '</td><td>' + viewBtn + '</td></tr>';
     });
     h += '</tbody></table></div>';
   }
