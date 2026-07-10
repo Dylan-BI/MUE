@@ -1351,16 +1351,11 @@ function setLevel(level) {
     const lvl = parseInt(btn.dataset.level);
     const lvlData = (DATA.levels || {})[lvl] || {};
     const lvlInfo = prog && prog.levels ? prog.levels[lvl] : null;
-    const isLocked = lvlInfo && !lvlInfo.is_unlocked;
-    const isActive = lvl === level && !isLocked;
+    const isActive = lvl === level;
     btn.classList.toggle('active', isActive);
     if (isActive) {
       btn.style.borderColor = lvlData.color || '#6c63ff';
       btn.style.background = lvlData.color || '#6c63ff';
-    } else if (isLocked) {
-      btn.style.borderColor = '#3a3a5a';
-      btn.style.background = 'transparent';
-      btn.style.opacity = '1';
     } else {
       btn.style.borderColor = '#3a3a5a';
       btn.style.background = 'transparent';
