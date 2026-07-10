@@ -6,79 +6,20 @@ Derived from source/4-Week Onboarding Map.md. Every day maps to a week,
 theme, category tags, focus topic, evidence artifact, and optional proof task.
 """
 
-# ── Level framework ────────────────────────────────────────────────────────
-LEVEL_DAYS = 28  # working days per curriculum level
-
-# ── Scorecard areas (matches build_data.py SCORE_AREAS) ─────────────────────
-SCORE_AREAS = [
-    'Prompt discipline',
-    'Repo or workspace analysis',
-    'Change isolation',
-    'Validation order',
-    'Deployment awareness',
-    'Reviewer handoff',
-    'Reusability',
-]
-
-# ── Codex gates (matches build_data.py CODEX_GATES) ─────────────────────────
-CODEX_GATES = [
-    'One end-to-end workflow completed',
-    'Business-logic ownership understood',
-    'Validation evidence produced without help',
-    'Proof tasks completed',
-    'One clean reviewable change slice',
-    'One reusable team asset created',
-]
-
-# ── Proof tasks (matches build_data.py PROOF_TASKS) ─────────────────────────
-PROOF_TASKS = {
-    'PT1': {'name': 'Repository Analysis Brief', 'due_day': 9, 'week': 2},
-    'PT2': {'name': 'Review Workflow Dry Run', 'due_day': 21, 'week': 4},
-    'PT3': {'name': 'Metric Lineage Walkthrough', 'due_day': 13, 'week': 3},
-    'PT4': {'name': 'QC Evidence Pack', 'due_day': 16, 'week': 3},
-    'PT5': {'name': 'Deployment Rehearsal', 'due_day': 18, 'week': 3},
-    'PT6': {'name': 'Reviewer Handoff Test', 'due_day': 21, 'week': 4},
-}
-
-# ── Classification progression milestones ────────────────────────────────────
-CLASSIFICATION_MILESTONES = [
-    (1, 'Foundational'),
-    (8, 'Developing'),
-    (18, 'Operational'),
-    (25, 'Ready For Codex Acceleration'),
-]
-
-# ── Primary track rotation (matches curriculum tags) ─────────────────────────
-TRACK_ROTATION = {
-    1: 'Pyramid operations',
-    2: 'Codex productivity',
-    3: 'BI judgment',
-    4: 'Pyramid operations',
-    5: 'Pyramid operations',
-    6: 'BI judgment',
-    7: 'Pyramid operations',
-    8: 'Pyramid operations',
-    9: 'Codex productivity',
-    10: 'Pyramid operations',
-    11: 'Pyramid operations',
-    12: 'Codex productivity',
-    13: 'BI judgment',
-    14: 'BI judgment',
-    15: 'Codex productivity',
-    16: 'Codex productivity',
-    17: 'Pyramid operations',
-    18: 'Pyramid operations',
-    19: 'Pyramid operations',
-    20: 'Pyramid operations',
-    21: 'Codex productivity',
-    22: 'BI judgment',
-    23: 'Pyramid operations',
-    24: 'Codex productivity',
-    25: 'BI judgment',
-    26: 'Codex productivity',
-    27: 'Pyramid operations',
-    28: 'Codex productivity',
-}
+from .constants import (
+    LEVEL_DAYS,
+    SCORE_AREAS,
+    CODEX_GATES,
+    PROOF_TASKS,
+    CLASSIFICATION_MILESTONES,
+    TRACK_ROTATION,
+    PAGE_MAP,
+    CATEGORIES,
+    SOURCE_CATEGORY_MAP,
+    LEVELS,
+    LEVEL_CATEGORIES,
+    classify_path_to_page,
+)
 
 # ── Full 28-day curriculum schedule ──────────────────────────────────────────
 CURRICULUM = {
