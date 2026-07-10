@@ -718,13 +718,13 @@
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
     <button class="refresh-btn" style="margin-top:4px;background:#198754" onclick="runSync()">📤 Run Sync</button>
     <div class="sidebar-settings">
-      <label>📅 Level 1 Start Date Override</label>
-      <input type="date" id="startDateInput" />
+      <label>� Search Learner History</label>
+      <input type="date" id="searchDateInput" />
       <div class="settings-actions">
-        <button class="settings-btn save" onclick="saveStartDate()">Save</button>
-        <button class="settings-btn reset" onclick="resetStartDate()">Reset</button>
+        <button class="settings-btn save" onclick="searchLearnerHistory()">Search</button>
+        <button class="settings-btn reset" onclick="clearSearchResults()">Clear</button>
       </div>
-      <div class="settings-status" id="startDateStatus"></div>
+      <div id="searchResults" style="margin-top:6px;font-size:11px;color:var(--text-sidebar-muted);line-height:1.5"></div>
     </div>
   </div>
 </div>
@@ -744,10 +744,7 @@
    Inspired by CoreUI Bootstrap Admin Template v5.5.0 color-modes.js
    ═══════════════════════════════════════════════════════════════════════════ */
 const THEME_KEY = 'mue_dashboard_theme';
-const START_DATE_KEY = 'mue_curriculum_start_date';
 function getStoredTheme() { try { return localStorage.getItem(THEME_KEY); } catch { return null; } }
-function getStoredStartDate() { try { return localStorage.getItem(START_DATE_KEY); } catch { return null; } }
-function setStoredStartDate(d) { try { if (d) localStorage.setItem(START_DATE_KEY, d); else localStorage.removeItem(START_DATE_KEY); } catch {} }
 
 function getPreferredTheme() {
   const stored = getStoredTheme();
@@ -806,78 +803,117 @@ function getLevelInfo(level) {
   return prog.levels[level] || null;
 }
 
-function applyStartDateOverride() {
-  if (!DATA || !DATA.summary) return;
-  const stored = getStoredStartDate();
-  const prog = getLevelProgression();
-  if (stored) {
-    DATA.summary.curriculum_start_date = stored;
-    DATA.summary.curriculum_start_source = 'learner_override';
-    // Also update level_progression for Level 1
-    if (prog && prog.levels && prog.levels[1]) {
-      prog.levels[1].start_date = stored;
-      prog.overall_start_date = stored;
-    }
-    // Recalculate calendar metrics based on override date
-    const start = new Date(stored + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    DATA.summary.calendar_days_elapsed = Math.floor((today - start) / 86400000);
-    let working = 0;
-    let cur = new Date(start);
-    while (cur <= today) {
-      if (cur.getDay() < 5) working++;
-      cur.setDate(cur.getDate() + 1);
-    }
-    DATA.summary.working_days_elapsed = working;
-    const cd = DATA.summary.curriculum_current_day || 0;
-    if (cd === 0) DATA.summary.calendar_status = 'not_started';
-    else if (cd >= working + 2) DATA.summary.calendar_status = 'ahead';
-    else if (cd >= working - 2) DATA.summary.calendar_status = 'on_track';
-    else DATA.summary.calendar_status = 'behind';
-    // Recalculate week_progress dates
-    const wp = DATA.summary.week_progress || [];
-    for (const wk of wp) {
-      const ws = new Date(start);
-      ws.setDate(ws.getDate() + (wk.week - 1) * 7);
-      const we = new Date(ws);
-      we.setDate(we.getDate() + 6);
-      wk.calendar_start = ws.toISOString().slice(0, 10);
-      wk.calendar_end = we.toISOString().slice(0, 10);
-    }
-  }
+/**
+ * Get the earliest and latest dates from learner artifacts (notes, evidence, reports).
+ * Returns { earliest: 'YYYY-MM-DD'|null, latest: 'YYYY-MM-DD'|null }.
+ */
+function getLearnerDateRange() {
+  let earliest = null, latest = null;
+  const allItems = [];
+  if (DATA.notes) DATA.notes.forEach(n => { if (n.date) allItems.push({ date: n.date, type: 'note', item: n }); });
+  if (DATA.evidence) DATA.evidence.forEach(e => { if (e.date) allItems.push({ date: e.date, type: 'evidence', item: e }); });
+  if (DATA.reports) DATA.reports.forEach(r => { if (r.date) allItems.push({ date: r.date, type: 'report', item: r }); });
+  if (allItems.length === 0) return { earliest: null, latest: null };
+  const sorted = allItems.sort((a, b) => a.date.localeCompare(b.date));
+  return { earliest: sorted[0].date, latest: sorted[sorted.length - 1].date };
 }
 
-function initStartDateUI() {
-  const input = document.getElementById('startDateInput');
-  const status = document.getElementById('startDateStatus');
-  if (!input || !DATA || !DATA.summary) return;
-  const stored = getStoredStartDate();
-  const source = DATA.summary.curriculum_start_source;
-  const prog = getLevelProgression();
-  const currentLevel = prog ? prog.current_level : 1;
+/**
+ * Search learner history for a specific date.
+ * Displays results inline in the sidebar.
+ */
+function searchLearnerHistory() {
+  const input = document.getElementById('searchDateInput');
+  const resultsEl = document.getElementById('searchResults');
+  if (!input || !resultsEl || !DATA) return;
   
-  input.value = stored || DATA.summary.curriculum_start_date || '';
-  
-  let statusMsg = '';
-  let statusColor = 'var(--text-sidebar-muted)';
-  
-  if (stored) {
-    statusMsg = '✅ Override active (saved locally)';
-    statusColor = 'var(--success-hue)';
-  } else if (source === 'learner_config') {
-    statusMsg = '📄 From learner_config.json';
-    statusColor = 'var(--info-hue)';
-  } else if (source === 'auto_detected_from_artifacts') {
-    statusMsg = '🔍 Auto-detected (Level ' + currentLevel + ' active)';
-    statusColor = 'var(--accent-hue)';
-  } else {
-    statusMsg = '🔍 Auto-detected from learner artifacts';
-    statusColor = 'var(--text-sidebar-muted)';
+  const queryDate = input.value;
+  if (!queryDate) {
+    resultsEl.innerHTML = '<span style="color:var(--text-muted)">Please select a date.</span>';
+    return;
   }
   
-  status.textContent = statusMsg;
-  status.style.color = statusColor;
+  const range = getLearnerDateRange();
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const queryDateObj = new Date(queryDate + 'T00:00:00');
+  
+  // Future date check
+  if (queryDateObj > today) {
+    resultsEl.innerHTML = '<span style="color:var(--text-muted)">📭 No results — future dates are blank.</span>';
+    return;
+  }
+  
+  // Before learner's earliest artifact
+  if (range.earliest && queryDate < range.earliest) {
+    resultsEl.innerHTML = '<span style="color:var(--text-muted)">📭 No learner activity before <strong>' + range.earliest + '</strong>.</span>';
+    return;
+  }
+  
+  // No data at all
+  if (!range.earliest) {
+    resultsEl.innerHTML = '<span style="color:var(--text-muted)">📭 No learner data loaded yet.</span>';
+    return;
+  }
+  
+  // Search for matching artifacts
+  const notes = (DATA.notes || []).filter(n => n.date === queryDate);
+  const evidence = (DATA.evidence || []).filter(e => e.date === queryDate);
+  const reports = (DATA.reports || []).filter(r => r.date === queryDate);
+  
+  const total = notes.length + evidence.length + reports.length;
+  
+  if (total === 0) {
+    resultsEl.innerHTML = '<span style="color:var(--text-muted)">📭 No artifacts found for <strong>' + queryDate + '</strong>.</span>';
+    return;
+  }
+  
+  // Build results HTML
+  let html = '<div style="border-top:1px solid var(--border-light);padding-top:6px">';
+  html += '<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">📅 <strong>' + queryDate + '</strong> — ' + total + ' artifact(s)</div>';
+  
+  if (notes.length > 0) {
+    html += '<div style="margin-bottom:4px"><span style="font-size:10px;font-weight:600">📝 Notes</span>';
+    notes.forEach(n => {
+      const day = n.day_number ? ' (Day ' + n.day_number + ')' : '';
+      const preview = n.preview ? n.preview.slice(0, 80) + (n.preview.length > 80 ? '…' : '') : '';
+      html += '<div style="font-size:10px;padding:2px 4px;background:var(--bg-muted);border-radius:4px;margin-top:2px">' +
+        '<strong>' + (n.title || 'Note') + '</strong>' + day + '<br>' +
+        '<span style="color:var(--text-muted)">' + preview + '</span></div>';
+    });
+    html += '</div>';
+  }
+  
+  if (evidence.length > 0) {
+    html += '<div style="margin-bottom:4px"><span style="font-size:10px;font-weight:600">📁 Evidence</span>';
+    evidence.forEach(e => {
+      const preview = e.preview ? e.preview.slice(0, 80) + (e.preview.length > 80 ? '…' : '') : '';
+      html += '<div style="font-size:10px;padding:2px 4px;background:var(--bg-muted);border-radius:4px;margin-top:2px">' +
+        '<strong>' + (e.filename || e.title || 'File') + '</strong><br>' +
+        '<span style="color:var(--text-muted)">' + preview + '</span></div>';
+    });
+    html += '</div>';
+  }
+  
+  if (reports.length > 0) {
+    html += '<div style="margin-bottom:4px"><span style="font-size:10px;font-weight:600">📊 Reports</span>';
+    reports.forEach(r => {
+      html += '<div style="font-size:10px;padding:2px 4px;background:var(--bg-muted);border-radius:4px;margin-top:2px">' +
+        '<strong>' + (r.title || r.filename || 'Report') + '</strong></div>';
+    });
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  resultsEl.innerHTML = html;
+}
+
+/** Clear search results */
+function clearSearchResults() {
+  const input = document.getElementById('searchDateInput');
+  const resultsEl = document.getElementById('searchResults');
+  if (input) input.value = '';
+  if (resultsEl) resultsEl.innerHTML = '';
 }
 
 function renderLevelProgressionSidebar() {
@@ -921,27 +957,6 @@ function renderLevelProgressionSidebar() {
   
   html += '</div>';
   return html;
-}
-
-function saveStartDate() {
-  const input = document.getElementById('startDateInput');
-  const status = document.getElementById('startDateStatus');
-  if (!input || !input.value) return;
-  setStoredStartDate(input.value);
-  status.textContent = '✅ Saved! Refreshing…';
-  status.style.color = 'var(--success-hue)';
-  applyStartDateOverride();
-  updateSidebar();
-  renderAll();
-  setTimeout(() => { status.textContent = '✅ Override active (saved locally)'; }, 1500);
-}
-
-function resetStartDate() {
-  const input = document.getElementById('startDateInput');
-  const status = document.getElementById('startDateStatus');
-  setStoredStartDate(null);
-  // Re-apply from original data.json value
-  location.reload();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1050,8 +1065,6 @@ async function loadData() {
   }
   LAST_GENERATED = DATA.generated;
   
-  applyStartDateOverride();
-  initStartDateUI();
   updateSidebar();
   renderAll();
   updateSidebarLevelButtons();
@@ -3456,17 +3469,19 @@ function renderReviewersGuide() {
     '</table></div>';
 
   // ══════ 9. START DATE ══════
-  html += '<div class="card"><h3>📅 Start Date Override</h3>' +
+  html += '<div class="card"><h3>� Search Learner History</h3>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
-    'The curriculum start date is normally <strong>auto-detected</strong> from the earliest learner artifact (note, evidence, or report). ' +
-    'You can override it by entering a date in the <strong>📅 Level 1 Start Date Override</strong> field in the sidebar settings.</p>' +
+    'The <strong>🔍 Search Learner History</strong> tool in the sidebar lets you look up what the learner produced on a specific date. ' +
+    'It scans all loaded notes, evidence, and reports for that date and displays summaries inline.</p>' +
     '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
-    '<li><strong>Save</strong> — applies your override and recalculates all calendar metrics</li>' +
-    '<li><strong>Reset</strong> — clears the override and reverts to auto-detection</li>' +
-    '<li>The current source is shown below the buttons (e.g. "✅ Override active" or "🔍 Auto-detected")</li>' +
+    '<li>Select a date and click <strong>Search</strong> — results appear below the search controls</li>' +
+    '<li><strong>Clear</strong> resets the input and results</li>' +
+    '<li>Searching before the learner\'s earliest artifact shows: <em>"No learner activity before [date]"</em></li>' +
+    '<li>Searching a future date returns blank: <em>"No results — future dates are blank"</em></li>' +
+    '<li>If artifacts exist, you\'ll see note previews, evidence filenames, and report titles</li>' +
     '</ul>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    '💡 <strong>Tip:</strong> Use the override when onboarding a learner who started before submitting their first artifact.</p></div>';
+    '💡 <strong>Tip:</strong> Use the search to quickly verify what the learner submitted on a particular day without navigating through the full dashboard.</p></div>';
 
   // ══════ 10. UNDERSTANDING LEVEL PROGRESSION ══════
   html += '<div class="card" style="border-left:4px solid var(--success)"><h3>📊 Understanding Level Progression Widget</h3>' +
