@@ -342,6 +342,14 @@
   .sidebar-footer .meta { margin-top: 2px; color: var(--sidebar-footer-meta); font-size: 10px; }
   .sidebar-footer .refresh-btn { margin-top: 6px; background: var(--accent); color: var(--text-on-accent); border: none; padding: 5px 12px; border-radius: 6px; font-size: 11px; cursor: pointer; }
   .sidebar-footer .refresh-btn:hover { background: var(--accent-hover); }
+  .sidebar-settings { margin: 8px 0; padding: 8px; background: var(--sidebar-hover-bg); border-radius: 6px; border: 1px solid var(--sidebar-level-btn-border); }
+  .sidebar-settings label { font-size: 11px; color: var(--sidebar-footer-text); display: block; margin-bottom: 3px; font-weight: 600; }
+  .sidebar-settings input[type="date"] { width: 100%; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--sidebar-level-btn-border); background: var(--sidebar-bg); color: var(--sidebar-text); font-size: 12px; }
+  .sidebar-settings .settings-actions { display: flex; gap: 4px; margin-top: 4px; }
+  .sidebar-settings .settings-btn { flex: 1; padding: 3px 6px; border-radius: 4px; border: none; font-size: 10px; cursor: pointer; font-weight: 600; }
+  .sidebar-settings .settings-btn.save { background: var(--accent); color: #fff; }
+  .sidebar-settings .settings-btn.reset { background: var(--danger-hue); color: #fff; }
+  .sidebar-settings .settings-status { font-size: 10px; color: var(--success-hue); margin-top: 3px; min-height: 14px; }
   .main { flex: 1; padding: 28px 36px; overflow-y: auto; max-width: 1260px; }
   .page { display: none; }
   .page.active { display: block; }
@@ -705,6 +713,15 @@
     </div>
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
     <button class="refresh-btn" style="margin-top:4px;background:#198754" onclick="runSync()">📤 Run Sync</button>
+    <div class="sidebar-settings">
+      <label>📅 Course Start Date</label>
+      <input type="date" id="startDateInput" />
+      <div class="settings-actions">
+        <button class="settings-btn save" onclick="saveStartDate()">Save</button>
+        <button class="settings-btn reset" onclick="resetStartDate()">Reset</button>
+      </div>
+      <div class="settings-status" id="startDateStatus"></div>
+    </div>
   </div>
 </div>
 
@@ -723,8 +740,11 @@
    Inspired by CoreUI Bootstrap Admin Template v5.5.0 color-modes.js
    ═══════════════════════════════════════════════════════════════════════════ */
 const THEME_KEY = 'mue_dashboard_theme';
+const START_DATE_KEY = 'mue_curriculum_start_date';
 
 function getStoredTheme() { try { return localStorage.getItem(THEME_KEY); } catch { return null; } }
+function getStoredStartDate() { try { return localStorage.getItem(START_DATE_KEY); } catch { return null; } }
+function setStoredStartDate(d) { try { if (d) localStorage.setItem(START_DATE_KEY, d); else localStorage.removeItem(START_DATE_KEY); } catch {} }
 
 function getPreferredTheme() {
   const stored = getStoredTheme();
@@ -765,6 +785,87 @@ function toggleTheme() {
     }
   });
 })();
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CURRICULUM START DATE — Dynamic override via localStorage
+   The learner can set a custom start date for the 28-day course.
+   This overrides the auto-detected date from notes in data.json.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function applyStartDateOverride() {
+  if (!DATA || !DATA.summary) return;
+  const stored = getStoredStartDate();
+  if (stored) {
+    DATA.summary.curriculum_start_date = stored;
+    DATA.summary.curriculum_start_source = 'learner_override';
+    // Recalculate calendar metrics based on override date
+    const start = new Date(stored + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    DATA.summary.calendar_days_elapsed = Math.floor((today - start) / 86400000);
+    let working = 0;
+    let cur = new Date(start);
+    while (cur <= today) {
+      if (cur.getDay() < 5) working++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    DATA.summary.working_days_elapsed = working;
+    const cd = DATA.summary.curriculum_current_day || 0;
+    if (cd === 0) DATA.summary.calendar_status = 'not_started';
+    else if (cd >= working + 2) DATA.summary.calendar_status = 'ahead';
+    else if (cd >= working - 2) DATA.summary.calendar_status = 'on_track';
+    else DATA.summary.calendar_status = 'behind';
+    // Recalculate week_progress dates
+    const wp = DATA.summary.week_progress || [];
+    for (const wk of wp) {
+      const ws = new Date(start);
+      ws.setDate(ws.getDate() + (wk.week - 1) * 7);
+      const we = new Date(ws);
+      we.setDate(we.getDate() + 6);
+      wk.calendar_start = ws.toISOString().slice(0, 10);
+      wk.calendar_end = we.toISOString().slice(0, 10);
+    }
+  }
+}
+
+function initStartDateUI() {
+  const input = document.getElementById('startDateInput');
+  const status = document.getElementById('startDateStatus');
+  if (!input || !DATA || !DATA.summary) return;
+  const stored = getStoredStartDate();
+  const source = DATA.summary.curriculum_start_source;
+  input.value = stored || DATA.summary.curriculum_start_date || '';
+  if (stored) {
+    status.textContent = '✅ Override active (saved locally)';
+    status.style.color = 'var(--success-hue)';
+  } else if (source === 'learner_config') {
+    status.textContent = '📄 From learner_config.json';
+    status.style.color = 'var(--info-hue)';
+  } else {
+    status.textContent = '🔍 Auto-detected from Day 1 note';
+    status.style.color = 'var(--text-sidebar-muted)';
+  }
+}
+
+function saveStartDate() {
+  const input = document.getElementById('startDateInput');
+  const status = document.getElementById('startDateStatus');
+  if (!input || !input.value) return;
+  setStoredStartDate(input.value);
+  status.textContent = '✅ Saved! Refreshing…';
+  status.style.color = 'var(--success-hue)';
+  applyStartDateOverride();
+  updateSidebar();
+  renderAll();
+  setTimeout(() => { status.textContent = '✅ Override active (saved locally)'; }, 1500);
+}
+
+function resetStartDate() {
+  const input = document.getElementById('startDateInput');
+  const status = document.getElementById('startDateStatus');
+  setStoredStartDate(null);
+  // Re-apply from original data.json value
+  location.reload();
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STATE
@@ -871,6 +972,8 @@ async function loadData() {
     }
   }
   LAST_GENERATED = DATA.generated;
+  applyStartDateOverride();
+  initStartDateUI();
   updateSidebar();
   renderAll();
   startAutoRefresh();

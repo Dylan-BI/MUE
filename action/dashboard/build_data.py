@@ -41,6 +41,9 @@ REPO_ROOT = os.path.abspath(os.path.join(ACTION_DIR, '..'))
 REVIEW_DIR = os.path.join(REPO_ROOT, 'review')
 SOURCE_DIR = os.path.join(REPO_ROOT, 'source')
 
+# Learner config — dynamic start date override
+LEARNER_CONFIG_PATH = os.path.join(ACTION_DIR, 'learner_config.json')
+
 # ── Page mapping: file path patterns → dashboard page id ──
 PAGE_MAP = [
     ('daily',       ['action/notes/', 'notes/']),
@@ -735,15 +738,35 @@ def compute_summary(notes):
 
     # ── Curriculum start date & calendar-aware progress ──
     today = date.today()
+
+    # 1) Check learner_config.json for manual override
     curriculum_start_date = None
-    for n in notes:
-        if n.get('day_number') == 1 and n.get('date'):
-            curriculum_start_date = n['date']
-            break
+    _start_source = 'auto_detected'
+    if os.path.exists(LEARNER_CONFIG_PATH):
+        try:
+            with open(LEARNER_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                lcfg = json.load(f)
+            cfg_date = lcfg.get('curriculum_start_date')
+            if cfg_date:
+                datetime.strptime(cfg_date, '%Y-%m-%d')  # validate format
+                curriculum_start_date = cfg_date
+                _start_source = 'learner_config'
+                print(f'  📅 Using learner-configured start date: {curriculum_start_date}')
+        except (json.JSONDecodeError, ValueError, OSError) as e:
+            print(f'  ⚠️  Warning: could not read learner_config.json: {e}')
+
+    # 2) Fall back to auto-detect from notes
+    if not curriculum_start_date:
+        for n in notes:
+            if n.get('day_number') == 1 and n.get('date'):
+                curriculum_start_date = n['date']
+                print(f'  📅 Auto-detected start date from Day 1 note: {curriculum_start_date}')
+                break
     if not curriculum_start_date:
         for n in notes:
             if n.get('date'):
                 curriculum_start_date = n['date']
+                print(f'  📅 Fallback start date from first note: {curriculum_start_date}')
                 break
 
     curriculum_current_day = max((n.get('day_number') or 0) for n in notes)
@@ -824,6 +847,7 @@ def compute_summary(notes):
         'current_week': max(days_per_week.keys()) if days_per_week else 0,
         # ── New curriculum-anchored fields ──
         'curriculum_start_date': curriculum_start_date,
+        'curriculum_start_source': _start_source,
         'curriculum_current_day': curriculum_current_day,
         'calendar_days_elapsed': calendar_days_elapsed,
         'working_days_elapsed': working_days_elapsed,
