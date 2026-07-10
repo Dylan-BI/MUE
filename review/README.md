@@ -28,11 +28,39 @@ The sync script **does not** copy:
 
 ## Reviewer Workflow
 
+### Step 0: Environment Check (Required)
+
+**Before starting any review, confirm your environment is adequate.**
+
+1. **Open** `review/templates/reviewer-environment-check.md`
+2. **Verify** all required tools, access, and format support are available
+3. **Confirm** environment status:
+   - ✅ **Adequate** → Proceed to Step 1
+   - ❌ **Not Adequate** → Submit environment request via GitHub Issues using the `reviewer-environment-request.md` template
+
+**Environment Requirements:**
+- VS Code (or Markdown-compatible editor)
+- Git and GitHub access
+- Python 3.x
+- Markdown/JSON/text file support
+- Repository read access
+
+**For curriculum documentation:** Ensure you can view all formats used in `source/` (Markdown, text files, etc.)
+
+---
+
+### Step 1: Sync Learner Output
+
 1. **Run the sync** to get the latest learner output
 2. **Review the readiness report** at `reports/readiness-YYYY-WW.md` for scores and progression
 3. **Review evidence artifacts** in `evidence/` for proof task completeness
 4. **Review daily notes** in `notes/` for depth, retention, and independence
 5. **Complete the reviewer feedback** using the template below
+
+**If environment issues arise during review:**
+- Stop review and submit environment request
+- Do not proceed until environment is confirmed adequate
+- Document any workarounds used
 
 ## Reviewer Feedback Template
 

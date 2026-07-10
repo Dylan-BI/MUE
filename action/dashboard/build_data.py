@@ -1283,6 +1283,12 @@ def main():
     print('Getting HEAD version info...')
     head_info = get_git_head_info()
 
+    print('Checking environment status...')
+    env_status = get_environment_status()
+    print(f'  Environment status: {env_status["overall_status"]}')
+    if env_status['missing_items']:
+        print(f'  Missing items: {", ".join(env_status["missing_items"])}')
+
     # Strip filepath from notes for clean JSON
     notes_clean = []
     for n in notes:
@@ -1317,6 +1323,7 @@ def main():
         'source_category_map': SOURCE_CATEGORY_MAP,
         'levels': LEVELS,
         'level_categories': LEVEL_CATEGORIES,
+        'environment_status': env_status,
     }
 
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
@@ -1324,6 +1331,157 @@ def main():
 
     print(f'\nDone — wrote {OUTPUT_PATH}')
     return data
+
+
+# ── Environment Status ──────────────────────────────────────────────────────
+
+def get_environment_status():
+    """
+    Check and report environment status for reviewer readiness.
+    
+    Returns a dict with environment requirements and their status.
+    This helps reviewers confirm they have adequate tools and access.
+    """
+    import shutil
+    
+    env_status = {
+        'checked_at': datetime.now().isoformat(),
+        'overall_status': 'unknown',
+        'requirements': {
+            'vscode': {
+                'name': 'VS Code or Markdown editor',
+                'status': 'unknown',
+                'required_for': 'Viewing .md files, daily notes, evidence, reports',
+            },
+            'git': {
+                'name': 'Git',
+                'status': 'unknown',
+                'required_for': 'Version control operations',
+            },
+            'python': {
+                'name': 'Python 3.x',
+                'status': 'unknown',
+                'required_for': 'Running sync and build scripts',
+            },
+            'github_access': {
+                'name': 'GitHub repository access',
+                'status': 'unknown',
+                'required_for': 'Review comments, issue tracking',
+            },
+            'markdown_support': {
+                'name': 'Markdown file support',
+                'status': 'unknown',
+                'required_for': 'Viewing .md files (daily notes, evidence, reports, templates)',
+            },
+            'json_support': {
+                'name': 'JSON file support',
+                'status': 'unknown',
+                'required_for': 'Viewing data files, configuration, reviews',
+            },
+            'text_support': {
+                'name': 'Text file support',
+                'status': 'unknown',
+                'required_for': 'Viewing .txt files (reference documents, templates)',
+            },
+        },
+        'curriculum_formats': {
+            'markdown': {
+                'extensions': ['.md'],
+                'status': 'unknown',
+                'description': 'Training materials, daily notes, evidence, reports',
+            },
+            'text': {
+                'extensions': ['.txt'],
+                'status': 'unknown',
+                'description': 'Reference documents, execution guides, templates',
+            },
+            'json': {
+                'extensions': ['.json'],
+                'status': 'unknown',
+                'description': 'Dashboard data, configuration files',
+            },
+            'python': {
+                'extensions': ['.py'],
+                'status': 'unknown',
+                'description': 'Utility scripts, sync tools',
+            },
+        },
+        'missing_items': [],
+        'recommendations': [],
+    }
+    
+    # Check for common tools
+    tools_to_check = {
+        'git': 'git',
+        'python': 'python3',
+    }
+    
+    for tool_key, tool_name in tools_to_check.items():
+        if shutil.which(tool_name):
+            env_status['requirements'][tool_key]['status'] = 'available'
+        else:
+            env_status['requirements'][tool_key]['status'] = 'missing'
+            env_status['missing_items'].append(tool_key)
+    
+    # VS Code detection (check common paths or environment)
+    vscode_indicators = [
+        os.path.exists(os.path.expanduser('~/.vscode')),
+        os.environ.get('VSCODE_INJECT_CLI') is not None,
+        'vscode' in os.environ.get('TERM_PROGRAM', '').lower(),
+    ]
+    if any(vscode_indicators):
+        env_status['requirements']['vscode']['status'] = 'available'
+    else:
+        env_status['requirements']['vscode']['status'] = 'likely_available'
+    
+    # GitHub access (check for gh CLI or git remote)
+    gh_available = shutil.which('gh')
+    git_remote_exists = False
+    try:
+        result = subprocess.run(
+            ['git', 'remote', '-v'],
+            capture_output=True, text=True, cwd=REPO_ROOT, timeout=5
+        )
+        if result.returncode == 0 and 'github.com' in result.stdout:
+            git_remote_exists = True
+    except Exception:
+        pass
+    
+    if gh_available or git_remote_exists:
+        env_status['requirements']['github_access']['status'] = 'available'
+    else:
+        env_status['requirements']['github_access']['status'] = 'unknown'
+    
+    # File format support (always available in modern editors)
+    for format_key in ['markdown_support', 'json_support', 'text_support']:
+        env_status['requirements'][format_key]['status'] = 'available'
+    
+    # Curriculum format status
+    for format_key in env_status['curriculum_formats']:
+        env_status['curriculum_formats'][format_key]['status'] = 'supported'
+    
+    # Determine overall status
+    missing = [k for k, v in env_status['requirements'].items() if v['status'] == 'missing']
+    env_status['overall_status'] = 'adequate' if not missing else 'inadequate'
+    
+    # Generate recommendations
+    if missing:
+        env_status['recommendations'].append(
+            f"Missing required tools: {', '.join(missing)}. "
+            "Install these before proceeding with review."
+        )
+    
+    env_status['recommendations'].append(
+        "Verify you can view all curriculum documentation formats "
+        "(Markdown, text, JSON) in your editor."
+    )
+    
+    env_status['recommendations'].append(
+        "If environment is inadequate, submit a GitHub issue using the "
+        "reviewer-environment-request.md template."
+    )
+    
+    return env_status
 
 
 if __name__ == '__main__':
