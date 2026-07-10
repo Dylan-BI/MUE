@@ -1896,7 +1896,7 @@ function renderAll() {
   // ── PAGE 2: DAILY PROGRESS + review + agent changes + version tracking ──
   const dailyArts = pa.daily || [];
   const archivedNoteCount = notes.filter(n => n.archived).length;
-  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Day-by-day curriculum progress — each day\'s reflection, evidence, scorecard, and note artifacts in action/notes/.</p>';
+  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips (Pass/Partial/Fail), primary track tags, required evidence artifacts, and note file previews from action/notes/.</p>';
   dh += renderPageChanges('daily', 'Daily Progress');
   // ≡≡≡ Daily Progress Widget — learner input vs requirement ≡≡≡
   const daysWithNotes = notes.filter(n => n.what_learned && n.what_learned.trim()).length;
@@ -1948,7 +1948,7 @@ function renderAll() {
 
   // ── PAGE 3: SCORECARD + review per area + version tracking ──
   const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
-  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Competency scores across 7 learning areas — Pass/Partial/Fail trends per skill domain with improvement tracking.</p>';
+  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Partial/Fail entries showing whether the learner is Improving, Steady, or Needs Attention per area, with Fail warnings.</p>';
   sh2 += renderPageChanges('scorecard', 'Scorecard');
   // ≡≡≡ Scorecard Progress Widget — Pass rate per area ≡≡≡
   const scorePassAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Pass'; });
@@ -1982,7 +1982,7 @@ function renderAll() {
 
   // ── PAGE 4: PROOF TASKS + review per task + version tracking ──
   const pt = s.proof_tasks||{}, ptK=Object.keys(pt);
-  let pth = '<h2>✅ Proof Task Tracker</h2><p class="subtitle">6 proof tasks demonstrating hands-on competency — completion status, day evidence found, and review coverage.</p>';
+  let pth = '<h2>✅ Proof Task Tracker</h2><p class="subtitle">Checklist of 6 required proof tasks — ✅/⬜ completion checkboxes, which days each was found on, per-task review sections, and an overall completion bar.</p>';
   pth += renderPageChanges('proof-tasks', 'Proof Tasks');
   // ≡≡≡ Proof Tasks Progress Widget — target list ≡≡≡
   const ptItems = ptK.map(id => ({ id: id, label: id + ': ' + (pt[id].description || '') }));
@@ -2007,7 +2007,7 @@ function renderAll() {
 
   // ── PAGE 5: EVIDENCE + review per file + agent changes + version tracking ──
   const evArts = pa.evidence || [];
-  let ehtml = '<h2>📁 Evidence Gallery</h2><p class="subtitle">Evidence artifacts produced during training — file listing with preview, review, and <span class="changed-badge">✏️ Agent-changed</span> tracking.</p>';
+  let ehtml = '<h2>📁 Evidence Gallery</h2><p class="subtitle">Evidence files from action/evidence/ grouped by ISO week — each entry shows file name, size, modification date, 👁️ preview button, ✏️ Agent-changed badge, and a per-file 💬 Review section.</p>';
   ehtml += renderPageChanges('evidence', 'Evidence');
   // ≡≡≡ Evidence Progress Widget — files produced vs days expected ≡≡≡
   const evExpected = Math.max(ev.length, Math.ceil((s.total_days||0) / 2));
@@ -2042,7 +2042,7 @@ function renderAll() {
 
   // ── PAGE 6: CLASSIFICATION + review + version tracking ──
   const cs = s.classification_sequence||[];
-  let chtml = '<h2>📈 Readiness Classification Trend</h2><p class="subtitle">Readiness level evolution — Foundational → Development → Operational → Mastery with day-by-day trend chart.</p>';
+  let chtml = '<h2>📈 Readiness Classification Trend</h2><p class="subtitle">Line chart and colored bars showing the learner\'s classification level (1-Foundational through 4-Mastery) on each training day, current vs target-minimum comparison, and curriculum-level context.</p>';
   chtml += renderPageChanges('classification', 'Classification');
   // ≡≡≡ Classification Progress Widget — current standing vs target ≡≡≡
   const latestCls = s.latest_classification || '—';
@@ -2078,7 +2078,7 @@ function renderAll() {
   // ── PAGE 7: CODEX GATE + review + version tracking ──
   const gs = s.codex_gate_status||{}, gK = Object.keys(gs);
   const gl={'one_end_to_end_workflow_completed':'End-to-end workflow completed','business_logic_ownership_understood':'Business-logic ownership understood','validation_evidence_produced_without_help':'Validation evidence without help','proof_tasks_completed':'All 6 proof tasks completed','one_clean_reviewable_change_slice':'Clean change slice delivered','one_reusable_team_asset_created':'Reusable asset created','manual_vs_codex_comparison_completed':'Manual-vs-Codex comparison completed','all_6_codex_exercises_passed':'All 6 Codex exercises passed','can_explain_bounded_codex_rules':'Bounded Codex rules (bonus)'};
-  let ghtml = '<h2>🚪 Codex Gate Status</h2><p class="subtitle">Final Codex readiness gates — checkpoints that must pass before Codex acceleration, checked on Day 28.</p>';
+  let ghtml = '<h2>🚪 Codex Gate Status</h2><p class="subtitle">Pass/Fail checklist of Codex readiness gates — end-to-end workflow, business-logic ownership, validation evidence, proof tasks, clean slice, reusable asset, and bonus rules — with an overall PASSED / NOT YET verdict.</p>';
   ghtml += renderPageChanges('codex-gate', 'Codex Gate');
   // ≡≡≡ Codex Gate Progress Widget ≡≡≡
   const gsPassed = gK.filter(k => gs[k] === 'Yes');
@@ -2140,7 +2140,7 @@ function renderAll() {
   const artCats = Object.keys(arts);
   const artTotal = Object.values(arts).reduce((a, arr) => a + arr.length, 0);
   const artReviewed = Object.keys(getAllReviews()).filter(k => k.startsWith('art_') || k.startsWith('pa_')).length;
-  addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Complete file listing of all artifacts in <code>action/</code> — categorized by type with review coverage, <span class="changed-badge">✏️ Agent</span> change, and <span class="synced-badge">✅ Sync</span> status.</p>' +
+  addPage('artifacts', '<h2>📂 All Artifacts</h2><p class="subtitle">Searchable, filterable file listing of every artifact in <code>action/</code> — grouped by category (notes/evidence/reports/templates/scripts/dashboard) with 👁️ preview, ✏️ Agent change badge, ✅ sync status, and per-file 💬 Review.</p>' +
     '<div class="card"><h3>📊 Artifacts Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">review coverage & targets</span></h3>' +
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
     artCats.slice(0, 5).map(cat => {
@@ -2797,8 +2797,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   const infraTotal = DATA.infrastructure_count || 0;
 
   let h = '<h2>🔍 Third Party Review</h2>' +
-    '<p class="subtitle">Central review hub for third-party assessors — learner artifact changes, sync integration, per-page change monitoring, and review submission. ' +
-    'All comments sent to <a href="mailto:' + REVIEW_EMAIL + '">' + REVIEW_EMAIL + '</a>.</p>' +
+    '<p class="subtitle">Sync and review control center — Export All Reviews, Save to review/reviews.json, Sync action/ → review/ buttons; per-page change tables with learner vs infrastructure breakdown; synced file listing from review/; and email submission to <a href="mailto:' + REVIEW_EMAIL + '">' + REVIEW_EMAIL + '</a>.</p>' +
     '<div class="metric-row">' +
     '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum artifacts</div></div>' +
     '<div class="metric"><div class="value">' + rtc + '</div><div class="label">✅ Synced to review/</div></div>' +
