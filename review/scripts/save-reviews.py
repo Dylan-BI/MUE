@@ -25,9 +25,11 @@ Note:
 import json
 import os
 import sys
+from datetime import datetime
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REVIEWS_PATH = os.path.join(REPO_ROOT, 'review', 'reviews.json')
+REVIEWS_ARCHIVE_DIR = os.path.join(REPO_ROOT, 'review', 'archive', 'reviews')
 
 # Schema version for forward compatibility
 SCHEMA_VERSION = 1
@@ -89,7 +91,22 @@ def merge_reviews(existing, incoming):
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == '--check':
+    # Parse flags
+    do_archive = False
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    flags = [a for a in sys.argv[1:] if a.startswith('--')]
+
+    for flag in flags:
+        if flag == '--archive':
+            do_archive = True
+        elif flag == '--check':
+            pass  # handled below
+        else:
+            print(f'❌ Unknown flag: {flag}', file=sys.stderr)
+            print(f'   Usage: python {__file__} [--archive] [<file>]', file=sys.stderr)
+            sys.exit(1)
+
+    if '--check' in flags:
         # Verify mode: check if reviews.json is valid
         if not os.path.exists(REVIEWS_PATH):
             print(f'❌ {REVIEWS_PATH} not found. No reviews have been saved yet.')
@@ -111,9 +128,8 @@ def main():
 
     # Read incoming data
     incoming = None
-    if len(sys.argv) > 1:
-        # File path provided
-        src_path = sys.argv[1]
+    src_path = args[0] if args else None
+    if src_path:
         if not os.path.isfile(src_path):
             print(f'❌ File not found: {src_path}', file=sys.stderr)
             sys.exit(1)
@@ -148,6 +164,17 @@ def main():
     new_count = sum(len(v) for v in incoming.values())
     existing_count = sum(len(v) for v in existing.values())
     merged_count = sum(len(v) for v in merged.values())
+
+    # Archive previous reviews if --archive flag set
+    if do_archive and os.path.exists(REVIEWS_PATH):
+        os.makedirs(REVIEWS_ARCHIVE_DIR, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        archive_path = os.path.join(REVIEWS_ARCHIVE_DIR, f'{timestamp}.json')
+        with open(REVIEWS_PATH, 'r', encoding='utf-8') as f:
+            previous = json.load(f)
+        with open(archive_path, 'w', encoding='utf-8') as f:
+            json.dump(previous, f, indent=2, ensure_ascii=False)
+        print(f'📦 Archived previous reviews to {archive_path}')
 
     # Write
     os.makedirs(os.path.dirname(REVIEWS_PATH), exist_ok=True)

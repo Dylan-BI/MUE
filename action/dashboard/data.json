@@ -10,6 +10,7 @@
       "filename": "2026-06-15.md",
       "date": "2026-06-15",
       "day_number": 1,
+      "days_since_start": 0,
       "classification": "Foundational",
       "primary_track": "Pyramid operations",
       "required_artifact": "pyramid_overview_screenshot.png",
@@ -41,6 +42,7 @@
       "filename": "2026-06-16.md",
       "date": "2026-06-16",
       "day_number": 2,
+      "days_since_start": 1,
       "classification": "Foundational",
       "primary_track": "Codex productivity",
       "required_artifact": "codex_initial_setup.png",
@@ -86,8 +88,71 @@
   "synced_reviews": {},
   "summary": {
     "total_days": 2,
+    "unique_weeks": 1,
     "latest_classification": "Foundational",
-    "evidence_count": 0
+    "classification_sequence": [
+      {"day": 1, "date": "2026-06-15", "classification": "Foundational"},
+      {"day": 2, "date": "2026-06-16", "classification": "Foundational"}
+    ],
+    "days_per_week": {"1": 2},
+    "evidence_count": 0,
+    "scorecard_trend": {
+      "prompt_discipline": [
+        {"day": 1, "date": "2026-06-15", "score": "Partial"},
+        {"day": 2, "date": "2026-06-16", "score": "Partial"}
+      ],
+      "repo_or_workspace_analysis": [
+        {"day": 1, "date": "2026-06-15", "score": "Partial"},
+        {"day": 2, "date": "2026-06-16", "score": "Fail"}
+      ],
+      "change_isolation": [
+        {"day": 1, "date": "2026-06-15", "score": "Fail"},
+        {"day": 2, "date": "2026-06-16", "score": "Fail"}
+      ],
+      "validation_order": [
+        {"day": 1, "date": "2026-06-15", "score": "Fail"},
+        {"day": 2, "date": "2026-06-16", "score": "Fail"}
+      ],
+      "deployment_awareness": [
+        {"day": 1, "date": "2026-06-15", "score": "Fail"},
+        {"day": 2, "date": "2026-06-16", "score": "Fail"}
+      ],
+      "reviewer_handoff": [
+        {"day": 1, "date": "2026-06-15", "score": "Fail"},
+        {"day": 2, "date": "2026-06-16", "score": "Fail"}
+      ],
+      "reusability": [
+        {"day": 1, "date": "2026-06-15", "score": "Fail"},
+        {"day": 2, "date": "2026-06-16", "score": "Fail"}
+      ]
+    },
+    "codex_gate_status": {
+      "one_end_to_end_workflow_completed": "No",
+      "business_logic_ownership_understood": "No",
+      "validation_evidence_produced_without_help": "No",
+      "proof_tasks_completed": "No",
+      "one_clean_reviewable_change_slice": "No",
+      "one_reusable_team_asset_created": "No"
+    },
+    "completed_tracks": {
+      "Pyramid operations": 1,
+      "Codex productivity": 1
+    },
+    "proof_tasks": {},
+    "current_week": 1,
+    "curriculum_start_date": "2026-06-15",
+    "curriculum_current_day": 2,
+    "calendar_days_elapsed": 24,
+    "working_days_elapsed": 19,
+    "calendar_status": "behind",
+    "week_progress": [
+      {"week": 1, "days_completed": 2, "days_in_week": 7, "pct": 28.6, "calendar_start": "2026-06-15", "calendar_end": "2026-06-21"},
+      {"week": 2, "days_completed": 0, "days_in_week": 7, "pct": 0.0, "calendar_start": "2026-06-22", "calendar_end": "2026-06-28"},
+      {"week": 3, "days_completed": 0, "days_in_week": 7, "pct": 0.0, "calendar_start": "2026-06-29", "calendar_end": "2026-07-05"},
+      {"week": 4, "days_completed": 0, "days_in_week": 7, "pct": 0.0, "calendar_start": "2026-07-06", "calendar_end": "2026-07-12"}
+    ],
+    "learner_level": 1,
+    "today": "2026-07-09"
   },
   "categories": {
     "ai-copilot": {

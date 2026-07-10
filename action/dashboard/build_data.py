@@ -22,7 +22,7 @@ import os
 import re
 import subprocess
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 ACTION_DIR = os.path.abspath(os.path.join(DASHBOARD_DIR, '..'))
@@ -30,6 +30,11 @@ NOTES_DIR = os.path.join(ACTION_DIR, 'notes')
 EVIDENCE_DIR = os.path.join(ACTION_DIR, 'evidence')
 REPORTS_DIR = os.path.join(ACTION_DIR, 'reports')
 OUTPUT_PATH = os.path.join(DASHBOARD_DIR, 'data.json')
+
+# Archive directories for completed learner work
+NOTES_ARCHIVE_DIR = os.path.join(ACTION_DIR, 'archive', 'notes')
+EVIDENCE_ARCHIVE_DIR = os.path.join(ACTION_DIR, 'archive', 'evidence')
+REPORTS_ARCHIVE_DIR = os.path.join(ACTION_DIR, 'archive', 'reports')
 
 # Parent repo root (for review/ dir and git root)
 REPO_ROOT = os.path.abspath(os.path.join(ACTION_DIR, '..'))
@@ -659,6 +664,14 @@ def compute_summary(notes):
             'codex_gate_status': {},
             'proof_tasks': {},
             'current_week': 0,
+            'curriculum_start_date': None,
+            'curriculum_current_day': 0,
+            'calendar_days_elapsed': 0,
+            'working_days_elapsed': 0,
+            'calendar_status': 'no_data',
+            'week_progress': [],
+            'learner_level': 1,
+            'today': date.today().isoformat(),
         }
 
     cls_seq = []
@@ -720,6 +733,83 @@ def compute_summary(notes):
                 if n['day_number']:
                     proof_tasks[pt_id]['days'].append(n['day_number'])
 
+    # ── Curriculum start date & calendar-aware progress ──
+    today = date.today()
+    curriculum_start_date = None
+    for n in notes:
+        if n.get('day_number') == 1 and n.get('date'):
+            curriculum_start_date = n['date']
+            break
+    if not curriculum_start_date:
+        for n in notes:
+            if n.get('date'):
+                curriculum_start_date = n['date']
+                break
+
+    curriculum_current_day = max((n.get('day_number') or 0) for n in notes)
+
+    calendar_days_elapsed = 0
+    working_days_elapsed = 0
+    if curriculum_start_date:
+        try:
+            start = datetime.strptime(curriculum_start_date, '%Y-%m-%d').date()
+            calendar_days_elapsed = (today - start).days
+            current = start
+            while current <= today:
+                if current.weekday() < 5:
+                    working_days_elapsed += 1
+                current += timedelta(days=1)
+        except Exception:
+            pass
+
+    # Determine calendar status
+    if curriculum_current_day == 0:
+        calendar_status = 'not_started'
+    elif curriculum_current_day >= working_days_elapsed + 2:
+        calendar_status = 'ahead'
+    elif curriculum_current_day >= working_days_elapsed - 2:
+        calendar_status = 'on_track'
+    else:
+        calendar_status = 'behind'
+
+    # Week-by-week progress with real calendar dates
+    week_progress = []
+    for w in range(1, 5):
+        week_start_day = (w - 1) * 7 + 1
+        week_end_day = min(w * 7, 28)
+        days_in_week = week_end_day - week_start_day + 1
+        days_completed = sum(1 for n in notes if n.get('day_number') and week_start_day <= n['day_number'] <= week_end_day)
+        cal_start_str = ''
+        cal_end_str = ''
+        if curriculum_start_date:
+            try:
+                start = datetime.strptime(curriculum_start_date, '%Y-%m-%d').date()
+                cal_start = start + timedelta(days=(w-1)*7)
+                cal_end = cal_start + timedelta(days=6)
+                cal_start_str = cal_start.isoformat()
+                cal_end_str = cal_end.isoformat()
+            except Exception:
+                pass
+        week_progress.append({
+            'week': w,
+            'days_completed': days_completed,
+            'days_in_week': days_in_week,
+            'pct': round(days_completed / days_in_week * 100, 1) if days_in_week else 0,
+            'calendar_start': cal_start_str,
+            'calendar_end': cal_end_str,
+        })
+
+    # Estimate learner level from classification sequence
+    learner_level = 1
+    if cls_seq:
+        latest_cls = cls_seq[-1]['classification'].lower()
+        if 'mastery' in latest_cls:
+            learner_level = 4
+        elif 'operational' in latest_cls:
+            learner_level = 3
+        elif 'development' in latest_cls:
+            learner_level = 2
+
     return {
         'total_days': len(notes),
         'unique_weeks': len(days_per_week),
@@ -732,6 +822,15 @@ def compute_summary(notes):
         'completed_tracks': dict(completed_tracks),
         'proof_tasks': proof_tasks,
         'current_week': max(days_per_week.keys()) if days_per_week else 0,
+        # ── New curriculum-anchored fields ──
+        'curriculum_start_date': curriculum_start_date,
+        'curriculum_current_day': curriculum_current_day,
+        'calendar_days_elapsed': calendar_days_elapsed,
+        'working_days_elapsed': working_days_elapsed,
+        'calendar_status': calendar_status,
+        'week_progress': week_progress,
+        'learner_level': learner_level,
+        'today': today.isoformat(),
     }
 
 
@@ -885,15 +984,73 @@ def main():
     notes.sort(key=lambda x: x['date'] or '0000-00-00')
 
     print(f'  Found {len(notes)} daily notes')
+
+    # Also scan archive dirs for completed/finalized learner work
+    archived_notes = 0
+    if os.path.isdir(NOTES_ARCHIVE_DIR):
+        for f in sorted(glob.glob(os.path.join(NOTES_ARCHIVE_DIR, '*.md'))):
+            d = parse_date_from_filename(f)
+            if d:
+                note = parse_note(f)
+                note['filepath'] = f
+                note['archived'] = True
+                notes.append(note)
+                archived_notes += 1
+    if archived_notes:
+        print(f'  + {archived_notes} archived note(s) from action/archive/notes/')
+    notes.sort(key=lambda x: x['date'] or '0000-00-00')
+
     summary = compute_summary(notes)
+
+    # Add days_since_start to each note for calendar positioning
+    if summary.get('curriculum_start_date'):
+        try:
+            cs_start = datetime.strptime(summary['curriculum_start_date'], '%Y-%m-%d').date()
+            for n in notes:
+                if n.get('date'):
+                    try:
+                        nd = datetime.strptime(n['date'], '%Y-%m-%d').date()
+                        n['days_since_start'] = (nd - cs_start).days
+                    except Exception:
+                        n['days_since_start'] = None
+        except Exception:
+            pass
 
     print('Scanning evidence...')
     evidence = scan_evidence()
+    # Include archived evidence
+    if os.path.isdir(EVIDENCE_ARCHIVE_DIR):
+        for root, dirs, fnames in os.walk(EVIDENCE_ARCHIVE_DIR):
+            for f in fnames:
+                if f == '.gitkeep':
+                    continue
+                fp = os.path.join(root, f)
+                rel = os.path.relpath(fp, EVIDENCE_ARCHIVE_DIR)
+                evidence.append({
+                    'path': 'archive/evidence/' + rel,
+                    'size': os.path.getsize(fp),
+                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                    'archived': True,
+                })
+    evidence.sort(key=lambda x: x['modified'], reverse=True)
     summary['evidence_count'] = len(evidence)
     print(f'  Found {len(evidence)} evidence files')
 
     print('Scanning reports...')
     reports = scan_reports()
+    # Include archived reports
+    if os.path.isdir(REPORTS_ARCHIVE_DIR):
+        pattern = os.path.join(REPORTS_ARCHIVE_DIR, '*.md')
+        for fp in sorted(glob.glob(pattern)):
+            if os.path.basename(fp) == '.gitkeep':
+                continue
+            reports.append({
+                'path': 'archive/reports/' + os.path.basename(fp),
+                'filename': os.path.basename(fp),
+                'size': os.path.getsize(fp),
+                'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                'archived': True,
+            })
     print(f'  Found {len(reports)} report files')
 
     print('Scanning all artifacts...')
