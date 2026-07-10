@@ -1,8 +1,8 @@
 {
-  "generated": "2026-07-10T15:48:47.434347",
+  "generated": "2026-07-10T15:50:01.790797",
   "version": {
-    "commit": "288dc9e",
-    "timestamp": "2026-07-10T15:24:53"
+    "commit": "65653cf",
+    "timestamp": "2026-07-10T15:49:32"
   },
   "notes": [],
   "evidence": [],
@@ -75,15 +75,15 @@
         "path": "dashboard\\dashboard.html",
         "filename": "dashboard.html",
         "folder": "dashboard",
-        "size": 238135,
-        "modified": "2026-07-10T15:42:03.366847",
+        "size": 234683,
+        "modified": "2026-07-10T15:49:39.345079",
         "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>MUE Dashboard Review Tool</title>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n\n  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n     CSS CUSTOM PROPERTIES \u2014 Light & Dark Theme\n     Color system uses tint/tone/shade terminology per Linearity guide:\n",
         "content": null,
         "is_markdown": false,
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.url",
@@ -103,9 +103,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 253245,
-        "modified": "2026-07-10T15:39:02.054770",
-        "preview": "{\n  \"generated\": \"2026-07-10T15:39:02.040816\",\n  \"version\": {\n    \"commit\": \"288dc9e\",\n    \"timestamp\": \"2026-07-10T15:24:53\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates\\\\contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4490,\n        \"modified\": \"2026-07-10T12:33:22.525613\",\n ",
+        "size": 251728,
+        "modified": "2026-07-10T15:49:59.987114",
+        "preview": "{\n  \"generated\": \"2026-07-10T13:25:31.006011\",\n  \"version\": {\n    \"commit\": \"288dc9e\",\n    \"timestamp\": \"2026-07-10T13:24:53\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates/contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4401,\n        \"modified\": \"2026-07-10T13:25:30.068501\",\n  ",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -381,15 +381,15 @@
         "path": "dashboard\\dashboard.html",
         "filename": "dashboard.html",
         "folder": "dashboard",
-        "size": 238135,
-        "modified": "2026-07-10T15:42:03.366847",
+        "size": 234683,
+        "modified": "2026-07-10T15:49:39.345079",
         "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>MUE Dashboard Review Tool</title>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n\n  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n     CSS CUSTOM PROPERTIES \u2014 Light & Dark Theme\n     Color system uses tint/tone/shade terminology per Linearity guide:\n",
         "content": null,
         "is_markdown": false,
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.url",
@@ -409,9 +409,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 253245,
-        "modified": "2026-07-10T15:39:02.054770",
-        "preview": "{\n  \"generated\": \"2026-07-10T15:39:02.040816\",\n  \"version\": {\n    \"commit\": \"288dc9e\",\n    \"timestamp\": \"2026-07-10T15:24:53\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates\\\\contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4490,\n        \"modified\": \"2026-07-10T12:33:22.525613\",\n ",
+        "size": 251728,
+        "modified": "2026-07-10T15:49:59.987114",
+        "preview": "{\n  \"generated\": \"2026-07-10T13:25:31.006011\",\n  \"version\": {\n    \"commit\": \"288dc9e\",\n    \"timestamp\": \"2026-07-10T13:24:53\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates/contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4401,\n        \"modified\": \"2026-07-10T13:25:30.068501\",\n  ",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -564,29 +564,19 @@
     ]
   },
   "changed_files": [
-    "action/dashboard/dashboard.html",
     "action/dashboard/data.json"
   ],
   "changes_by_page": {
     "dashboard": {
-      "count": 2,
+      "count": 1,
       "files": [
-        {
-          "path": "action/dashboard/dashboard.html",
-          "page": "dashboard",
-          "version": "288dc9e",
-          "commit": "288dc9e",
-          "timestamp": "2026-07-10T15:48:47.171547",
-          "diff_stat": "+210/-8 lines",
-          "has_diff": true
-        },
         {
           "path": "action/dashboard/data.json",
           "page": "dashboard",
-          "version": "288dc9e",
-          "commit": "288dc9e",
-          "timestamp": "2026-07-10T15:48:47.344364",
-          "diff_stat": "+31/-169 lines",
+          "version": "65653cf",
+          "commit": "65653cf",
+          "timestamp": "2026-07-10T15:50:01.618458",
+          "diff_stat": "+176/-195 lines",
           "has_diff": true
         }
       ]
@@ -594,21 +584,12 @@
   },
   "all_file_changes": [
     {
-      "path": "action/dashboard/dashboard.html",
-      "page": "dashboard",
-      "version": "288dc9e",
-      "commit": "288dc9e",
-      "timestamp": "2026-07-10T15:48:47.171547",
-      "diff_stat": "+210/-8 lines",
-      "has_diff": true
-    },
-    {
       "path": "action/dashboard/data.json",
       "page": "dashboard",
-      "version": "288dc9e",
-      "commit": "288dc9e",
-      "timestamp": "2026-07-10T15:48:47.344364",
-      "diff_stat": "+31/-169 lines",
+      "version": "65653cf",
+      "commit": "65653cf",
+      "timestamp": "2026-07-10T15:50:01.618458",
+      "diff_stat": "+176/-195 lines",
       "has_diff": true
     }
   ],
@@ -624,7 +605,7 @@
     "third-party": 0,
     "templates": 0,
     "scripts": 0,
-    "dashboard": 2,
+    "dashboard": 1,
     "source": 0
   },
   "source_criteria": [
