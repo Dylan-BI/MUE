@@ -691,6 +691,9 @@
     <a data-page="curriculum-review" onclick="showPage('curriculum-review')">📚 Curriculum Review <span class="nav-badge" id="badge-curriculum-review">0</span></a>
     <a data-page="artifacts"       onclick="showPage('artifacts')">📂 All Artifacts <span class="nav-badge" id="badge-artifacts">0</span></a>
     <a data-page="third-party"     onclick="showPage('third-party')">🔍 Third Party Review <span class="nav-badge" id="badge-third-party">0</span></a>
+    <div class="nav-divider"></div>
+    <div class="nav-label">Help</div>
+    <a data-page="reviewers-guide" onclick="showPage('reviewers-guide')">📖 Reviewer's Guide <span class="nav-badge" id="badge-reviewers-guide">0</span></a>
   </div>
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
@@ -1597,7 +1600,7 @@ function showPage(name) {
   if (el) {
     el.classList.add('active');
     // Inject level banner if not already present and page supports it
-    if (!el.querySelector('.level-banner') && !['curriculum-review'].includes(name)) {
+    if (!el.querySelector('.level-banner') && !['curriculum-review', 'reviewers-guide'].includes(name)) {
       const bannerHtml = renderLevelBanner(name);
       el.insertAdjacentHTML('afterbegin', bannerHtml);
     }
@@ -1660,6 +1663,8 @@ function renderAll() {
     }
     
     document.getElementById('main').innerHTML = emptyHtml;
+    // Always create the reviewer's guide page so the nav link works even without data
+    addPage('reviewers-guide', renderReviewersGuide());
     // Update sidebar to show empty state info
     const sidebarInfo = document.getElementById('sidebarInfo');
     if (sidebarInfo) sidebarInfo.innerHTML = '<strong>0</strong> / 28 working days (0%)<div class="prog-bar"><div class="prog-fill" style="width:0%;background:var(--accent)"></div></div>Classification: <strong>—</strong> &middot; Evidence: 0 files<br>Version: <span class="version-chip">' + ((DATA.version||{}).commit || '—') + '</span>';
@@ -2040,6 +2045,9 @@ function renderAll() {
 
   // ── PAGE 9: THIRD PARTY REVIEW (sync-from-action.py integration + version tracking) ──
   renderThirdPartyReview(rd, cf);
+
+  // ── PAGE 10: REVIEWER'S GUIDE ──
+  addPage('reviewers-guide', renderReviewersGuide());
 
   // Show overview with level banner
   showPage('overview');
@@ -3366,6 +3374,181 @@ function renderLearnerFulfillmentInfographic() {
     '💡 Enable <strong>Reviewer Mode</strong> in the sidebar to browse all levels and preview locked content.</div>' +
     '</div>';
   
+  return html;
+}
+
+/**
+ * Render a comprehensive Reviewer's Guide — explains every feature of the dashboard
+ * so new reviewers can navigate, understand level progression, review artifacts,
+ * use reviewer mode, sync changes, and interpret learner data.
+ */
+function renderReviewersGuide() {
+  const hasData = DATA && DATA.summary && (DATA.summary.total_days || 0) > 0;
+  const prog = getLevelProgression();
+  const currLevel = prog ? prog.current_level || 1 : 1;
+
+  let html = '<h2>📖 Reviewer\'s Guide</h2>' +
+    '<p class="subtitle">How to navigate the MUE Third-Party Review Dashboard — everything a reviewer needs to know.</p>';
+
+  // ══════ 1. INTRODUCTION ══════
+  html += '<div class="card" style="border-left:4px solid var(--accent)">' +
+    '<h3>🔍 What Is This Dashboard?</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'The MUE Review Dashboard is a <strong>third-party review tool</strong> for evaluating learner progress through the ' +
+    '<strong>MUE 4-level curriculum framework</strong>. It tracks daily notes, evidence artifacts, scorecard trends, ' +
+    'proof tasks, classification readiness, and Codex Gate status — all synced from the learner\'s <code>action/</code> directory.</p>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    'As a <strong>third-party reviewer</strong>, you can browse all levels freely, review individual artifacts, ' +
+    'leave feedback, and sync your reviews back to the repository.</p></div>';
+
+  // ══════ 2. NAVIGATION ══════
+  html += '<div class="card"><h3>🧭 Dashboard Navigation</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<tr style="border-bottom:1px solid var(--border-color)"><th style="text-align:left;padding:6px 4px;width:160px">Section</th><th style="text-align:left;padding:6px 4px">What It Shows</th></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📋 Overview</td><td style="padding:6px 4px;color:var(--text-secondary)">High-level metrics: curriculum day, weeks active, evidence count, classification, change counts, curriculum timeline</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📅 Daily Progress</td><td style="padding:6px 4px;color:var(--text-secondary)">Timeline of all daily notes with scorecard scores, evidence, and review buttons per note</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🏆 Scorecard</td><td style="padding:6px 4px;color:var(--text-secondary)">7 competency areas tracked over time (Pass/Partial/Fail) with trend analysis and per-area review</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">✅ Proof Tasks</td><td style="padding:6px 4px;color:var(--text-secondary)">6 mandatory proof tasks — shows which are found in learner notes, with review per task</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📁 Evidence</td><td style="padding:6px 4px;color:var(--text-secondary)">All evidence files submitted by the learner, with review and preview</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📈 Classification</td><td style="padding:6px 4px;color:var(--text-secondary)">Readiness classification trend (Foundational → Ready for Codex Acceleration) with chart</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🚪 Codex Gate</td><td style="padding:6px 4px;color:var(--text-secondary)">6 gates that must all pass before learner advances — final checkpoint</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📚 Curriculum Review</td><td style="padding:6px 4px;color:var(--text-secondary)">Level-aware curriculum browser with fulfillment infographic, full multi-level curriculum, and per-category skill tracking</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📂 All Artifacts</td><td style="padding:6px 4px;color:var(--text-secondary)">Complete file listing of <code>action/</code> with agent-change badges, sync status, and per-file review</td></tr>' +
+    '<tr><td style="padding:6px 4px">🔍 Third Party Review</td><td style="padding:6px 4px;color:var(--text-secondary)">All synced reviews from <code>review/reviews.json</code> and local reviewer feedback, with change summaries</td></tr>' +
+    '</table></div>';
+
+  // ══════ 3. LEVEL SYSTEM ══════
+  html += '<div class="card" style="border-left:4px solid #6c63ff"><h3>🎯 Understanding the 4-Level System</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'The MUE curriculum is divided into 4 levels, each lasting <strong>28 working days</strong>:</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:10px 0">' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px;border:1px solid #4CAF5044"><strong style="color:#4CAF50">🌱 Level 1: Foundation</strong><br><span style="font-size:12px;color:var(--text-muted)">For complete amateurs — basic vocabulary, maximum guidance</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px;border:1px solid #2196F344"><strong style="color:#2196F3">🌿 Level 2: Development</strong><br><span style="font-size:12px;color:var(--text-muted)">Build competence through guided application</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px;border:1px solid #FF980044"><strong style="color:#FF9800">🌳 Level 3: Operational</strong><br><span style="font-size:12px;color:var(--text-muted)">Deep concepts with significant independence</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px;border:1px solid #9C27B044"><strong style="color:#9C27B0">🏆 Level 4: Mastery</strong><br><span style="font-size:12px;color:var(--text-muted)">Advanced optimization, automation, strategic thinking</span></div>' +
+    '</div>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    '<strong>Level progression logic:</strong> Level N+1 only unlocks once Level N reaches 28/28 working days. ' +
+    'Each level has its own set of 7 learning categories with adjusted descriptions and skills appropriate to that tier.</p>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    'The sidebar shows a <strong>Level Progression</strong> widget with the status of each level: ' +
+    '⏳ Not Started · 📝 In Progress · ✅ Complete · 🔒 Locked (learner view).</p></div>';
+
+  // ══════ 4. REVIEWER MODE ══════
+  html += '<div class="card" style="border-left:4px solid #6c63ff;background:var(--bg-accent-subtle)">' +
+    '<h3>🔍 Using Reviewer Mode</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    '<strong>Reviewer Mode</strong> is a toggle in the sidebar (next to the theme button) that gives you full access to all 4 levels, ' +
+    'bypassing the learner\'s level locks. When active:</p>' +
+    '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<li>🔒 locked levels become <strong>⏳ 👁️ Preview</strong> — you can view their content</li>' +
+    '<li>Clicking a locked level shows the curriculum instead of an alert</li>' +
+    '<li>The <strong>Full Curriculum — All 4 Levels</strong> section becomes accessible in the empty state</li>' +
+    '<li>The <strong>Learner Input Fulfillment</strong> infographic appears even when no learner data exists</li>' +
+    '<li>Your mode preference is saved in your browser (persists across page loads)</li>' +
+    '</ul>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    '💡 <strong>Tip:</strong> Enable Reviewer Mode when you want to preview future-level content or browse the full curriculum framework.</p></div>';
+
+  // ══════ 5. REVIEWING ARTIFACTS ══════
+  html += '<div class="card"><h3>💬 How to Review Artifacts</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'Every section of the dashboard has a <strong>💬 Review</strong> button. Click it to open a review form where you can:</p>' +
+    '<ol style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<li>Enter your <strong>name</strong> (saved in your browser for future reviews)</li>' +
+    '<li>Select a <strong>rating</strong>: 👍 Pass · ⚡ Needs Work · ❌ Rework</li>' +
+    '<li>Write detailed <strong>feedback</strong> in the text area</li>' +
+    '<li>Click <strong>Submit Review</strong> — it\'s saved locally in your browser</li>' +
+    '</ol>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    'All your reviews are visible in the <strong>🔍 Third Party Review</strong> page, where you can see them alongside ' +
+    'any synced reviews from <code>review/reviews.json</code>. Use the <strong>📤 Run Sync</strong> button to download all ' +
+    'local reviews as a JSON file for submission.</p></div>';
+
+  // ══════ 6. CURRICULUM REVIEW ══════
+  html += '<div class="card"><h3>📚 Browsing the Curriculum</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'The <strong>📚 Curriculum Review</strong> page is your window into the MUE curriculum framework. It has three sections:</p>' +
+    '<ol style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<li><strong>📊 Learner Input Fulfillment</strong> — aggregate overview of what the learner has completed vs what\'s still pending across all levels, with per-level breakdown cards</li>' +
+    '<li><strong>📖 Full Curriculum — All 4 Levels</strong> — collapsible view showing every level\'s categories, descriptions, and skills simultaneously. Click the header to expand</li>' +
+    '<li><strong>Level-specific content</strong> — use the level selector bar at the top to switch between levels. Each level shows: weekly overview, skills summary, per-category deep-dive with skill targets and source file mappings</li>' +
+    '</ol>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    '💡 <strong>Tip:</strong> Use the 🌱/🌿/🌳/🏆 buttons at the top of the sidebar to quickly switch the active level across the dashboard.</p></div>';
+
+  // ══════ 7. LEVEL BUTTONS ══════
+  html += '<div class="card"><h3>🎚️ Level Buttons (Sidebar Top)</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'The 4 colored buttons at the top of the sidebar — 🌱 L1 · Foundation, 🌿 L2 · Development, 🌳 L3 · Operational, 🏆 L4 · Mastery — ' +
+    'let you switch the active curriculum level. This affects what content is shown in the <strong>Curriculum Review</strong> page ' +
+    'and which skills/categories are displayed across the dashboard.</p>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    'The active level is highlighted with its theme color. When <strong>Reviewer Mode</strong> is off and a level is locked, ' +
+    'the button is dimmed and clicking it shows an alert. Enable <strong>Reviewer Mode</strong> to browse freely.</p></div>';
+
+  // ══════ 8. SYNC & REFRESH ══════
+  html += '<div class="card"><h3>🔄 Sync & Auto-Refresh</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<tr style="border-bottom:1px solid var(--border-color)"><th style="text-align:left;padding:6px 4px;width:160px">Button</th><th style="text-align:left;padding:6px 4px">What It Does</th></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🔄 Refresh Now</td><td style="padding:6px 4px;color:var(--text-secondary)">Reloads <code>data.json</code> from the server — picks up any new learner artifacts or build updates</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📤 Run Sync</td><td style="padding:6px 4px;color:var(--text-secondary)">Downloads all your local reviews as a <code>review/reviews.json</code> file — use this to submit your feedback to the repository</td></tr>' +
+    '<tr><td style="padding:6px 4px">⏱ Auto-refresh</td><td style="padding:6px 4px;color:var(--text-secondary)">The dashboard automatically checks for new data every 30 minutes. A banner appears when fresh data is available</td></tr>' +
+    '</table></div>';
+
+  // ══════ 9. START DATE ══════
+  html += '<div class="card"><h3>📅 Start Date Override</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'The curriculum start date is normally <strong>auto-detected</strong> from the earliest learner artifact (note, evidence, or report). ' +
+    'You can override it by entering a date in the <strong>📅 Level 1 Start Date Override</strong> field in the sidebar settings.</p>' +
+    '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<li><strong>Save</strong> — applies your override and recalculates all calendar metrics</li>' +
+    '<li><strong>Reset</strong> — clears the override and reverts to auto-detection</li>' +
+    '<li>The current source is shown below the buttons (e.g. "✅ Override active" or "🔍 Auto-detected")</li>' +
+    '</ul>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
+    '💡 <strong>Tip:</strong> Use the override when onboarding a learner who started before submitting their first artifact.</p></div>';
+
+  // ══════ 10. UNDERSTANDING LEVEL PROGRESSION ══════
+  html += '<div class="card" style="border-left:4px solid var(--success)"><h3>📊 Understanding Level Progression Widget</h3>' +
+    '<p style="line-height:1.6;color:var(--text-secondary)">' +
+    'The <strong>Level Progression</strong> widget in the sidebar shows a compact status of all 4 levels at a glance. ' +
+    'Each row shows: status icon, level emoji + label, days completed, and start date. Status icons mean:</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin:8px 0">' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>⏳ Not Started</strong><br><span style="color:var(--text-muted)">Level is unlocked but learner hasn\'t begun</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>📝 In Progress</strong><br><span style="color:var(--text-muted)">Learner has submitted some artifacts</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>✅ Complete</strong><br><span style="color:var(--text-muted)">28/28 days — level passed</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>🔒 Locked</strong><br><span style="color:var(--text-muted)">Prior level not yet complete (learner view)</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>👁️ Preview</strong><br><span style="color:var(--text-muted)">Reviewer Mode — browse locked content</span></div>' +
+    '</div></div>';
+
+  // ══════ 11. CURRENT STATE ══════
+  if (hasData) {
+    html += '<div class="card" style="border-left:4px solid var(--accent)"><h3>📈 Current Dashboard State</h3>' +
+      '<p style="line-height:1.6;color:var(--text-secondary)">' +
+      'The dashboard currently has <strong>' + (DATA.summary.total_days || 0) + '</strong> note(s), ' +
+      '<strong>' + (DATA.summary.evidence_count || 0) + '</strong> evidence file(s), ' +
+      'and the learner is at <strong>Level ' + currLevel + '</strong>.' +
+      (DATA.summary.curriculum_start_date ? ' Curriculum started <strong>' + DATA.summary.curriculum_start_date + '</strong>.' : '') +
+      '</p></div>';
+  }
+
+  // ══════ 12. TIPS ══════
+  html += '<div class="card" style="background:var(--bg-alert-info);border:1px solid var(--border-blue)">' +
+    '<h3>💡 Tips for Effective Review</h3>' +
+    '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<li><strong>Start with Overview</strong> — get a high-level sense of learner progress before diving into details</li>' +
+    '<li><strong>Use Reviewer Mode</strong> to preview the full curriculum and understand what\'s coming next</li>' +
+    '<li><strong>Review per artifact</strong> — click 💬 on individual notes, evidence files, and scorecard areas for targeted feedback</li>' +
+    '<li><strong>Check the Codex Gate</strong> — all 6 gates must pass before the learner can advance to the next level</li>' +
+    '<li><strong>Sync your reviews</strong> — use 📤 Run Sync to download your feedback and submit it to the repo</li>' +
+    '<li><strong>Refresh before reviewing</strong> — click 🔄 Refresh Now to ensure you\'re seeing the latest learner submissions</li>' +
+    '<li><strong>Explore all 4 levels</strong> — the curriculum gets progressively more challenging; understanding the full scope helps you evaluate readiness</li>' +
+    '</ul></div>';
+
+  html += '<div style="margin-top:16px;text-align:center;font-size:11px;color:var(--text-muted);padding:12px">' +
+    '📊 MUE Third-Party Review Dashboard · Built with ❤️ for effective learner assessment</div>';
+
   return html;
 }
 
