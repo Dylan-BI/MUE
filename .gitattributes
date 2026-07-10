@@ -1,3 +1,24 @@
-* text=auto
-*.md text
-*.txt text
+# Normalize line endings — enforce LF consistently across all platforms
+* text=auto eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.py text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.sh text eol=lf
+# Binary files — never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
