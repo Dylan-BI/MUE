@@ -1757,11 +1757,11 @@ function renderAll() {
   // ── No-learner-data state ──
   const hasLearnerData = notes.length > 0 || ev.length > 0 || (s.evidence_count || 0) > 0;
   if (!hasLearnerData) {
-    let emptyHtml = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">' +
+    const emptyMsg = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">' +
       '<div style="font-size:64px;margin-bottom:16px">🪺</div>' +
       '<h2 style="margin:0 0 8px;color:var(--text-primary)">Awaiting Learner Input</h2>' +
       '<p style="color:var(--text-secondary);max-width:500px;margin:0 0 20px;line-height:1.5">' +
-      'No learner artifacts found yet. The dashboard will populate automatically once the learner submits their first ' +
+      'No learner artifacts found yet. This section will populate automatically once the learner submits their first ' +
       'curriculum fulfillment artifact (note, evidence, or report) in the <code>action/</code> directory.</p>' +
       '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">' +
       '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 16px;text-align:left;font-size:13px">' +
@@ -1774,9 +1774,19 @@ function renderAll() {
       '<div style="margin-top:24px;font-size:12px;color:var(--text-muted)">' +
       '🔄 Auto-refreshes every 30 minutes &middot; ' +
       'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
-    
-    document.getElementById('main').innerHTML = emptyHtml;
-    // Always create the curriculum review page (independent of learner data)
+
+    document.getElementById('main').innerHTML = '';
+    // Data-dependent pages → show empty state message
+    addPage('overview','<h2>📋 Third-Party Review Overview</h2><p class="subtitle">MUE training summary — learner-completed artifact tracking, change monitoring, and review hub.</p>' + emptyMsg);
+    addPage('daily','<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips, primary track tags, evidence artifacts, and note file previews.</p>' + emptyMsg);
+    addPage('scorecard','<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Partial/Fail entries with improvement trend and Fail warnings.</p>' + emptyMsg);
+    addPage('proof-tasks','<h2>✅ Proof Task Tracker</h2><p class="subtitle">Checklist of 6 required proof tasks — completion checkboxes, day evidence found, per-task review, and overall progress bar.</p>' + emptyMsg);
+    addPage('evidence','<h2>📁 Evidence Gallery</h2><p class="subtitle">Evidence files from action/evidence/ grouped by ISO week — file name, size, modification date, preview, Agent-changed badge, and per-file review.</p>' + emptyMsg);
+    addPage('classification','<h2>📈 Readiness Classification Trend</h2><p class="subtitle">Line chart and colored bars showing classification level (1-Foundational through 4-Mastery) on each training day, with current vs target-minimum comparison.</p>' + emptyMsg);
+    addPage('codex-gate','<h2>🚪 Codex Gate Status</h2><p class="subtitle">Pass/Fail checklist of Codex readiness gates — end-to-end workflow, business-logic ownership, validation evidence, proof tasks, clean slice, reusable asset, and bonus rules — with overall PASSED / NOT YET verdict.</p>' + emptyMsg);
+    addPage('artifacts','<h2>📂 All Artifacts</h2><p class="subtitle">Searchable, filterable file listing of every artifact in action/ — grouped by category with preview, Agent change badge, sync status, and per-file review.</p>' + emptyMsg);
+    addPage('third-party','<h2>🔍 Third Party Review</h2><p class="subtitle">Sync and review control center — export reviews, save to review/reviews.json, sync action/ → review/, per-page change tables, and email submission.</p>' + emptyMsg);
+    // Independent pages → full content regardless of learner data
     const srcCrit = DATA.source_criteria || [];
     const srcCritHtml = srcCrit.length ? '<div class="card"><h3>📖 Source Criteria Reference</h3><p class="caption">Training reference files from <code>source/</code> that define what learners need to learn and do:</p>' +
       '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>View</th></tr></thead><tbody>' +
@@ -1795,7 +1805,6 @@ function renderAll() {
       '</div>' +
       srcCritHtml
     );
-    // Always create the reviewer's guide page so the nav link works even without data
     addPage('reviewers-guide', renderReviewersGuide());
     // Update sidebar to show empty state info
     const sidebarInfo = document.getElementById('sidebarInfo');
