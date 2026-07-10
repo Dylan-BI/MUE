@@ -1,8 +1,8 @@
 {
-  "generated": "2026-07-10T15:24:04.900424",
+  "generated": "2026-07-10T15:48:47.434347",
   "version": {
-    "commit": "8585b8f",
-    "timestamp": "2026-07-10T15:08:57"
+    "commit": "288dc9e",
+    "timestamp": "2026-07-10T15:24:53"
   },
   "notes": [],
   "evidence": [],
@@ -62,21 +62,21 @@
         "filename": "build_data.py",
         "folder": "dashboard",
         "size": 56209,
-        "modified": "2026-07-10T15:22:50.222508",
+        "modified": "2026-07-10T15:26:12.451736",
         "preview": "\"\"\"\naction/dashboard/build_data.py\nThird-Party Review Dashboard builder for MUE.\nScans action/, source/, and review/ then generates data.json consumed by\ndashboard.html. Tracks per-page version changes, git diffs, source criteria\nalignment, and provides version-based review metadata.\n\n\ud83d\udd12 ONE-WAY SYNC SAFETY:\n  - This script READS from action/, source/, and review/ \u2014 it only WRITES to\n    action/dashboard/data.json (a generated build artifact, not learner work).\n  - It NEVER writes to review/ or m",
         "content": null,
         "is_markdown": false,
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.html",
         "filename": "dashboard.html",
         "folder": "dashboard",
-        "size": 226101,
-        "modified": "2026-07-10T15:23:24.814175",
+        "size": 238135,
+        "modified": "2026-07-10T15:42:03.366847",
         "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>MUE Dashboard Review Tool</title>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n\n  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n     CSS CUSTOM PROPERTIES \u2014 Light & Dark Theme\n     Color system uses tint/tone/shade terminology per Linearity guide:\n",
         "content": null,
         "is_markdown": false,
@@ -103,9 +103,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 254297,
-        "modified": "2026-07-10T15:21:27.912002",
-        "preview": "{\n  \"generated\": \"2026-07-10T15:21:27.890262\",\n  \"version\": {\n    \"commit\": \"8585b8f\",\n    \"timestamp\": \"2026-07-10T15:08:57\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates\\\\contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4490,\n        \"modified\": \"2026-07-10T12:33:22.525613\",\n ",
+        "size": 253245,
+        "modified": "2026-07-10T15:39:02.054770",
+        "preview": "{\n  \"generated\": \"2026-07-10T15:39:02.040816\",\n  \"version\": {\n    \"commit\": \"288dc9e\",\n    \"timestamp\": \"2026-07-10T15:24:53\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates\\\\contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4490,\n        \"modified\": \"2026-07-10T12:33:22.525613\",\n ",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -368,21 +368,21 @@
         "filename": "build_data.py",
         "folder": "dashboard",
         "size": 56209,
-        "modified": "2026-07-10T15:22:50.222508",
+        "modified": "2026-07-10T15:26:12.451736",
         "preview": "\"\"\"\naction/dashboard/build_data.py\nThird-Party Review Dashboard builder for MUE.\nScans action/, source/, and review/ then generates data.json consumed by\ndashboard.html. Tracks per-page version changes, git diffs, source criteria\nalignment, and provides version-based review metadata.\n\n\ud83d\udd12 ONE-WAY SYNC SAFETY:\n  - This script READS from action/, source/, and review/ \u2014 it only WRITES to\n    action/dashboard/data.json (a generated build artifact, not learner work).\n  - It NEVER writes to review/ or m",
         "content": null,
         "is_markdown": false,
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.html",
         "filename": "dashboard.html",
         "folder": "dashboard",
-        "size": 226101,
-        "modified": "2026-07-10T15:23:24.814175",
+        "size": 238135,
+        "modified": "2026-07-10T15:42:03.366847",
         "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>MUE Dashboard Review Tool</title>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n\n  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n     CSS CUSTOM PROPERTIES \u2014 Light & Dark Theme\n     Color system uses tint/tone/shade terminology per Linearity guide:\n",
         "content": null,
         "is_markdown": false,
@@ -409,9 +409,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 254297,
-        "modified": "2026-07-10T15:21:27.912002",
-        "preview": "{\n  \"generated\": \"2026-07-10T15:21:27.890262\",\n  \"version\": {\n    \"commit\": \"8585b8f\",\n    \"timestamp\": \"2026-07-10T15:08:57\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates\\\\contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4490,\n        \"modified\": \"2026-07-10T12:33:22.525613\",\n ",
+        "size": 253245,
+        "modified": "2026-07-10T15:39:02.054770",
+        "preview": "{\n  \"generated\": \"2026-07-10T15:39:02.040816\",\n  \"version\": {\n    \"commit\": \"288dc9e\",\n    \"timestamp\": \"2026-07-10T15:24:53\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates\\\\contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4490,\n        \"modified\": \"2026-07-10T12:33:22.525613\",\n ",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -564,94 +564,29 @@
     ]
   },
   "changed_files": [
-    "action/dashboard/build_data.py",
     "action/dashboard/dashboard.html",
-    "action/dashboard/data.json",
-    "action/notes/2026-06-15.md",
-    "action/notes/2026-06-16.md",
-    "action/notes/2026-06-17.md",
-    "action/notes/2026-06-18.md",
-    "action/notes/2026-07-10.md"
+    "action/dashboard/data.json"
   ],
   "changes_by_page": {
     "dashboard": {
-      "count": 3,
+      "count": 2,
       "files": [
-        {
-          "path": "action/dashboard/build_data.py",
-          "page": "dashboard",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:02.052247",
-          "diff_stat": "+7/-1 lines",
-          "has_diff": true
-        },
         {
           "path": "action/dashboard/dashboard.html",
           "page": "dashboard",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:02.515547",
-          "diff_stat": "+32/-0 lines",
+          "version": "288dc9e",
+          "commit": "288dc9e",
+          "timestamp": "2026-07-10T15:48:47.171547",
+          "diff_stat": "+210/-8 lines",
           "has_diff": true
         },
         {
           "path": "action/dashboard/data.json",
           "page": "dashboard",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:02.964417",
-          "diff_stat": "+283/-864 lines",
-          "has_diff": true
-        }
-      ]
-    },
-    "daily": {
-      "count": 5,
-      "files": [
-        {
-          "path": "action/notes/2026-06-15.md",
-          "page": "daily",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:03.408739",
-          "diff_stat": "+0/-37 lines",
-          "has_diff": true
-        },
-        {
-          "path": "action/notes/2026-06-16.md",
-          "page": "daily",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:03.794282",
-          "diff_stat": "+0/-37 lines",
-          "has_diff": true
-        },
-        {
-          "path": "action/notes/2026-06-17.md",
-          "page": "daily",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:04.169507",
-          "diff_stat": "+0/-38 lines",
-          "has_diff": true
-        },
-        {
-          "path": "action/notes/2026-06-18.md",
-          "page": "daily",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:04.546290",
-          "diff_stat": "+0/-38 lines",
-          "has_diff": true
-        },
-        {
-          "path": "action/notes/2026-07-10.md",
-          "page": "daily",
-          "version": "8585b8f",
-          "commit": "8585b8f",
-          "timestamp": "2026-07-10T15:24:04.822644",
-          "diff_stat": "+0/-38 lines",
+          "version": "288dc9e",
+          "commit": "288dc9e",
+          "timestamp": "2026-07-10T15:48:47.344364",
+          "diff_stat": "+31/-169 lines",
           "has_diff": true
         }
       ]
@@ -659,81 +594,27 @@
   },
   "all_file_changes": [
     {
-      "path": "action/dashboard/build_data.py",
-      "page": "dashboard",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:02.052247",
-      "diff_stat": "+7/-1 lines",
-      "has_diff": true
-    },
-    {
       "path": "action/dashboard/dashboard.html",
       "page": "dashboard",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:02.515547",
-      "diff_stat": "+32/-0 lines",
+      "version": "288dc9e",
+      "commit": "288dc9e",
+      "timestamp": "2026-07-10T15:48:47.171547",
+      "diff_stat": "+210/-8 lines",
       "has_diff": true
     },
     {
       "path": "action/dashboard/data.json",
       "page": "dashboard",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:02.964417",
-      "diff_stat": "+283/-864 lines",
-      "has_diff": true
-    },
-    {
-      "path": "action/notes/2026-06-15.md",
-      "page": "daily",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:03.408739",
-      "diff_stat": "+0/-37 lines",
-      "has_diff": true
-    },
-    {
-      "path": "action/notes/2026-06-16.md",
-      "page": "daily",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:03.794282",
-      "diff_stat": "+0/-37 lines",
-      "has_diff": true
-    },
-    {
-      "path": "action/notes/2026-06-17.md",
-      "page": "daily",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:04.169507",
-      "diff_stat": "+0/-38 lines",
-      "has_diff": true
-    },
-    {
-      "path": "action/notes/2026-06-18.md",
-      "page": "daily",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:04.546290",
-      "diff_stat": "+0/-38 lines",
-      "has_diff": true
-    },
-    {
-      "path": "action/notes/2026-07-10.md",
-      "page": "daily",
-      "version": "8585b8f",
-      "commit": "8585b8f",
-      "timestamp": "2026-07-10T15:24:04.822644",
-      "diff_stat": "+0/-38 lines",
+      "version": "288dc9e",
+      "commit": "288dc9e",
+      "timestamp": "2026-07-10T15:48:47.344364",
+      "diff_stat": "+31/-169 lines",
       "has_diff": true
     }
   ],
   "change_counts": {
     "overview": 0,
-    "daily": 5,
+    "daily": 0,
     "scorecard": 0,
     "proof-tasks": 0,
     "evidence": 0,
@@ -743,7 +624,7 @@
     "third-party": 0,
     "templates": 0,
     "scripts": 0,
-    "dashboard": 3,
+    "dashboard": 2,
     "source": 0
   },
   "source_criteria": [

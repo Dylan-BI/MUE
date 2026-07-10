@@ -695,6 +695,7 @@
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
       <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙 <span class="theme-icon">Dark</span></button>
+      <button class="theme-btn" id="reviewerModeToggle" onclick="toggleReviewerMode()" title="Toggle reviewer mode — bypass level locks and view full curriculum" style="border-color:#6c63ff">🔍 <span id="reviewerModeLabel">Reviewer</span></button>
     </div>
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
@@ -742,10 +743,13 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 const THEME_KEY = 'mue_dashboard_theme';
 const START_DATE_KEY = 'mue_curriculum_start_date';
+const REVIEWER_MODE_KEY = 'mue_reviewer_mode';
 
 function getStoredTheme() { try { return localStorage.getItem(THEME_KEY); } catch { return null; } }
 function getStoredStartDate() { try { return localStorage.getItem(START_DATE_KEY); } catch { return null; } }
 function setStoredStartDate(d) { try { if (d) localStorage.setItem(START_DATE_KEY, d); else localStorage.removeItem(START_DATE_KEY); } catch {} }
+function getStoredReviewerMode() { try { return localStorage.getItem(REVIEWER_MODE_KEY) === 'true'; } catch { return false; } }
+function setStoredReviewerMode(v) { try { localStorage.setItem(REVIEWER_MODE_KEY, v ? 'true' : 'false'); } catch {} }
 
 function getPreferredTheme() {
   const stored = getStoredTheme();
@@ -885,7 +889,10 @@ function renderLevelProgressionSidebar() {
   const currLevel = prog.current_level || 1;
   
   let html = '<div style="margin:8px 0;padding:8px;background:var(--sidebar-hover-bg);border-radius:6px;border:1px solid var(--sidebar-level-btn-border)">';
-  html += '<div style="font-size:10px;color:var(--sidebar-footer-text);margin-bottom:4px;font-weight:600">📊 Level Progression</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+    '<span style="font-size:10px;color:var(--sidebar-footer-text);font-weight:600">📊 Level Progression</span>' +
+    (REVIEWER_MODE ? '<span style="font-size:9px;color:#6c63ff;background:#6c63ff22;padding:1px 6px;border-radius:4px;font-weight:600">🔍 Reviewer</span>' : '') +
+    '</div>';
   
   for (let l = 1; l <= 4; l++) {
     const li = prog.levels[l] || {};
@@ -900,7 +907,7 @@ function renderLevelProgressionSidebar() {
     
     let statusIcon = '';
     let statusColor = '';
-    if (isLocked) { statusIcon = '🔒'; statusColor = '#666'; }
+    if (isLocked && !REVIEWER_MODE) { statusIcon = '🔒'; statusColor = '#666'; }
     else if (isComplete) { statusIcon = '✅'; statusColor = '#198754'; }
     else if (inProgress) { statusIcon = '📝'; statusColor = 'var(--accent-hue)'; }
     else { statusIcon = '⏳'; statusColor = '#888'; }
@@ -910,7 +917,9 @@ function renderLevelProgressionSidebar() {
       'font-size:11px;color:' + statusColor + '">' +
       '<span style="width:18px;text-align:center">' + statusIcon + '</span>' +
       '<span style="flex:1">' + emoji + ' L' + l + ' <span style="opacity:0.7">' + lvlData.label + '</span></span>' +
-      '<span style="font-size:10px;opacity:0.7">' + days + '/28 · ' + startDate + '</span></div>';
+      '<span style="font-size:10px;opacity:0.7">' + days + '/28 · ' + startDate + '</span>' +
+      (isLocked && REVIEWER_MODE ? '<span style="font-size:9px;color:#6c63ff;opacity:0.8">👁️ Preview</span>' : '') +
+      '</div>';
   }
   
   html += '</div>';
@@ -943,6 +952,7 @@ function resetStartDate() {
    ═══════════════════════════════════════════════════════════════════════════ */
 let DATA = null;
 let LAST_GENERATED = null;
+let REVIEWER_MODE = getStoredReviewerMode();
 const REVIEW_EMAIL = 'dylan@bicyclebi.com';
 const CLS_COLORS = {
   'foundational': getComputedStyle(document.documentElement).getPropertyValue('--cls-foundational').trim() || '#8e90a6',
@@ -1043,6 +1053,17 @@ async function loadData() {
     }
   }
   LAST_GENERATED = DATA.generated;
+  
+  // Initialize reviewer mode button styling
+  const revBtn = document.getElementById('reviewerModeToggle');
+  const revLabel = document.getElementById('reviewerModeLabel');
+  if (revBtn && revLabel && REVIEWER_MODE) {
+    revBtn.style.background = '#6c63ff';
+    revBtn.style.color = '#fff';
+    revBtn.style.borderColor = '#6c63ff';
+    revLabel.textContent = 'Reviewer ✓';
+  }
+  
   applyStartDateOverride();
   initStartDateUI();
   updateSidebar();
@@ -1132,6 +1153,13 @@ function updateSidebar() {
   }
 }
 
+function toggleReviewerMode() {
+  REVIEWER_MODE = !REVIEWER_MODE;
+  setStoredReviewerMode(REVIEWER_MODE);
+  // Reload to re-render with correct reviewer state (empty state vs dashboard)
+  location.reload();
+}
+
 function updateSidebarLevelButtons() {
   const prog = getLevelProgression();
   if (!prog || !prog.levels) return;
@@ -1140,8 +1168,11 @@ function updateSidebarLevelButtons() {
     const lvl = parseInt(btn.dataset.level);
     const li = prog.levels[lvl];
     const isLocked = li && !li.is_unlocked;
-    if (isLocked) {
+    // Reviewer mode bypasses level lock dimming
+    if (isLocked && !REVIEWER_MODE) {
       btn.style.opacity = '0.4';
+    } else {
+      btn.style.opacity = '1';
     }
   });
 }
@@ -1167,14 +1198,14 @@ function startAutoRefresh() {
    LEVEL-AWARE CURRICULUM REVIEW (4 levels × 8 categories × 28 working days)
    ═══════════════════════════════════════════════════════════════════════════ */
 function setLevel(level) {
-  // Check if this level is unlocked
+  // Check if this level is unlocked (reviewer mode bypasses lock)
   const prog = getLevelProgression();
   const li = prog && prog.levels ? prog.levels[level] : null;
-  if (li && !li.is_unlocked) {
+  if (li && !li.is_unlocked && !REVIEWER_MODE) {
     const prev = level - 1;
     const prevLi = prog && prog.levels ? prog.levels[prev] : null;
     const prevDays = prevLi ? prevLi.days_completed : 0;
-    alert('🔒 Level ' + level + ' is locked.\n\nComplete Level ' + prev + ' first (' + prevDays + '/28 days completed).');
+    alert('🔒 Level ' + level + ' is locked.\n\nComplete Level ' + prev + ' first (' + prevDays + '/28 days completed).\n\n💡 Enable Reviewer Mode in the sidebar to view all levels.');
     return;
   }
 
@@ -1596,7 +1627,7 @@ function renderAll() {
   // ── No-learner-data state ──
   const hasLearnerData = notes.length > 0 || ev.length > 0 || (s.evidence_count || 0) > 0;
   if (!hasLearnerData) {
-    const emptyHtml = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">' +
+    let emptyHtml = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center">' +
       '<div style="font-size:64px;margin-bottom:16px">🪺</div>' +
       '<h2 style="margin:0 0 8px;color:var(--text-primary)">Awaiting Learner Input</h2>' +
       '<p style="color:var(--text-secondary);max-width:500px;margin:0 0 20px;line-height:1.5">' +
@@ -1613,6 +1644,21 @@ function renderAll() {
       '<div style="margin-top:24px;font-size:12px;color:var(--text-muted)">' +
       '🔄 Auto-refreshes every 30 minutes &middot; ' +
       'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
+    
+    // When reviewer mode is active, also show the curriculum framework
+    if (REVIEWER_MODE) {
+      emptyHtml += '<div style="max-width:900px;margin:0 auto">' +
+        renderLearnerFulfillmentInfographic() +
+        '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="' +
+        "var body=this.parentElement.querySelector('.full-curriculum-body');" +
+        "if(body){var show=body.style.display!='block';body.style.display=show?'block':'none';var toggle=this.querySelector('.fc-toggle');" +
+        "if(toggle)toggle.textContent=show?'[-]':'[+]';}" +
+        '">📖 Full Curriculum — All 4 Levels <span class="fc-toggle" style="font-size:12px;color:var(--accent);font-weight:400">[+]</span></h3>' +
+        '<div class="full-curriculum-body" style="display:none">' +
+        renderFullCurriculumOverview() +
+        '</div></div></div>';
+    }
+    
     document.getElementById('main').innerHTML = emptyHtml;
     // Update sidebar to show empty state info
     const sidebarInfo = document.getElementById('sidebarInfo');
@@ -1934,6 +1980,19 @@ function renderAll() {
   addPage('curriculum-review',
     '<h2>📚 Curriculum Review</h2>' +
     '<p class="subtitle" id="curriculumSubtitle">Everything a learner needs to know — 4 weeks (28 days) of training across 7 skill areas, now available at 4 proficiency levels.</p>' +
+    // ── Learner Fulfillment Infographic (reviewer-facing) ──
+    renderLearnerFulfillmentInfographic() +
+    // ── Full Curriculum Overview Toggle (reviewer-facing, shows all 4 levels) ──
+    '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="' +
+    "this.classList.toggle('open');" +
+    "const body=this.parentElement.querySelector('.full-curriculum-body');" +
+    "if(body){body.classList.toggle('open');const toggle=this.querySelector('.fc-toggle');" +
+    "if(toggle)toggle.textContent=body.classList.contains('open')?'[-]':'[+]';}" +
+    '">📖 Full Curriculum — All 4 Levels <span class="fc-toggle" style="font-size:12px;color:var(--accent);font-weight:400">[+]</span></h3>' +
+    '<div class="full-curriculum-body" style="display:none">' +
+    renderFullCurriculumOverview() +
+    '</div></div>' +
+    // ── Level-specific curriculum content ──
     '<div class="card"><h3>🎯 Curriculum Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">category & skill coverage</span></h3>' +
     '<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
     '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
@@ -3165,6 +3224,149 @@ function renderSectionProgress(fulfilled, total, sectionLabel, aid, type, itemLa
   h += '<div style="margin-top:4px">' + reviewToggleInline(aid, type, itemLabel, filename) + '</div>';
   h += '</div>';
   return h;
+}
+
+/**
+ * Render full curriculum overview across all 4 levels for reviewers.
+ * Shows every level's categories, skills, and descriptions simultaneously
+ * so the reviewer can grasp the entire curriculum at a glance.
+ */
+function renderFullCurriculumOverview() {
+  const cats = DATA.categories || {};
+  const lvlCats = DATA.level_categories || {};
+  const levels = DATA.levels || {};
+  
+  let html = '<div class="card"><h3>📚 Full Curriculum — All 4 Levels</h3>' +
+    '<p class="caption">Complete curriculum framework for reviewers. Each level has 28 working days across all learning categories.</p>';
+  
+  for (let l = 1; l <= 4; l++) {
+    const lvlData = levels[l] || {};
+    const overrides = lvlCats[l] || {};
+    const color = lvlData.color || '#6c63ff';
+    const lvlEmoji = lvlData.emoji || '';
+    const lvlLabel = lvlData.label || 'Level ' + l;
+    
+    html += '<div style="border:1px solid ' + color + '44;border-radius:10px;margin-bottom:14px;overflow:hidden">' +
+      '<div style="background:' + color + '18;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid ' + color + '22">' +
+      '<span style="font-size:24px">' + lvlEmoji + '</span>' +
+      '<div><strong style="font-size:15px;color:' + color + '">Level ' + l + ': ' + lvlLabel + '</strong>' +
+      '<div style="font-size:11px;color:var(--text-muted)">' + (lvlData.subtitle || '') + '</div></div></div>' +
+      '<div style="padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">';
+    
+    Object.keys(cats).forEach(cid => {
+      const base = cats[cid];
+      const override = overrides[cid] || {};
+      const desc = override.description || base.description;
+      const skills = override.skills || base.skills || [];
+      const weeks = override.weeks || base.weeks || [];
+      
+      html += '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color)">' +
+        '<div style="font-weight:600;font-size:12px;color:var(--text-primary);margin-bottom:4px">' + (base.emoji || '') + ' ' + base.label + '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Week' + weeks.map(w => ' ' + w).join(',') + '</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">' + (desc ? desc.substring(0, 120) + (desc.length > 120 ? '…' : '') : '') + '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:2px">' +
+        skills.slice(0, 4).map(s => '<span style="font-size:9px;background:' + color + '22;color:var(--text-muted);padding:0 6px;border-radius:6px;border:1px solid ' + color + '33">✦ ' + s + '</span>').join('') +
+        '</div></div>';
+    });
+    
+    html += '</div></div>';
+  }
+  
+  html += '</div>';
+  return html;
+}
+
+/**
+ * Render learner fulfillment infographic for reviewer.
+ * Shows per-level progress bars with fulfilled vs unfulfilled counts
+ * across notes, evidence, scorecard, proof tasks, and codex gates.
+ */
+function renderLearnerFulfillmentInfographic() {
+  const s = DATA.summary || {};
+  const notes = DATA.notes || [];
+  const ev = DATA.evidence || [];
+  const pt = s.proof_tasks || {};
+  const gs = s.codex_gate_status || {};
+  const prog = getLevelProgression();
+  const ptDone = Object.values(pt).filter(p => p.found).length;
+  const ptTotal = Object.keys(pt).length;
+  const gsDone = Object.values(gs).filter(v => v === 'Yes').length;
+  const gsTotal = Object.keys(gs).length;
+  
+  // Scorecard pass count across all notes
+  const tr = s.scorecard_trend || {};
+  const scorePass = Object.values(tr).filter(a => {
+    const entries = a;
+    return entries && entries.length && entries[entries.length - 1].score === 'Pass';
+  }).length;
+  const scoreTotal = Object.keys(tr).length;
+  
+  // Learner artifacts count
+  const evidenceCount = ev.length || s.evidence_count || 0;
+  
+  // Overall fulfillment rates
+  const sections = [
+    { label: '📅 Daily Notes', fulfilled: notes.length, total: 28, color: '#5b8def', icon: '📝' },
+    { label: '📁 Evidence Files', fulfilled: evidenceCount, total: Math.max(evidenceCount, Math.ceil(notes.length / 2)), color: '#2b9d6e', icon: '📁' },
+    { label: '🏆 Scorecard Pass', fulfilled: scorePass, total: Math.max(scoreTotal, 1), color: '#f5a623', icon: '🏆' },
+    { label: '✅ Proof Tasks', fulfilled: ptDone, total: Math.max(ptTotal, 1), color: '#7c73ff', icon: '✅' },
+    { label: '🚪 Codex Gate', fulfilled: gsDone, total: Math.max(gsTotal, 1), color: '#e8728a', icon: '🚪' },
+  ];
+
+  let html = '<div class="card"><h3>📊 Learner Input Fulfillment <span style="font-size:12px;color:var(--text-muted);font-weight:400">reviewer overview — fulfilled vs unfulfilled</span></h3>' +
+    '<p class="caption">Aggregate view of all learner-submitted artifacts and their fulfillment status across the entire program.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:8px">';
+  
+  sections.forEach(sec => {
+    const pct = sec.total > 0 ? Math.round(sec.fulfilled / sec.total * 100) : 0;
+    const barColor = pct >= 100 ? 'var(--success)' : pct >= 50 ? sec.color : 'var(--warning-hue)';
+    const statusIcon = pct >= 100 ? '✅' : pct >= 50 ? '🔄' : '⏳';
+    html += '<div style="background:var(--bg-muted);border-radius:8px;padding:12px;border:1px solid var(--border-color)">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<span style="font-size:20px">' + sec.icon + '</span>' +
+      '<div style="flex:1"><strong style="font-size:13px">' + sec.label + '</strong><br>' +
+      '<span style="font-size:11px;color:var(--text-muted)">' + sec.fulfilled + '/' + sec.total + ' (' + pct + '%) ' + statusIcon + '</span></div></div>' +
+      '<div class="prog-bar" style="height:8px;background:var(--border-color)">' +
+      '<div class="prog-fill" style="width:' + pct + '%;height:8px;border-radius:4px;background:' + barColor + '"></div></div></div>';
+  });
+  
+  html += '</div>';
+  
+  // Per-level breakdown
+  if (prog && prog.levels) {
+    html += '<h4 style="margin:16px 0 8px;font-size:13px">📈 Per-Level Breakdown</h4>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">';
+    for (let l = 1; l <= 4; l++) {
+      const li = prog.levels[l] || {};
+      const lvlData = (DATA.levels || {})[l] || {};
+      const lvlNotes = notes.filter(n => (n.level || 1) === l);
+      const days = li.days_completed || 0;
+      const daysReq = li.days_required || 28;
+      const pct = daysReq > 0 ? Math.round(days / daysReq * 100) : 0;
+      const barColor = li.is_completed ? 'var(--success)' : li.in_progress ? '#5b8def' : '#666';
+      const statusTxt = li.is_completed ? '✅ Complete' : li.in_progress ? '📝 In Progress' : li.is_unlocked ? '⏳ Not Started' : '🔒 Locked';
+      
+      html += '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color)">' +
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
+        '<span>' + lvlData.emoji + '</span>' +
+        '<strong style="font-size:12px">Level ' + l + ': ' + lvlData.label + '</strong>' +
+        '<span style="font-size:10px;color:var(--text-muted)">' + statusTxt + '</span></div>' +
+        '<div class="prog-bar" style="height:6px;background:var(--border-color)">' +
+        '<div class="prog-fill" style="width:' + pct + '%;height:6px;border-radius:3px;background:' + barColor + '"></div></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:2px">' +
+        '<span>' + days + '/' + daysReq + ' days</span>' +
+        '<span>' + lvlNotes.length + ' note(s)</span>' +
+        (li.start_date ? '<span>Start: ' + li.start_date.slice(5) + '</span>' : '') +
+        '</div></div>';
+    }
+    html += '</div>';
+  }
+  
+  html += '<div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:center">' +
+    '💡 Enable <strong>Reviewer Mode</strong> in the sidebar to browse all levels and preview locked content.</div>' +
+    '</div>';
+  
+  return html;
 }
 
 /**
