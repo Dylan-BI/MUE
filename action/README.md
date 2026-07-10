@@ -28,13 +28,23 @@ action/
 ├── notes/               # Daily notes (created by create_daily_note.py)
 │   └── YYYY-MM-DD.md
 ├── evidence/            # Proof task artifacts, validation records
-│   └── YYYY-WW/
 ├── reports/             # Generated weekly reports
 │   ├── weekly-YYYY-WW.md
 │   └── readiness-YYYY-WW.md
-└── templates/           # Working templates (copy into your notes as needed)
-    ├── contributor-readiness-check.md
-    └── retention-review.md
+├── archive/             # Completed learner work (moved from notes/evidence/reports)
+│   ├── notes/
+│   ├── evidence/
+│   └── reports/
+├── templates/           # Working templates (copy into your notes as needed)
+│   ├── contributor-readiness-check.md
+│   └── retention-review.md
+├── proxy/               # Dummy learner proxy (simulates curriculum progression)
+│   ├── run_proxy.py     # CLI entry point
+│   ├── curriculum.py    # 28-day schedule data
+│   ├── interface.py     # Abstract LearnerProxy contract
+│   ├── dummy.py         # DummyLearner implementation
+│   └── README.md        # Proxy documentation
+└── dashboard/           # Dashboard UI and data builder
 ```
 
 ## Daily Workflow

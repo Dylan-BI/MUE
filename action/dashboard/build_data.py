@@ -62,20 +62,20 @@ PAGE_MAP = [
 
 # ── Regex patterns ──────────────────────────────────────────────────────────
 PAT_CLASSIFICATION = re.compile(
-    r'Classification:\s*(Foundational|Developing|Operational|Ready for Codex Acceleration)',
+    r'Classification:\*?\*?\s*(Foundational|Developing|Operational|Ready for Codex Acceleration)',
     re.IGNORECASE,
 )
 PAT_PRIMARY_TRACK = re.compile(
-    r'Primary track:\s*(Pyramid operations|Codex productivity|BI judgment)',
+    r'Primary track:\*?\*?\s*(Pyramid operations|Codex productivity|BI judgment)',
     re.IGNORECASE,
 )
-PAT_DAY_NUMBER = re.compile(r'Day\s*(\d+)')
-PAT_ARTIFACT = re.compile(r'Required Artifact:\s*(.+)', re.IGNORECASE)
-PAT_LEARNED = re.compile(r'What I learned today:\s*(.+)', re.IGNORECASE)
-PAT_EVIDENCE = re.compile(r'What evidence I produced:\s*(.+)', re.IGNORECASE)
-PAT_REMAINS = re.compile(r'What remains open:\s*(.+)', re.IGNORECASE)
-PAT_NEXT_STEP = re.compile(r'Next narrow step:\s*(.+)', re.IGNORECASE)
-PAT_WEEK_NUMBER = re.compile(r'Week Number:\s*(\d+)')
+PAT_DAY_NUMBER = re.compile(r'Day\*?\*?\s*(\d+)')
+PAT_ARTIFACT = re.compile(r'Required Artifact:\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_LEARNED = re.compile(r'What I learned today:\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_EVIDENCE = re.compile(r'What evidence I produced:\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_REMAINS = re.compile(r'What remains open:\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_NEXT_STEP = re.compile(r'Next narrow step:\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_WEEK_NUMBER = re.compile(r'Week Number:\*?\*?\s*(\d+)')
 
 SCORE_AREAS = [
     'Prompt discipline',
