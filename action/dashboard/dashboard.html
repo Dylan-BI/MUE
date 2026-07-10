@@ -3414,44 +3414,81 @@ function renderFullCurriculumOverview() {
   const cats = DATA.categories || {};
   const lvlCats = DATA.level_categories || {};
   const levels = DATA.levels || {};
-  
-  let html = '<div class="card"><h3>📚 Full Curriculum — All 4 Levels</h3>' +
-    '<p class="caption">Complete curriculum framework for reviewers. Each level has 28 working days across all learning categories.</p>';
-  
+
+  let html = '<p class="caption" style="margin-bottom:12px">Complete 4-level curriculum framework — 8 categories × 28 days per level = 112 training days total. Reviewers can read every description, every skill, and the weekly schedule for each level.</p>';
+
+  // ── Week-by-week schedule grid (all levels, one table) ──
+  html += '<div style="margin-bottom:16px"><h4 style="font-size:13px;margin-bottom:6px">📆 Weekly Category Schedule — Which categories are active each week</h4>' +
+    '<div style="overflow-x:auto"><table class="artifact-table" style="font-size:11px"><thead><tr><th style="width:140px">Category</th>';
+  for (let w = 1; w <= 4; w++) html += '<th style="text-align:center;width:60px">Week ' + w + '</th>';
+  html += '<th style="text-align:center;width:60px">Total Days</th></tr></thead><tbody>';
+  Object.values(cats).forEach(cat => {
+    html += '<tr><td style="font-weight:600">' + (cat.emoji || '') + ' ' + cat.label + '</td>';
+    for (let w = 1; w <= 4; w++) {
+      const active = (cat.weeks || []).includes(w);
+      html += '<td style="text-align:center">' + (active ? '<span style="color:var(--success)">●</span>' : '<span style="color:var(--text-muted)">—</span>') + '</td>';
+    }
+    html += '<td style="text-align:center;font-weight:600">' + (cat.weeks || []).length * 7 + '</td></tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  // ── Per-level detailed curriculum ──
   for (let l = 1; l <= 4; l++) {
     const lvlData = levels[l] || {};
     const overrides = lvlCats[l] || {};
     const color = lvlData.color || '#6c63ff';
     const lvlEmoji = lvlData.emoji || '';
     const lvlLabel = lvlData.label || 'Level ' + l;
-    
-    html += '<div style="border:1px solid ' + color + '44;border-radius:10px;margin-bottom:14px;overflow:hidden">' +
-      '<div style="background:' + color + '18;padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid ' + color + '22">' +
-      '<span style="font-size:24px">' + lvlEmoji + '</span>' +
-      '<div><strong style="font-size:15px;color:' + color + '">Level ' + l + ': ' + lvlLabel + '</strong>' +
-      '<div style="font-size:11px;color:var(--text-muted)">' + (lvlData.subtitle || '') + '</div></div></div>' +
-      '<div style="padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">';
-    
+
+    html += '<div style="border:1px solid ' + color + '44;border-radius:10px;margin-bottom:16px;overflow:hidden">' +
+      '<div style="background:' + color + '18;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid ' + color + '22">' +
+      '<span style="font-size:28px">' + lvlEmoji + '</span>' +
+      '<div><strong style="font-size:16px;color:' + color + '">Level ' + l + ': ' + lvlLabel + '</strong>' +
+      '<div style="font-size:12px;color:var(--text-secondary)">' + (lvlData.subtitle || '') + '</div></div></div>';
+
+    // ── 28-day calendar strip for this level ──
+    html += '<div style="padding:10px 16px;border-bottom:1px solid var(--border-light)">' +
+      '<div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px">📅 28-Day Calendar — category coverage by day</div>' +
+      '<div style="display:flex;gap:2px;flex-wrap:wrap">';
+    for (let d = 1; d <= 28; d++) {
+      const week = Math.ceil(d / 7);
+      const activeCats = Object.keys(overrides).filter(cid => {
+        const ovr = overrides[cid] || {};
+        const base = cats[cid] || {};
+        const wk = ovr.weeks || base.weeks || [];
+        return wk.includes(week);
+      });
+      const dayNotes = (DATA.notes || []).filter(n => n.day_number === d);
+      const done = dayNotes.length > 0;
+      const tooltip = 'Day ' + d + ' (Week ' + week + ') — ' + activeCats.map(cid => (cats[cid] || {}).label || cid).join(', ');
+      html += '<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;font-weight:600;cursor:default;' +
+        (done ? 'background:' + color + ';color:#fff' : 'background:var(--bg-muted);color:var(--text-muted)') +
+        '" title="' + escHtml(tooltip) + '">' + d + '</div>';
+    }
+    html += '</div>' +
+      '<div style="margin-top:4px;font-size:10px;color:var(--text-muted)">🟢 Completed &nbsp;·&nbsp; ⬜ Pending &nbsp;·&nbsp; Hover for day details</div></div>';
+
+    // ── Category cards — FULL descriptions, ALL skills ──
+    html += '<div style="padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">';
     Object.keys(cats).forEach(cid => {
       const base = cats[cid];
       const override = overrides[cid] || {};
       const desc = override.description || base.description;
       const skills = override.skills || base.skills || [];
       const weeks = override.weeks || base.weeks || [];
-      
-      html += '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color)">' +
-        '<div style="font-weight:600;font-size:12px;color:var(--text-primary);margin-bottom:4px">' + (base.emoji || '') + ' ' + base.label + '</div>' +
-        '<div style="font-size:10px;color:var(--text-muted);margin-bottom:3px">Week' + weeks.map(w => ' ' + w).join(',') + '</div>' +
-        '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">' + (desc ? desc.substring(0, 120) + (desc.length > 120 ? '…' : '') : '') + '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;gap:2px">' +
-        skills.slice(0, 4).map(s => '<span style="font-size:9px;background:' + color + '22;color:var(--text-muted);padding:0 6px;border-radius:6px;border:1px solid ' + color + '33">✦ ' + s + '</span>').join('') +
+
+      html += '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 14px;border:1px solid var(--border-color)">' +
+        '<div style="font-weight:700;font-size:13px;color:var(--text-primary);margin-bottom:2px">' + (base.emoji || '') + ' ' + base.label + '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">Week' + weeks.map(w => ' ' + w).join(',') + ' · Days ' + ((weeks[0]||1)-1)*7+1 + '–' + Math.min((weeks[weeks.length-1]||4)*7, 28) + '</div>' +
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5">' + (desc || '<em>No description</em>') + '</div>' +
+        '<div style="font-size:10px;font-weight:600;color:var(--text-muted);margin-bottom:4px">Skills (' + skills.length + '):</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:3px">' +
+        skills.map(s => '<span style="display:inline-block;font-size:10px;background:' + color + '22;color:var(--text-secondary);padding:2px 8px;border-radius:10px;border:1px solid ' + color + '33">✦ ' + escHtml(s) + '</span>').join('') +
         '</div></div>';
     });
-    
     html += '</div></div>';
   }
-  
-  html += '</div>';
+
   return html;
 }
 
