@@ -468,6 +468,24 @@
   .preview-box .preview-loading { display:flex; align-items:center; justify-content:center; gap:8px; padding:40px; color:var(--text-muted); font-size:14px; }
   .preview-box .preview-loading::before { content:''; width:20px; height:20px; border:2px solid var(--border-color); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
+  /* ── Environment Check Overlay ── */
+  .env-overlay { display: none; position: fixed; inset: 0; background: var(--preview-overlay); z-index: 200; justify-content: center; align-items: center; }
+  .env-overlay.open { display: flex; }
+  .env-box { background: var(--preview-box-bg); border-radius: 16px; max-width: 520px; width: 92%; padding: 0; overflow: hidden; box-shadow: 0 16px 60px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.08); color: var(--text-primary); }
+  .env-box .env-header { padding: 24px 24px 0 24px; }
+  .env-box .env-header h2 { font-size: 18px; margin: 0 0 4px 0; }
+  .env-box .env-header p { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px 0; line-height: 1.5; }
+  .env-box .env-body { padding: 0 24px 24px 24px; }
+  .env-box .env-checklist { background: var(--bg-muted); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 12px; line-height: 1.8; }
+  .env-box .env-checklist code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  .env-box .env-actions { display: flex; flex-direction: column; gap: 8px; }
+  .env-box .env-actions button { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border-light); cursor: pointer; font-size: 13px; font-weight: 500; text-align: left; display: flex; align-items: center; gap: 8px; background: var(--bg-card); color: var(--text-primary); transition: background .15s, border-color .15s; }
+  .env-box .env-actions button:hover { background: var(--bg-hover); border-color: var(--accent); }
+  .env-box .env-actions button.primary { background: #6c63ff; color: #fff; border-color: #6c63ff; justify-content: center; }
+  .env-box .env-actions button.primary:hover { background: #5a52e0; }
+  .env-box .env-actions button.secondary { background: transparent; color: var(--text-secondary); border-color: transparent; justify-content: center; font-size: 12px; }
+  .env-box .env-actions button.secondary:hover { color: var(--text-primary); background: transparent; }
+  .env-box .env-actions button .env-icon { font-size: 18px; }
   .preview-box .preview-error { padding:24px; text-align:center; color:var(--danger-hue); }
   .preview-box .preview-body pre { background: var(--bg-preview); padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-code); }
 
@@ -738,6 +756,28 @@
   </div>
 </div>
 
+<div class="env-overlay" id="envOverlay">
+  <div class="env-box" id="envBoxContent">
+    <div class="env-header">
+      <h2>🧭 Review Environment Check</h2>
+      <p>Before reviewing learner artifacts, please confirm your environment is adequate.</p>
+    </div>
+    <div class="env-body" id="envBody">
+      <div class="env-checklist">
+        <strong>You will need:</strong><br>
+        • The cloned <strong>MUE repository</strong> locally<br>
+        • <strong>Python 3.11+</strong> available on PATH<br>
+        • A <strong>modern browser</strong> (Chrome, Edge, Firefox)<br>
+        • <strong>VS Code</strong> with GitHub Copilot (recommended)
+      </div>
+      <div class="env-actions" id="envActions">
+        <button class="primary" onclick="confirmEnvironmentAdequate()">✅ Yes, Environment is Adequate</button>
+        <button onclick="showEnvironmentUpdateOptions()">❌ No, I Need Updates</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    THEME — Dark/Light Mode Toggle (persisted in localStorage)
@@ -916,6 +956,121 @@ function clearSearchResults() {
   if (resultsEl) resultsEl.innerHTML = '';
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   ENVIRONMENT CHECK — prompts reviewer to confirm environment is adequate
+   ═══════════════════════════════════════════════════════════════════════════ */
+const ENV_CONFIRMED_KEY = 'mue_env_confirmed';
+
+function checkEnvironment() {
+  // Skip if already confirmed this session
+  try {
+    if (localStorage.getItem(ENV_CONFIRMED_KEY) === 'true') return;
+  } catch {}
+  
+  const overlay = document.getElementById('envOverlay');
+  if (overlay) overlay.classList.add('open');
+}
+
+function confirmEnvironmentAdequate() {
+  try { localStorage.setItem(ENV_CONFIRMED_KEY, 'true'); } catch {}
+  document.getElementById('envOverlay').classList.remove('open');
+}
+
+function showEnvironmentUpdateOptions() {
+  const body = document.getElementById('envBody');
+  if (!body) return;
+  
+  body.innerHTML = `
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:16px;margin:0 0 8px 0">🔧 Environment Update Options</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5">
+        Choose how you'd like to update your review environment.
+      </p>
+    </div>
+    <div class="env-actions">
+      <button onclick="requestEnvironmentUpdate()">
+        <span class="env-icon">🔄</span>
+        <span><strong>Update from GitHub</strong><br><span style="font-size:11px;color:var(--text-muted)">Pull the latest repository changes</span></span>
+      </button>
+      <button onclick="submitEnvironmentRequest()">
+        <span class="env-icon">📝</span>
+        <span><strong>Submit Environment Request</strong><br><span style="font-size:11px;color:var(--text-muted)">Request tools or config via GitHub issue</span></span>
+      </button>
+      <button onclick="showEnvironmentPrompt()" style="margin-top:4px">
+        🔙 Back
+      </button>
+      <button class="secondary" onclick="confirmEnvironmentAdequate()">
+        ✅ I'll Continue Anyway
+      </button>
+    </div>`;
+}
+
+function showEnvironmentPrompt() {
+  const body = document.getElementById('envBody');
+  if (!body) return;
+  
+  body.innerHTML = `
+    <div class="env-checklist">
+      <strong>You will need:</strong><br>
+      • The cloned <strong>MUE repository</strong> locally<br>
+      • <strong>Python 3.11+</strong> available on PATH<br>
+      • A <strong>modern browser</strong> (Chrome, Edge, Firefox)<br>
+      • <strong>VS Code</strong> with GitHub Copilot (recommended)
+    </div>
+    <div class="env-actions" id="envActions">
+      <button class="primary" onclick="confirmEnvironmentAdequate()">✅ Yes, Environment is Adequate</button>
+      <button onclick="showEnvironmentUpdateOptions()">❌ No, I Need Updates</button>
+    </div>`;
+}
+
+function requestEnvironmentUpdate() {
+  const body = document.getElementById('envBody');
+  if (!body) return;
+  
+  body.innerHTML = `
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:16px;margin:0 0 8px 0">🔄 Update from GitHub</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5">
+        Run the following command in your terminal to pull the latest files:
+      </p>
+      <pre style="background:#1e1e2e;color:#cdd6f4;padding:10px 14px;border-radius:8px;font-size:12px;margin:10px 0;overflow-x:auto"><code>cd path/to/MUE
+git pull</code></pre>
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.5">
+        After the update completes, click <strong>🔄 Refresh Now</strong> in the sidebar to reload the dashboard data.
+      </p>
+    </div>
+    <div class="env-actions">
+      <button onclick="showEnvironmentUpdateOptions()">🔙 Back to Options</button>
+      <button class="secondary" onclick="confirmEnvironmentAdequate()">✅ Done — Continue to Dashboard</button>
+    </div>`;
+}
+
+function submitEnvironmentRequest() {
+  const body = document.getElementById('envBody');
+  if (!body) return;
+  
+  body.innerHTML = `
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:16px;margin:0 0 8px 0">📝 Submit Environment Request</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0;line-height:1.5">
+        To request additional tools, configuration, or environment changes for the review dashboard:
+      </p>
+      <ol style="font-size:12px;color:var(--text-secondary);line-height:1.8;margin:10px 0 0 16px;padding:0 0 0 16px">
+        <li>Go to the <strong>MUE repository</strong> on GitHub</li>
+        <li>Open a <strong>new Issue</strong></li>
+        <li>Use the title prefix <strong>"Environment Request:"</strong></li>
+        <li>Describe what your environment needs (tools, configs, permissions, etc.)</li>
+      </ol>
+      <div style="margin:12px 0 0 0">
+        <a href="https://github.com/Dylan-BI/MUE/issues/new" target="_blank" style="display:inline-block;padding:10px 20px;background:#6c63ff;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:500">📬 Open GitHub Issue</a>
+      </div>
+    </div>
+    <div class="env-actions">
+      <button onclick="showEnvironmentUpdateOptions()">🔙 Back to Options</button>
+      <button class="secondary" onclick="confirmEnvironmentAdequate()">✅ I'll Continue Anyway</button>
+    </div>`;
+}
+
 function renderLevelProgressionSidebar() {
   const prog = getLevelProgression();
   if (!prog || !prog.levels) return '';
@@ -1069,6 +1224,7 @@ async function loadData() {
   renderAll();
   updateSidebarLevelButtons();
   startAutoRefresh();
+  checkEnvironment();
 }
 
 function updateSidebar() {
