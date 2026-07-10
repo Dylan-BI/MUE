@@ -698,7 +698,6 @@
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
       <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙 <span class="theme-icon">Dark</span></button>
-      <button class="theme-btn" id="reviewerModeToggle" onclick="toggleReviewerMode()" title="Toggle reviewer mode — bypass level locks and view full curriculum" style="border-color:#6c63ff">🔍 <span id="reviewerModeLabel">Reviewer</span></button>
     </div>
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
@@ -746,13 +745,9 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 const THEME_KEY = 'mue_dashboard_theme';
 const START_DATE_KEY = 'mue_curriculum_start_date';
-const REVIEWER_MODE_KEY = 'mue_reviewer_mode';
-
 function getStoredTheme() { try { return localStorage.getItem(THEME_KEY); } catch { return null; } }
 function getStoredStartDate() { try { return localStorage.getItem(START_DATE_KEY); } catch { return null; } }
 function setStoredStartDate(d) { try { if (d) localStorage.setItem(START_DATE_KEY, d); else localStorage.removeItem(START_DATE_KEY); } catch {} }
-function getStoredReviewerMode() { try { return localStorage.getItem(REVIEWER_MODE_KEY) === 'true'; } catch { return false; } }
-function setStoredReviewerMode(v) { try { localStorage.setItem(REVIEWER_MODE_KEY, v ? 'true' : 'false'); } catch {} }
 
 function getPreferredTheme() {
   const stored = getStoredTheme();
@@ -894,7 +889,7 @@ function renderLevelProgressionSidebar() {
   let html = '<div style="margin:8px 0;padding:8px;background:var(--sidebar-hover-bg);border-radius:6px;border:1px solid var(--sidebar-level-btn-border)">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
     '<span style="font-size:10px;color:var(--sidebar-footer-text);font-weight:600">📊 Level Progression</span>' +
-    (REVIEWER_MODE ? '<span style="font-size:9px;color:#6c63ff;background:#6c63ff22;padding:1px 6px;border-radius:4px;font-weight:600">🔍 Reviewer</span>' : '') +
+    '<span style="font-size:9px;color:#6c63ff;background:#6c63ff22;padding:1px 6px;border-radius:4px;font-weight:600">🔍 Reviewer</span>' +
     '</div>';
   
   for (let l = 1; l <= 4; l++) {
@@ -910,8 +905,7 @@ function renderLevelProgressionSidebar() {
     
     let statusIcon = '';
     let statusColor = '';
-    if (isLocked && !REVIEWER_MODE) { statusIcon = '🔒'; statusColor = '#666'; }
-    else if (isComplete) { statusIcon = '✅'; statusColor = '#198754'; }
+    if (isComplete) { statusIcon = '✅'; statusColor = '#198754'; }
     else if (inProgress) { statusIcon = '📝'; statusColor = 'var(--accent-hue)'; }
     else { statusIcon = '⏳'; statusColor = '#888'; }
     
@@ -921,7 +915,7 @@ function renderLevelProgressionSidebar() {
       '<span style="width:18px;text-align:center">' + statusIcon + '</span>' +
       '<span style="flex:1">' + emoji + ' L' + l + ' <span style="opacity:0.7">' + lvlData.label + '</span></span>' +
       '<span style="font-size:10px;opacity:0.7">' + days + '/28 · ' + startDate + '</span>' +
-      (isLocked && REVIEWER_MODE ? '<span style="font-size:9px;color:#6c63ff;opacity:0.8">👁️ Preview</span>' : '') +
+      (isLocked ? '<span style="font-size:9px;color:#6c63ff;opacity:0.8">👁️ Preview</span>' : '') +
       '</div>';
   }
   
@@ -955,7 +949,6 @@ function resetStartDate() {
    ═══════════════════════════════════════════════════════════════════════════ */
 let DATA = null;
 let LAST_GENERATED = null;
-let REVIEWER_MODE = getStoredReviewerMode();
 const REVIEW_EMAIL = 'dylan@bicyclebi.com';
 const CLS_COLORS = {
   'foundational': getComputedStyle(document.documentElement).getPropertyValue('--cls-foundational').trim() || '#8e90a6',
@@ -1057,16 +1050,6 @@ async function loadData() {
   }
   LAST_GENERATED = DATA.generated;
   
-  // Initialize reviewer mode button styling
-  const revBtn = document.getElementById('reviewerModeToggle');
-  const revLabel = document.getElementById('reviewerModeLabel');
-  if (revBtn && revLabel && REVIEWER_MODE) {
-    revBtn.style.background = '#6c63ff';
-    revBtn.style.color = '#fff';
-    revBtn.style.borderColor = '#6c63ff';
-    revLabel.textContent = 'Reviewer ✓';
-  }
-  
   applyStartDateOverride();
   initStartDateUI();
   updateSidebar();
@@ -1156,13 +1139,6 @@ function updateSidebar() {
   }
 }
 
-function toggleReviewerMode() {
-  REVIEWER_MODE = !REVIEWER_MODE;
-  setStoredReviewerMode(REVIEWER_MODE);
-  // Reload to re-render with correct reviewer state (empty state vs dashboard)
-  location.reload();
-}
-
 function updateSidebarLevelButtons() {
   const prog = getLevelProgression();
   if (!prog || !prog.levels) return;
@@ -1171,12 +1147,8 @@ function updateSidebarLevelButtons() {
     const lvl = parseInt(btn.dataset.level);
     const li = prog.levels[lvl];
     const isLocked = li && !li.is_unlocked;
-    // Reviewer mode bypasses level lock dimming
-    if (isLocked && !REVIEWER_MODE) {
-      btn.style.opacity = '0.4';
-    } else {
-      btn.style.opacity = '1';
-    }
+    // Reviewers always have full access to all levels
+    btn.style.opacity = '1';
   });
 }
 
@@ -1201,18 +1173,8 @@ function startAutoRefresh() {
    LEVEL-AWARE CURRICULUM REVIEW (4 levels × 8 categories × 28 working days)
    ═══════════════════════════════════════════════════════════════════════════ */
 function setLevel(level) {
-  // Check if this level is unlocked (reviewer mode bypasses lock)
-  const prog = getLevelProgression();
-  const li = prog && prog.levels ? prog.levels[level] : null;
-  if (li && !li.is_unlocked && !REVIEWER_MODE) {
-    const prev = level - 1;
-    const prevLi = prog && prog.levels ? prog.levels[prev] : null;
-    const prevDays = prevLi ? prevLi.days_completed : 0;
-    alert('🔒 Level ' + level + ' is locked.\n\nComplete Level ' + prev + ' first (' + prevDays + '/28 days completed).\n\n💡 Enable Reviewer Mode in the sidebar to view all levels.');
-    return;
-  }
-
   CURRENT_LEVEL = level;
+  const prog = getLevelProgression();
 
   // Update sidebar level buttons
   const sidebarBtns = document.querySelectorAll('.sidebar-level-btn');
@@ -1229,7 +1191,7 @@ function setLevel(level) {
     } else if (isLocked) {
       btn.style.borderColor = '#3a3a5a';
       btn.style.background = 'transparent';
-      btn.style.opacity = '0.4';
+      btn.style.opacity = '1';
     } else {
       btn.style.borderColor = '#3a3a5a';
       btn.style.background = 'transparent';
@@ -1648,19 +1610,16 @@ function renderAll() {
       '🔄 Auto-refreshes every 30 minutes &middot; ' +
       'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
     
-    // When reviewer mode is active, also show the curriculum framework
-    if (REVIEWER_MODE) {
-      emptyHtml += '<div style="max-width:900px;margin:0 auto">' +
-        renderLearnerFulfillmentInfographic() +
-        '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="' +
-        "var body=this.parentElement.querySelector('.full-curriculum-body');" +
-        "if(body){var show=body.style.display!='block';body.style.display=show?'block':'none';var toggle=this.querySelector('.fc-toggle');" +
-        "if(toggle)toggle.textContent=show?'[-]':'[+]';}" +
-        '">📖 Full Curriculum — All 4 Levels <span class="fc-toggle" style="font-size:12px;color:var(--accent);font-weight:400">[+]</span></h3>' +
-        '<div class="full-curriculum-body" style="display:none">' +
-        renderFullCurriculumOverview() +
-        '</div></div></div>';
-    }
+    emptyHtml += '<div style="max-width:900px;margin:0 auto">' +
+      renderLearnerFulfillmentInfographic() +
+      '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="' +
+      "var body=this.parentElement.querySelector('.full-curriculum-body');" +
+      "if(body){var show=body.style.display!='block';body.style.display=show?'block':'none';var toggle=this.querySelector('.fc-toggle');" +
+      "if(toggle)toggle.textContent=show?'[-]':'[+]';}" +
+      '">📖 Full Curriculum — All 4 Levels <span class="fc-toggle" style="font-size:12px;color:var(--accent);font-weight:400">[+]</span></h3>' +
+      '<div class="full-curriculum-body" style="display:none">' +
+      renderFullCurriculumOverview() +
+      '</div></div></div>';
     
     document.getElementById('main').innerHTML = emptyHtml;
     // Always create the reviewer's guide page so the nav link works even without data
@@ -3371,7 +3330,7 @@ function renderLearnerFulfillmentInfographic() {
   }
   
   html += '<div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:center">' +
-    '💡 Enable <strong>Reviewer Mode</strong> in the sidebar to browse all levels and preview locked content.</div>' +
+    '� Reviewers have full access to all levels — locked levels can be previewed with 👁️ Preview badges.</div>' +
     '</div>';
   
   return html;
@@ -3432,23 +3391,23 @@ function renderReviewersGuide() {
     'Each level has its own set of 7 learning categories with adjusted descriptions and skills appropriate to that tier.</p>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
     'The sidebar shows a <strong>Level Progression</strong> widget with the status of each level: ' +
-    '⏳ Not Started · 📝 In Progress · ✅ Complete · 🔒 Locked (learner view).</p></div>';
+    '⏳ Not Started · 📝 In Progress · ✅ Complete · 🔒 Locked (requires prerequisite).</p></div>';
 
-  // ══════ 4. REVIEWER MODE ══════
+  // ══════ 4. DASHBOARD CAPABILITIES ══════
   html += '<div class="card" style="border-left:4px solid #6c63ff;background:var(--bg-accent-subtle)">' +
-    '<h3>🔍 Using Reviewer Mode</h3>' +
+    '<h3>🔍 Dashboard Capabilities</h3>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
-    '<strong>Reviewer Mode</strong> is a toggle in the sidebar (next to the theme button) that gives you full access to all 4 levels, ' +
-    'bypassing the learner\'s level locks. When active:</p>' +
+    'This dashboard is designed exclusively for <strong>third-party reviewers</strong>. You have full access to all 4 levels ' +
+    'at all times, bypassing the learner\'s level locks. Key capabilities:</p>' +
     '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
-    '<li>🔒 locked levels become <strong>⏳ 👁️ Preview</strong> — you can view their content</li>' +
-    '<li>Clicking a locked level shows the curriculum instead of an alert</li>' +
-    '<li>The <strong>Full Curriculum — All 4 Levels</strong> section becomes accessible in the empty state</li>' +
+    '<li>🔒 locked levels display as <strong>⏳ 👁️ Preview</strong> — you can view their content freely</li>' +
+    '<li>Clicking any level button shows its curriculum without restriction</li>' +
+    '<li>The <strong>Full Curriculum — All 4 Levels</strong> section is always accessible in the empty state</li>' +
     '<li>The <strong>Learner Input Fulfillment</strong> infographic appears even when no learner data exists</li>' +
-    '<li>Your mode preference is saved in your browser (persists across page loads)</li>' +
+    '<li>All level-lock alerts are suppressed — browse the entire curriculum framework instantly</li>' +
     '</ul>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    '💡 <strong>Tip:</strong> Enable Reviewer Mode when you want to preview future-level content or browse the full curriculum framework.</p></div>';
+    '💡 <strong>Tip:</strong> Use the 👁️ Preview badges on locked levels to quickly identify content that the learner hasn\'t yet reached.</p></div>';
 
   // ══════ 5. REVIEWING ARTIFACTS ══════
   html += '<div class="card"><h3>💬 How to Review Artifacts</h3>' +
@@ -3484,8 +3443,8 @@ function renderReviewersGuide() {
     'let you switch the active curriculum level. This affects what content is shown in the <strong>Curriculum Review</strong> page ' +
     'and which skills/categories are displayed across the dashboard.</p>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    'The active level is highlighted with its theme color. When <strong>Reviewer Mode</strong> is off and a level is locked, ' +
-    'the button is dimmed and clicking it shows an alert. Enable <strong>Reviewer Mode</strong> to browse freely.</p></div>';
+    'The active level is highlighted with its theme color. As a reviewer, locked levels show <strong>👁️ Preview</strong> badges ' +
+    'and remain fully clickable — you can browse freely without restrictions.</p></div>';
 
   // ══════ 8. SYNC & REFRESH ══════
   html += '<div class="card"><h3>🔄 Sync & Auto-Refresh</h3>' +
@@ -3519,7 +3478,7 @@ function renderReviewersGuide() {
     '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>📝 In Progress</strong><br><span style="color:var(--text-muted)">Learner has submitted some artifacts</span></div>' +
     '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>✅ Complete</strong><br><span style="color:var(--text-muted)">28/28 days — level passed</span></div>' +
     '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>🔒 Locked</strong><br><span style="color:var(--text-muted)">Prior level not yet complete (learner view)</span></div>' +
-    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>👁️ Preview</strong><br><span style="color:var(--text-muted)">Reviewer Mode — browse locked content</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>👁️ Preview</strong><br><span style="color:var(--text-muted)">Locked level — reviewers can preview content</span></div>' +
     '</div></div>';
 
   // ══════ 11. CURRENT STATE ══════
@@ -3538,7 +3497,7 @@ function renderReviewersGuide() {
     '<h3>💡 Tips for Effective Review</h3>' +
     '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
     '<li><strong>Start with Overview</strong> — get a high-level sense of learner progress before diving into details</li>' +
-    '<li><strong>Use Reviewer Mode</strong> to preview the full curriculum and understand what\'s coming next</li>' +
+    '<li><strong>Browse all levels freely</strong> — locked levels show 👁️ Preview badges; click any level button to explore its curriculum</li>' +
     '<li><strong>Review per artifact</strong> — click 💬 on individual notes, evidence files, and scorecard areas for targeted feedback</li>' +
     '<li><strong>Check the Codex Gate</strong> — all 6 gates must pass before the learner can advance to the next level</li>' +
     '<li><strong>Sync your reviews</strong> — use 📤 Run Sync to download your feedback and submit it to the repo</li>' +
