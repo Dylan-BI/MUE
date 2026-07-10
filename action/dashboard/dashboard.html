@@ -1775,18 +1775,26 @@ function renderAll() {
       '🔄 Auto-refreshes every 30 minutes &middot; ' +
       'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
     
-    emptyHtml += '<div style="max-width:900px;margin:0 auto">' +
-      renderLearnerFulfillmentInfographic() +
-      '<div class="card"><h3 style="cursor:pointer;user-select:none" onclick="' +
-      "var body=this.parentElement.querySelector('.full-curriculum-body');" +
-      "if(body){var show=body.style.display!='block';body.style.display=show?'block':'none';var toggle=this.querySelector('.fc-toggle');" +
-      "if(toggle)toggle.textContent=show?'[-]':'[+]';}" +
-      '">📖 Full Curriculum — All 4 Levels <span class="fc-toggle" style="font-size:12px;color:var(--accent);font-weight:400">[+]</span></h3>' +
-      '<div class="full-curriculum-body" style="display:none">' +
-      renderFullCurriculumOverview() +
-      '</div></div></div>';
-    
     document.getElementById('main').innerHTML = emptyHtml;
+    // Always create the curriculum review page (independent of learner data)
+    const srcCrit = DATA.source_criteria || [];
+    const srcCritHtml = srcCrit.length ? '<div class="card"><h3>📖 Source Criteria Reference</h3><p class="caption">Training reference files from <code>source/</code> that define what learners need to learn and do:</p>' +
+      '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>View</th></tr></thead><tbody>' +
+      srcCrit.map(f => {
+        const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
+        const fPath = f.path.replace(/\\/g,'/');
+        const viewBtn = '<span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewSourceFile(\'' + escHtml(fPath).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>';
+        return '<tr><td class="fp">' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td>' + viewBtn + '</td></tr>';
+      }).join('') +
+      '</tbody></table></div>' : '';
+    addPage('curriculum-review',
+      '<h2>📚 Curriculum Review</h2>' +
+      '<p class="subtitle" id="curriculumSubtitle">Full curriculum scope — 4 proficiency levels (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), 8 learning categories, 28 days per level, 112 days total.</p>' +
+      '<div class="card"><h3>📖 Full Curriculum — All 4 Levels</h3>' +
+      renderFullCurriculumOverview() +
+      '</div>' +
+      srcCritHtml
+    );
     // Always create the reviewer's guide page so the nav link works even without data
     addPage('reviewers-guide', renderReviewersGuide());
     // Update sidebar to show empty state info
