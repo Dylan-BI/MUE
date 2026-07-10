@@ -673,10 +673,10 @@
     <span>Third-Party Review Dashboard — track changes, review progress, sync to review/</span>
   </div>
   <div class="sidebar-level" id="sidebarLevel">
-    <div class="sidebar-level-btn active" data-level="1" onclick="setLevel(1)" style="border-color:#4CAF50;background:#4CAF50"><span class="lvl-emoji">🌱</span><span class="lvl-num">L1</span></div>
-    <div class="sidebar-level-btn" data-level="2" onclick="setLevel(2)" style="border-color:#2196F3"><span class="lvl-emoji">🌿</span><span class="lvl-num">L2</span></div>
-    <div class="sidebar-level-btn" data-level="3" onclick="setLevel(3)" style="border-color:#FF9800"><span class="lvl-emoji">🌳</span><span class="lvl-num">L3</span></div>
-    <div class="sidebar-level-btn" data-level="4" onclick="setLevel(4)" style="border-color:#9C27B0"><span class="lvl-emoji">🏆</span><span class="lvl-num">L4</span></div>
+    <div class="sidebar-level-btn active" data-level="1" onclick="setLevel(1)" style="border-color:#4CAF50;background:#4CAF50"><span class="lvl-emoji">🌱</span><span class="lvl-num">L1 · Foundation</span></div>
+    <div class="sidebar-level-btn" data-level="2" onclick="setLevel(2)" style="border-color:#2196F3"><span class="lvl-emoji">🌿</span><span class="lvl-num">L2 · Development</span></div>
+    <div class="sidebar-level-btn" data-level="3" onclick="setLevel(3)" style="border-color:#FF9800"><span class="lvl-emoji">🌳</span><span class="lvl-num">L3 · Operational</span></div>
+    <div class="sidebar-level-btn" data-level="4" onclick="setLevel(4)" style="border-color:#9C27B0"><span class="lvl-emoji">🏆</span><span class="lvl-num">L4 · Mastery</span></div>
   </div>
   <div class="nav" id="nav">
     <a class="active" data-page="overview"        onclick="showPage('overview')">📋 Overview <span class="nav-badge" id="badge-overview">0</span></a>
@@ -711,10 +711,11 @@
       </div>
       <div id="sidebarCurrStatus" style="font-size:10px;margin-top:2px;color:var(--text-muted)"></div>
     </div>
+    <div id="sidebarLevelProgression"></div>
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
     <button class="refresh-btn" style="margin-top:4px;background:#198754" onclick="runSync()">📤 Run Sync</button>
     <div class="sidebar-settings">
-      <label>📅 Course Start Date</label>
+      <label>📅 Level 1 Start Date Override</label>
       <input type="date" id="startDateInput" />
       <div class="settings-actions">
         <button class="settings-btn save" onclick="saveStartDate()">Save</button>
@@ -787,16 +788,34 @@ function toggleTheme() {
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CURRICULUM START DATE — Dynamic override via localStorage
-   The learner can set a custom start date for the 28-day course.
-   This overrides the auto-detected date from notes in data.json.
+   LEVEL PROGRESSION & START DATES — Dynamic detection from learner artifacts
+   
+   The start date for each level is auto-detected from the earliest learner
+   artifact (note/evidence/report) in the action/ or archive/ directories.
+   Level N+1 is locked until Level N completes all 28 working days.
    ═══════════════════════════════════════════════════════════════════════════ */
+function getLevelProgression() {
+  return (DATA && DATA.summary && DATA.summary.level_progression) || null;
+}
+
+function getLevelInfo(level) {
+  const prog = getLevelProgression();
+  if (!prog || !prog.levels) return null;
+  return prog.levels[level] || null;
+}
+
 function applyStartDateOverride() {
   if (!DATA || !DATA.summary) return;
   const stored = getStoredStartDate();
+  const prog = getLevelProgression();
   if (stored) {
     DATA.summary.curriculum_start_date = stored;
     DATA.summary.curriculum_start_source = 'learner_override';
+    // Also update level_progression for Level 1
+    if (prog && prog.levels && prog.levels[1]) {
+      prog.levels[1].start_date = stored;
+      prog.overall_start_date = stored;
+    }
     // Recalculate calendar metrics based on override date
     const start = new Date(stored + 'T00:00:00');
     const today = new Date();
@@ -833,17 +852,69 @@ function initStartDateUI() {
   if (!input || !DATA || !DATA.summary) return;
   const stored = getStoredStartDate();
   const source = DATA.summary.curriculum_start_source;
+  const prog = getLevelProgression();
+  const currentLevel = prog ? prog.current_level : 1;
+  
   input.value = stored || DATA.summary.curriculum_start_date || '';
+  
+  let statusMsg = '';
+  let statusColor = 'var(--text-sidebar-muted)';
+  
   if (stored) {
-    status.textContent = '✅ Override active (saved locally)';
-    status.style.color = 'var(--success-hue)';
+    statusMsg = '✅ Override active (saved locally)';
+    statusColor = 'var(--success-hue)';
   } else if (source === 'learner_config') {
-    status.textContent = '📄 From learner_config.json';
-    status.style.color = 'var(--info-hue)';
+    statusMsg = '📄 From learner_config.json';
+    statusColor = 'var(--info-hue)';
+  } else if (source === 'auto_detected_from_artifacts') {
+    statusMsg = '🔍 Auto-detected (Level ' + currentLevel + ' active)';
+    statusColor = 'var(--accent-hue)';
   } else {
-    status.textContent = '🔍 Auto-detected from Day 1 note';
-    status.style.color = 'var(--text-sidebar-muted)';
+    statusMsg = '🔍 Auto-detected from learner artifacts';
+    statusColor = 'var(--text-sidebar-muted)';
   }
+  
+  status.textContent = statusMsg;
+  status.style.color = statusColor;
+}
+
+function renderLevelProgressionSidebar() {
+  const prog = getLevelProgression();
+  if (!prog || !prog.levels) return '';
+  const levels = DATA.levels || {};
+  const currLevel = prog.current_level || 1;
+  
+  let html = '<div style="margin:8px 0;padding:8px;background:var(--sidebar-hover-bg);border-radius:6px;border:1px solid var(--sidebar-level-btn-border)">';
+  html += '<div style="font-size:10px;color:var(--sidebar-footer-text);margin-bottom:4px;font-weight:600">📊 Level Progression</div>';
+  
+  for (let l = 1; l <= 4; l++) {
+    const li = prog.levels[l] || {};
+    const lvlData = levels[l] || {};
+    const emoji = lvlData.emoji || '';
+    const isActive = l === currLevel;
+    const isLocked = !li.is_unlocked;
+    const isComplete = li.is_completed;
+    const inProgress = li.in_progress;
+    const days = li.days_completed || 0;
+    const startDate = li.start_date ? li.start_date.slice(5) : '—';
+    
+    let statusIcon = '';
+    let statusColor = '';
+    if (isLocked) { statusIcon = '🔒'; statusColor = '#666'; }
+    else if (isComplete) { statusIcon = '✅'; statusColor = '#198754'; }
+    else if (inProgress) { statusIcon = '📝'; statusColor = 'var(--accent-hue)'; }
+    else { statusIcon = '⏳'; statusColor = '#888'; }
+    
+    html += '<div style="display:flex;align-items:center;gap:4px;padding:3px 4px;border-radius:4px;' +
+      (isActive ? 'background:rgba(124,115,255,0.12);' : '') +
+      'font-size:11px;color:' + statusColor + '">' +
+      '<span style="width:18px;text-align:center">' + statusIcon + '</span>' +
+      '<span style="flex:1">' + emoji + ' L' + l + ' <span style="opacity:0.7">' + lvlData.label + '</span></span>' +
+      '<span style="font-size:10px;opacity:0.7">' + days + '/28 · ' + startDate + '</span></div>';
+  }
+  
+  html += '</div>';
+  return html;
 }
 
 function saveStartDate() {
@@ -976,6 +1047,7 @@ async function loadData() {
   initStartDateUI();
   updateSidebar();
   renderAll();
+  updateSidebarLevelButtons();
   startAutoRefresh();
 }
 
@@ -1052,6 +1124,26 @@ function updateSidebar() {
   } else if (currBar) {
     currBar.style.display = 'none';
   }
+
+  // ── Sidebar level progression widget ──
+  const lvlProgEl = document.getElementById('sidebarLevelProgression');
+  if (lvlProgEl) {
+    lvlProgEl.innerHTML = renderLevelProgressionSidebar();
+  }
+}
+
+function updateSidebarLevelButtons() {
+  const prog = getLevelProgression();
+  if (!prog || !prog.levels) return;
+  const sidebarBtns = document.querySelectorAll('.sidebar-level-btn');
+  sidebarBtns.forEach(btn => {
+    const lvl = parseInt(btn.dataset.level);
+    const li = prog.levels[lvl];
+    const isLocked = li && !li.is_unlocked;
+    if (isLocked) {
+      btn.style.opacity = '0.4';
+    }
+  });
 }
 
 let refreshInterval = null;
@@ -1075,6 +1167,17 @@ function startAutoRefresh() {
    LEVEL-AWARE CURRICULUM REVIEW (4 levels × 8 categories × 28 working days)
    ═══════════════════════════════════════════════════════════════════════════ */
 function setLevel(level) {
+  // Check if this level is unlocked
+  const prog = getLevelProgression();
+  const li = prog && prog.levels ? prog.levels[level] : null;
+  if (li && !li.is_unlocked) {
+    const prev = level - 1;
+    const prevLi = prog && prog.levels ? prog.levels[prev] : null;
+    const prevDays = prevLi ? prevLi.days_completed : 0;
+    alert('🔒 Level ' + level + ' is locked.\n\nComplete Level ' + prev + ' first (' + prevDays + '/28 days completed).');
+    return;
+  }
+
   CURRENT_LEVEL = level;
 
   // Update sidebar level buttons
@@ -1082,14 +1185,21 @@ function setLevel(level) {
   sidebarBtns.forEach(btn => {
     const lvl = parseInt(btn.dataset.level);
     const lvlData = (DATA.levels || {})[lvl] || {};
-    const isActive = lvl === level;
+    const lvlInfo = prog && prog.levels ? prog.levels[lvl] : null;
+    const isLocked = lvlInfo && !lvlInfo.is_unlocked;
+    const isActive = lvl === level && !isLocked;
     btn.classList.toggle('active', isActive);
     if (isActive) {
       btn.style.borderColor = lvlData.color || '#6c63ff';
       btn.style.background = lvlData.color || '#6c63ff';
+    } else if (isLocked) {
+      btn.style.borderColor = '#3a3a5a';
+      btn.style.background = 'transparent';
+      btn.style.opacity = '0.4';
     } else {
       btn.style.borderColor = '#3a3a5a';
       btn.style.background = 'transparent';
+      btn.style.opacity = '1';
     }
   });
 

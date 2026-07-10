@@ -76,6 +76,136 @@ PAT_EVIDENCE = re.compile(r'What evidence I produced:\*?\*?\s*(.+)', re.IGNORECA
 PAT_REMAINS = re.compile(r'What remains open:\*?\*?\s*(.+)', re.IGNORECASE)
 PAT_NEXT_STEP = re.compile(r'Next narrow step:\*?\*?\s*(.+)', re.IGNORECASE)
 PAT_WEEK_NUMBER = re.compile(r'Week Number:\*?\*?\s*(\d+)')
+PAT_LEVEL = re.compile(r'Level:\*?\*?\s*(\d+)')
+
+# ── Level framework ────────────────────────────────────────────────────────
+LEVEL_DAYS = 28  # working days per curriculum level
+
+
+# ── Level progression helpers ─────────────────────────────────────────────
+def detect_earliest_learner_artifact():
+    """
+    Scan all learner artifact directories (notes, evidence, reports) in both
+    action/ and archive/ to find the earliest date any artifact was created.
+    
+    This is the true dynamic start date — determined by when the learner
+    first provided curriculum fulfillment input, not by a config file.
+    """
+    earliest = None
+    
+    # 1) Note filenames are YYYY-MM-DD.md — parse directly
+    for d in [NOTES_DIR, NOTES_ARCHIVE_DIR]:
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            if f.endswith('.md') and not f.startswith('.'):
+                try:
+                    dt = datetime.strptime(f.replace('.md', ''), '%Y-%m-%d').date()
+                    if earliest is None or dt < earliest:
+                        earliest = dt
+                except ValueError:
+                    pass
+    
+    # 2) Evidence & report files — use modification time as proxy
+    for d in [EVIDENCE_DIR, REPORTS_DIR, EVIDENCE_ARCHIVE_DIR, REPORTS_ARCHIVE_DIR]:
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            if f == '.gitkeep' or f.startswith('.'):
+                continue
+            fp = os.path.join(d, f)
+            try:
+                mtime = datetime.fromtimestamp(os.path.getmtime(fp)).date()
+                if earliest is None or mtime < earliest:
+                    earliest = mtime
+            except Exception:
+                pass
+    
+    return earliest.isoformat() if earliest else None
+
+
+def detect_level_progression(notes):
+    """
+    Detect level progression from learner notes.
+    
+    Each level has LEVEL_DAYS (28) working days of curriculum content.
+    Level 1 starts on the date of the earliest learner artifact.
+    Level N+1 can only begin after Level N is completed (all 28 days done).
+    
+    Returns a dict:
+    {
+        'current_level': 1..4,
+        'overall_start_date': '2026-06-15' or None,
+        'levels': {
+            1: { 'start_date': ..., 'completion_date': ..., 'days_completed': N,
+                 'days_required': 28, 'is_unlocked': True, 'is_completed': bool,
+                 'in_progress': bool },
+            2: { ... },
+            3: { ... },
+            4: { ... },
+        }
+    }
+    """
+    from collections import defaultdict
+    
+    # Group notes by level (default to Level 1 if no level field)
+    level_notes = defaultdict(list)
+    for n in notes:
+        lvl = n.get('level', 1)
+        if lvl < 1 or lvl > 4:
+            lvl = 1
+        level_notes[lvl].append(n)
+    
+    levels_info = {}
+    current_level = 1
+    overall_start = None
+    
+    for lvl in range(1, 5):
+        l_notes = level_notes.get(lvl, [])
+        days_completed = len(l_notes)
+        
+        # Start date: earliest note date for this level
+        start_date = None
+        last_date = None
+        if l_notes:
+            dates = sorted(filter(None, (n.get('date') for n in l_notes)))
+            if dates:
+                start_date = dates[0]
+                last_date = dates[-1]
+        
+        is_completed = days_completed >= LEVEL_DAYS
+        in_progress = bool(l_notes) and not is_completed
+        
+        # Unlock logic: Level 1 always unlocked; others need prior level complete
+        if lvl == 1:
+            is_unlocked = True
+        else:
+            prev = levels_info.get(lvl - 1, {})
+            is_unlocked = prev.get('is_completed', False)
+        
+        # Track current level as highest level with any notes
+        if l_notes:
+            current_level = lvl
+        
+        levels_info[lvl] = {
+            'start_date': start_date,
+            'completion_date': last_date,
+            'days_completed': days_completed,
+            'days_required': LEVEL_DAYS,
+            'is_unlocked': is_unlocked,
+            'is_completed': is_completed,
+            'in_progress': in_progress,
+        }
+        
+        if start_date and (overall_start is None or start_date < overall_start):
+            overall_start = start_date
+    
+    return {
+        'current_level': current_level,
+        'overall_start_date': overall_start,
+        'levels': levels_info,
+    }
+
 
 SCORE_AREAS = [
     'Prompt discipline',
@@ -602,6 +732,13 @@ def parse_note(filepath):
     if m:
         note['week_number'] = int(m.group(1))
 
+    m = PAT_LEVEL.search(content)
+    if m:
+        note['level'] = int(m.group(1))
+    else:
+        # Backward compatible: notes without Level field default to Level 1
+        note['level'] = 1
+
     for area in SCORE_AREAS:
         p = re.compile(rf'{re.escape(area)}:\s*(Pass|Partial|Fail)', re.IGNORECASE)
         m = p.search(content)
@@ -736,12 +873,20 @@ def compute_summary(notes):
                 if n['day_number']:
                     proof_tasks[pt_id]['days'].append(n['day_number'])
 
-    # ── Curriculum start date & calendar-aware progress ──
+    # ── Dynamic level progression detection ──
+    # Primary method: detect start dates from earliest learner artifacts.
+    # This replaces the old config-first approach with true dynamic detection
+    # based on when the learner first submitted curriculum fulfillment artifacts.
     today = date.today()
+    level_progression = detect_level_progression(notes)
+    earliest_artifact = detect_earliest_learner_artifact()
 
-    # 1) Check learner_config.json for manual override
+    # For backward compatibility, populate curriculum_start_date from detection.
+    # Priority: 1) learner_config.json override, 2) earliest artifact, 3) level_1 start
     curriculum_start_date = None
-    _start_source = 'auto_detected'
+    _start_source = 'auto_detected_from_artifacts'
+
+    # 1) Check learner_config.json for manual override (kept for backwards compat)
     if os.path.exists(LEARNER_CONFIG_PATH):
         try:
             with open(LEARNER_CONFIG_PATH, 'r', encoding='utf-8') as f:
@@ -751,23 +896,31 @@ def compute_summary(notes):
                 datetime.strptime(cfg_date, '%Y-%m-%d')  # validate format
                 curriculum_start_date = cfg_date
                 _start_source = 'learner_config'
-                print(f'  📅 Using learner-configured start date: {curriculum_start_date}')
+                print(f'  📅 Using learner-configured start date (override): {curriculum_start_date}')
         except (json.JSONDecodeError, ValueError, OSError) as e:
             print(f'  ⚠️  Warning: could not read learner_config.json: {e}')
 
-    # 2) Fall back to auto-detect from notes
+    # 2) Auto-detect from earliest artifact across all learner dirs
+    if not curriculum_start_date and earliest_artifact:
+        curriculum_start_date = earliest_artifact
+        _start_source = 'auto_detected_from_artifacts'
+        print(f'  📅 Dynamic start date from earliest learner artifact: {curriculum_start_date}')
+
+    # 3) Fall back to Level 1 note detection
     if not curriculum_start_date:
-        for n in notes:
-            if n.get('day_number') == 1 and n.get('date'):
-                curriculum_start_date = n['date']
-                print(f'  📅 Auto-detected start date from Day 1 note: {curriculum_start_date}')
-                break
-    if not curriculum_start_date:
-        for n in notes:
-            if n.get('date'):
-                curriculum_start_date = n['date']
-                print(f'  📅 Fallback start date from first note: {curriculum_start_date}')
-                break
+        l1_info = level_progression.get('levels', {}).get(1, {})
+        if l1_info.get('start_date'):
+            curriculum_start_date = l1_info['start_date']
+            _start_source = 'auto_detected_from_level_1_notes'
+            print(f'  📅 Fallback start date from Level 1 notes: {curriculum_start_date}')
+
+    # If we have a config override, propagate it into level_progression
+    if _start_source == 'learner_config' and curriculum_start_date:
+        lvl_info = level_progression.get('levels', {}).get(1, {})
+        if lvl_info:
+            if not lvl_info['start_date']:
+                lvl_info['start_date'] = curriculum_start_date
+        level_progression['overall_start_date'] = curriculum_start_date
 
     curriculum_current_day = max((n.get('day_number') or 0) for n in notes)
 
@@ -854,6 +1007,8 @@ def compute_summary(notes):
         'calendar_status': calendar_status,
         'week_progress': week_progress,
         'learner_level': learner_level,
+        'level_progression': level_progression,
+        'earliest_artifact_date': earliest_artifact,
         'today': today.isoformat(),
     }
 
@@ -1126,6 +1281,15 @@ def main():
     notes_clean = []
     for n in notes:
         notes_clean.append({k: v for k, v in n.items() if k != 'filepath'})
+
+    # Emit level progression info for dashboard
+    print(f'  \U0001f9d1\u200d\U0001f393 Learner Level: {summary.get("level_progression", {}).get("current_level", 1)}')
+    for lvl in range(1, 5):
+        li = summary.get('level_progression', {}).get('levels', {}).get(lvl, {})
+        status = '\u2705 Complete' if li.get('is_completed') else ('\U0001f4dd In progress' if li.get('in_progress') else ('\U0001f512 Locked' if not li.get('is_unlocked') else '\u23f3 Not started'))
+        print(f'    Level {lvl}: {li.get("days_completed", 0)}/{li.get("days_required", 28)} days {status}')
+        if li.get('start_date'):
+            print(f'      Start: {li["start_date"]}')
 
     data = {
         'generated': datetime.now().isoformat(),

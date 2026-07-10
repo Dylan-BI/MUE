@@ -1,5 +1,5 @@
 {
   "curriculum_start_date": null,
   "learner_name": null,
-  "notes": "Set curriculum_start_date to a YYYY-MM-DD value to override the auto-detected start date. Set to null to auto-detect from Day 1 note."
+  "notes": "DYNAMIC START DATE: Level 1 start date is auto-detected from the earliest learner artifact (note/evidence/report) in action/ or archive/. Level 2-4 unlock sequentially after prior level completes 28 working days. Set curriculum_start_date to a YYYY-MM-DD value to override auto-detection."
 }

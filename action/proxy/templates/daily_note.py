@@ -19,8 +19,8 @@ The output format must include these exact patterns:
 """
 
 from action.proxy.curriculum import (
-    CURRICULUM, SCORE_AREAS, CODEX_GATES,
-    get_classification, get_primary_track,
+    CURRICULUM, SCORE_AREAS, CODEX_GATES, LEVEL_DAYS,
+    get_classification, get_primary_track, get_level_for_day,
 )
 
 
@@ -299,6 +299,7 @@ def build_note_content(date: str, day_number: int) -> str:
 
     classification = get_classification(day_number)
     primary_track = get_primary_track(day_number)
+    level = get_level_for_day(day_number)
     focus = entry['focus']
     week_number = entry['week_number']
     required_artifact = entry['required_artifact']
@@ -323,6 +324,7 @@ def build_note_content(date: str, day_number: int) -> str:
 **Date:** {date}
 **Classification:** {classification}
 **Primary track:** {primary_track}
+**Level:** {level}
 **Week Number:** {week_number}
 **Day {day_number}**
 **Required Artifact:** {required_artifact}

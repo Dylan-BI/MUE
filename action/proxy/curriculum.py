@@ -6,6 +6,9 @@ Derived from source/4-Week Onboarding Map.md. Every day maps to a week,
 theme, category tags, focus topic, evidence artifact, and optional proof task.
 """
 
+# ── Level framework ────────────────────────────────────────────────────────
+LEVEL_DAYS = 28  # working days per curriculum level
+
 # ── Scorecard areas (matches build_data.py SCORE_AREAS) ─────────────────────
 SCORE_AREAS = [
     'Prompt discipline',
@@ -356,6 +359,19 @@ def get_classification(day_number: int) -> str:
         if day_number >= milestone_day:
             result = classification
     return result
+
+
+def get_level_for_day(day_number: int) -> int:
+    """
+    Determine which curriculum level a day belongs to.
+
+    Currently all days map to Level 1 (Foundation). When multi-level
+    curriculum content is implemented, this will map day ranges to
+    different levels (e.g., days 1-28 → Level 1, 29-56 → Level 2, etc.).
+    """
+    if day_number < 1:
+        return 1
+    return ((day_number - 1) // LEVEL_DAYS) + 1
 
 
 def get_primary_track(day_number: int) -> str:
