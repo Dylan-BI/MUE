@@ -199,8 +199,8 @@ SOURCE_CATEGORY_MAP = {
     'CONTRIBUTING.md': ['delivery-handoff'],
     # Readiness
     'GitHub Well-Architected Principles.md': ['pyramid', 'bi-judgment', 'delivery-handoff'],
-    '4-Week Onboarding Map.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
-    'LEARNING_CATEGORIES.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
+    '4-Week Onboarding Map.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness', 'team-communication'],
+    'LEARNING_CATEGORIES.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness', 'team-communication'],
     'BI Academic Framework.md': ['ai-copilot', 'codex', 'pyramid', 'bi-judgment', 'data-lineage', 'delivery-handoff', 'readiness'],
 }
 
@@ -240,7 +240,7 @@ LEVELS = {
 }
 
 # ── Level-specific category content ───────────────────────────────────────
-# Each level adjusts the 7 learning categories with appropriate descriptions,
+# Each level adjusts the 8 learning categories with appropriate descriptions,
 # skills, and weekly coverage for that proficiency tier.
 LEVEL_CATEGORIES = {
     1: {
@@ -429,7 +429,7 @@ def classify_path_to_page(rel_path):
 def parse_date_from_filename(filename):
     basename = os.path.basename(filename).replace('.md', '')
     try:
-        return str(datetime.strptime(basname, '%Y-%m-%d').date())
+        return str(datetime.strptime(basename, '%Y-%m-%d').date())
     except ValueError:
         return None
 

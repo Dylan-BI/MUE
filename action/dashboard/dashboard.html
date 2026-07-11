@@ -736,7 +736,7 @@
     <button class="refresh-btn" onclick="loadData()">🔄 Refresh Now</button>
     <button class="refresh-btn" style="margin-top:4px;background:#198754" onclick="runSync()">📤 Run Sync</button>
     <div class="sidebar-settings">
-      <label>� Search Learner History</label>
+      <label>🔍 Search Learner History</label>
       <input type="date" id="searchDateInput" />
       <div class="settings-actions">
         <button class="settings-btn save" onclick="searchLearnerHistory()">Search</button>
@@ -1876,7 +1876,7 @@ function renderAll() {
     '<div class="card"><h3>📚 Learning Categories <span style="font-size:12px;color:var(--text-muted);font-weight:400">8 subject-material areas</span></h3>' +
     '<p class="caption">Education criteria organized by subject material — each category has focus areas, key skills, and weekly coverage.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px" id="categoryGrid"></div></div>' +
-    '<div class="card"><h3>�📆 Program Progress</h3><div class="day-grid" id="dayGrid"></div><p class="caption">Green = completed | Grey = not yet done</p></div>' +
+    '<div class="card"><h3>📅 Program Progress</h3><div class="day-grid" id="dayGrid"></div><p class="caption">Green = completed | Grey = not yet done</p></div>' +
     '<div class="card"><h3>🎯 Track Distribution</h3><div class="chart-container"><canvas id="chartTracks"></canvas></div><div class="track-legend" id="trackLegend"></div></div>' +
     '<div class="card"><h3>💬 Program-Level Review</h3>' + renderReviewSection('overview_review', 'Program Overview', 'MUE Program - Overall', 'overview') + '</div>' +
     '<div class="card"><h3>🔗 Quick Links</h3><p><a class="link-icon" href="https://github.com/Dylan-BI/MUE/blob/main/source/4-Week%20Onboarding%20Map.md" target="_blank">📖 4-Week Onboarding Map</a></p>' +
@@ -2174,7 +2174,7 @@ function renderAll() {
     renderPageChanges('other', 'Other') +
     '<div class="filter-bar"><input id="artSearch" placeholder="Search files..." onkeyup="filterArtifacts()">' +
     '<select id="artCatFilter" onchange="filterArtifacts()"><option value="">All categories</option><option value="notes">📝 Notes</option><option value="evidence">📁 Evidence</option><option value="reports">📊 Reports</option><option value="templates">📋 Templates</option><option value="scripts">⚙️ Scripts</option><option value="dashboard">📈 Dashboard</option><option value="other">📦 Other</option></select>' +
-    '<select id="artLearningCatFilter" onchange="filterArtifacts()"><option value="">All learning areas</option><option value="ai-copilot">🤖 AI &amp; Copilot</option><option value="codex">⚡ Codex</option><option value="pyramid">🏗️ Pyramid</option><option value="bi-judgment">📊 BI Judgment</option><option value="data-lineage">🔗 Data &amp; Lineage</option><option value="delivery-handoff">📦 Delivery</option><option value="readiness">🧠 Readiness</option></select></div>' +
+    '<select id="artLearningCatFilter" onchange="filterArtifacts()"><option value="">All learning areas</option><option value="ai-copilot">🤖 AI &amp; Copilot</option><option value="codex">⚡ Codex</option><option value="pyramid">🏗️ Pyramid</option><option value="bi-judgment">📊 BI Judgment</option><option value="data-lineage">🔗 Data &amp; Lineage</option><option value="delivery-handoff">📦 Delivery</option><option value="readiness">🧠 Readiness</option><option value="team-communication">💬 Team Communication</option></select></div>' +
     '<div id="artifactContainer"></div>');
   renderArtifacts(arts, cf, rd);
 
@@ -3596,7 +3596,7 @@ function renderLearnerFulfillmentInfographic() {
   }
   
   html += '<div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:center">' +
-    '� Reviewers have full access to all levels — locked levels can be previewed with 👁️ Preview badges.</div>' +
+    '📋 Reviewers have full access to all levels — locked levels can be previewed with 👁️ Preview badges.</div>' +
     '</div>';
   
   return html;
@@ -3654,7 +3654,7 @@ function renderReviewersGuide() {
     '</div>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
     '<strong>Level progression logic:</strong> Level N+1 only unlocks once Level N reaches 28/28 working days. ' +
-    'Each level has its own set of 7 learning categories with adjusted descriptions and skills appropriate to that tier.</p>' +
+    'Each level has its own set of 8 learning categories with adjusted descriptions and skills appropriate to that tier.</p>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
     'The sidebar shows a <strong>Level Progression</strong> widget with the status of each level: ' +
     '⏳ Not Started · 📝 In Progress · ✅ Complete · 🔒 Locked (requires prerequisite).</p></div>';
@@ -3722,7 +3722,7 @@ function renderReviewersGuide() {
     '</table></div>';
 
   // ══════ 9. START DATE ══════
-  html += '<div class="card"><h3>� Search Learner History</h3>' +
+  html += '<div class="card"><h3>🔍 Search Learner History</h3>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
     'The <strong>🔍 Search Learner History</strong> tool in the sidebar lets you look up what the learner produced on a specific date. ' +
     'It scans all loaded notes, evidence, and reports for that date and displays summaries inline.</p>' +

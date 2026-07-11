@@ -367,7 +367,7 @@ LEVELS = {
 }
 
 # ── Level-specific category content ───────────────────────────────────────
-# Each level adjusts the 7 learning categories with appropriate descriptions,
+# Each level adjusts the 8 learning categories with appropriate descriptions,
 # skills, and weekly coverage for that proficiency tier.
 LEVEL_CATEGORIES = {
     1: {
