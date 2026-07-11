@@ -676,9 +676,135 @@
   .progress-widget-header .pwh-pct { font-size: 14px; font-weight: 700; min-width: 40px; text-align: right; }
   .progress-section { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg-card); }
   .progress-section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     UI ENHANCEMENTS — Professional Aesthetics & Better User Operation
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Smooth Page Transitions ── */
+  .page { opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .25s ease; }
+  .page.active { opacity: 1; transform: translateY(0); }
+
+  /* ── Enhanced Card Interactions ── */
+  .card { position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); opacity: 0; transition: opacity .25s ease; border-radius: 12px 0 0 12px; }
+  .card:hover::before { opacity: 1; }
+
+  /* ── Enhanced Metric Cards ── */
+  .metric { position: relative; overflow: hidden; }
+  .metric::after { content: ''; position: absolute; top: -30px; right: -30px; width: 80px; height: 80px; background: var(--accent); opacity: .04; border-radius: 50%; transition: opacity .3s ease, transform .3s ease; }
+  .metric:hover::after { opacity: .08; transform: scale(1.3); }
+  .metric .value { transition: color .2s ease; }
+
+  /* ── Enhanced Button States ── */
+  .refresh-btn, .export-btn, .submit-btn, .version-comment-btn { position: relative; overflow: hidden; transition: all .2s ease; }
+  .refresh-btn:active, .export-btn:active, .submit-btn:active, .version-comment-btn:active { transform: scale(.97); }
+  .refresh-btn::after, .export-btn::after, .submit-btn::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,.2), transparent 60%); opacity: 0; transition: opacity .3s; }
+  .refresh-btn:hover::after, .export-btn:hover::after, .submit-btn:hover::after { opacity: 1; }
+
+  /* ── Focus-Visible States (Accessibility) ── */
+  .nav a:focus-visible, .level-btn:focus-visible, .sidebar-level-btn:focus-visible,
+  .refresh-btn:focus-visible, .export-btn:focus-visible, .submit-btn:focus-visible,
+  .theme-btn:focus-visible, .rating-btn:focus-visible, .filter-bar input:focus-visible,
+  .filter-bar select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .review-form input:focus-visible, .review-form textarea:focus-visible, .review-form select:focus-visible,
+  .sidebar-settings input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+
+  /* ── Sidebar Active Indicator ── */
+  .sidebar .nav a { position: relative; }
+  .sidebar .nav a.active::after { content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 60%; background: var(--accent); border-radius: 3px 0 0 3px; }
+
+  /* ── Keyboard Shortcut Hints ── */
+  kbd { display: inline-block; padding: 2px 6px; font-family: 'SF Mono', Consolas, monospace; font-size: 11px; color: var(--text-secondary); background: var(--bg-muted); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 1px 0 var(--border-color); }
+
+  /* ── Improved Level Buttons ── */
+  .level-btn.active { border-width: 2px; box-shadow: 0 2px 12px rgba(0,0,0,.1); }
+
+  /* ── Enhanced Review Form ── */
+  .review-form.open { animation: slideDown .2s ease; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .review-form .rating-btn { transition: all .15s ease, transform .1s ease; }
+  .review-form .rating-btn:active { transform: scale(.95); }
+
+  /* ── Toast Notification System ── */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 500; display: flex; flex-direction: column-reverse; gap: 8px; pointer-events: none; }
+  .toast { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 500; pointer-events: auto; box-shadow: 0 8px 24px rgba(0,0,0,.15), 0 0 0 1px rgba(0,0,0,.05); animation: toastIn .3s ease; max-width: 400px; }
+  .toast.toast-out { animation: toastOut .25s ease forwards; }
+  .toast-success { background: var(--bg-card); color: var(--text-primary); border-left: 4px solid var(--success-hue); }
+  .toast-info { background: var(--bg-card); color: var(--text-primary); border-left: 4px solid var(--info-hue); }
+  .toast-warning { background: var(--bg-card); color: var(--text-primary); border-left: 4px solid var(--warning-hue); }
+  .toast-error { background: var(--bg-card); color: var(--text-primary); border-left: 4px solid var(--danger-hue); }
+  .toast-icon { font-size: 18px; flex-shrink: 0; }
+  .toast-body { flex: 1; line-height: 1.4; }
+  .toast-body strong { display: block; font-size: 13px; margin-bottom: 1px; }
+  .toast-body span { font-size: 12px; color: var(--text-muted); }
+  .toast-close { background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted); padding: 0 0 0 8px; transition: color .15s; }
+  .toast-close:hover { color: var(--text-primary); }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(24px) scale(.96); } to { opacity: 1; transform: translateX(0) scale(1); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(24px) scale(.96); } }
+
+  /* ── Dark Theme Toast ── */
+  [data-theme="dark"] .toast { box-shadow: 0 8px 24px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.06); }
+
+  /* ── Skeleton Loading Pulse ── */
+  @keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+  .skeleton { background: linear-gradient(90deg, var(--bg-muted) 25%, var(--bg-hover) 50%, var(--bg-muted) 75%); background-size: 400px 100%; animation: shimmer 1.5s ease infinite; border-radius: 6px; height: 16px; }
+
+  /* ── Improved Scrollbar (Light Mode) ── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ── Tooltip (for icon-only buttons) ── */
+  [title] { position: relative; }
+
+  /* ── Day Grid Hover Enhancement ── */
+  .day-cell { transition: transform .1s ease, box-shadow .15s ease; }
+  .day-cell:hover { box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index: 1; }
+
+  /* ── Badge Pulse for Zero Items ── */
+  .nav-badge:not(.zero) { animation: badgePulse 2s ease-in-out infinite; }
+  @keyframes badgePulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(124,115,255,.3); } 50% { box-shadow: 0 0 0 3px rgba(124,115,255,0); } }
+
+  /* ── Alert Enhanced Styling ── */
+  .alert { display: flex; align-items: flex-start; gap: 10px; }
+  .alert-success { border-left: 4px solid var(--success-hue); }
+  .alert-info { border-left: 4px solid var(--info-hue); }
+  .alert-warning { border-left: 4px solid var(--warning-hue); }
+
+  /* ── Third-Party Card Enhancement ── */
+  .third-party-card { transition: box-shadow .2s ease, transform .2s ease; }
+  .third-party-card:hover { box-shadow: var(--card-hover-shadow); }
+
+  /* ── Version Chip Interaction ── */
+  .version-chip { transition: background .15s ease, border-color .15s ease; cursor: default; }
+  .version-chip:hover { border-color: var(--accent); }
+
+  /* ── Filter Bar Focus Enhancement ── */
+  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12); }
+  .review-form input:focus, .review-form textarea:focus, .review-form select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12); }
+  .sidebar-settings input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(var(--accent-rgb), .2); }
+
+  /* ── Print Styles ── */
+  @media print {
+    .sidebar, .update-banner, .theme-btn, .refresh-btn, .toast-container { display: none !important; }
+    .main { padding: 0; max-width: 100%; }
+    .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  }
+
+  /* ── Responsive Enhancements ── */
+  @media (max-width: 768px) {
+    .toast-container { bottom: 12px; right: 12px; left: 12px; }
+    .toast { max-width: 100%; }
+    .metric .value { font-size: 22px; }
+    h2 { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
+
+<div class="toast-container" id="toastContainer"></div>
 
 <div class="update-banner" id="updateBanner">
   <span>📢 New data available in the action folder.</span>
@@ -812,6 +938,7 @@ function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   try { localStorage.setItem(THEME_KEY, next); } catch {}
   setTheme(next);
+  showToast('Switched to ' + next + ' mode', 'info', 'Theme Changed');
 }
 
 // Apply theme on load
@@ -974,6 +1101,7 @@ function checkEnvironment() {
 function confirmEnvironmentAdequate() {
   try { localStorage.setItem(ENV_CONFIRMED_KEY, 'true'); } catch {}
   document.getElementById('envOverlay').classList.remove('open');
+  showToast('Environment confirmed — you\'re all set to review', 'success', 'Ready');
 }
 
 function showEnvironmentUpdateOptions() {
@@ -1225,6 +1353,11 @@ async function loadData() {
   updateSidebarLevelButtons();
   startAutoRefresh();
   checkEnvironment();
+  // Show a brief welcome toast on first load
+  var noteCount = (DATA.summary && DATA.summary.total_days) || 0;
+  if (noteCount > 0) {
+    setTimeout(function() { showToast(noteCount + ' notes loaded across ' + (DATA.summary.curr_level || 1) + ' level(s)', 'info', 'Dashboard Ready'); }, 600);
+  }
 }
 
 function updateSidebar() {
@@ -1421,6 +1554,8 @@ function setLevel(level) {
       btn.style.background = '';
     }
   });
+  var lvlData = (DATA.levels || {})[level] || {};
+  showToast('Switched to Level ' + level + ': ' + (lvlData.label || ''), 'info', 'Level Changed');
 }
 
 function getLevelCats() {
@@ -2420,8 +2555,8 @@ function submitReview(aid, type, label, filename) {
   const tInput = document.getElementById('rc_'+aid) || document.getElementById('ric_'+aid);
   const name = (nInput ? nInput.value : '').trim();
   const text = tInput ? tInput.value.trim() : '';
-  if (!name) { nInput && (nInput.style.borderColor = '#dc3545'); nInput && (nInput.style.outline = 'none'); alert('Please enter your name before submitting.'); return; }
-  if (!text) { alert('Please write a comment before submitting.'); return; }
+  if (!name) { nInput && (nInput.style.borderColor = '#dc3545'); nInput && (nInput.style.outline = 'none'); showToast('Please enter your name before submitting.', 'warning', 'Name Required'); return; }
+  if (!text) { showToast('Please write a comment before submitting.', 'warning', 'Comment Required'); return; }
   setReviewerName(name);
   let rating = 'No rating';
   const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn, #rig_'+aid+' .rating-btn');
@@ -2430,6 +2565,7 @@ function submitReview(aid, type, label, filename) {
   saveReview(aid, review);
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
+  showToast('Review submitted for ' + label, 'success', 'Review Saved');
 
   // Build context-aware version/changes block
   const ctx = getReviewContext(filename, type);
@@ -3399,8 +3535,7 @@ function toggleReviewerGuide() {
 function runSync() {
   const btn = event && event.target ? event.target : document.querySelector('.refresh-btn[onclick*="runSync"]');
   if (btn) { btn.textContent = '⏳ Syncing…'; btn.disabled = true; }
-  // We can't run Python from the browser, so we show the command and instruct
-  alert('To sync action/ → review/, run:\n\n  python review/scripts/sync-from-action.py\n\nThen click "Refresh Now" to reload the dashboard with synced data.');
+  showToast('Run: python review/scripts/sync-from-action.py, then click Refresh Now', 'info', 'Sync Instructions');
   if (btn) { btn.textContent = '📤 Run Sync'; btn.disabled = false; }
 }
 
@@ -3409,7 +3544,7 @@ function runSync() {
    ═══════════════════════════════════════════════════════════════════════════ */
 function exportReviews() {
   const all = getAllReviews(), keys = Object.keys(all);
-  if (!keys.length) { alert('No reviews to export.'); return; }
+  if (!keys.length) { showToast('No reviews to export. Write some reviews first!', 'info', 'Nothing to Export'); return; }
   // Export two formats: .txt (human-readable) and .json (machine-readable for review/)
   const dateStr = new Date().toISOString().slice(0, 10);
 
@@ -3438,17 +3573,10 @@ function exportReviews() {
   aJson.click();
   URL.revokeObjectURL(aJson.href);
 
-  alert(
-    '✅ Exported ' + keys.length + ' artifact(s) with reviews.\n\n' +
-    'Downloads:\n' +
-    '  📄 mue-review-export-' + dateStr + '.txt  (human-readable)\n' +
-    '  📄 reviews-export-' + dateStr + '.json  (for review/ import)\n\n' +
-    'To persist reviews in the repo:\n' +
-    '  1. Place the .json file in the repo as review/reviews.json\n' +
-    '     or run: python review/scripts/save-reviews.py reviews-export-' + dateStr + '.json\n' +
-    '  2. Run: python action/dashboard/build_data.py\n' +
-    '  3. Refresh the dashboard.\n\n' +
-    '💡 Reviews are stored in review/ — they never touch action/.'
+  showToast(
+    'Exported ' + keys.length + ' artifact(s) — .txt and .json files downloaded. ' +
+    'Place the .json in review/ and run save-reviews.py to persist.',
+    'success', 'Export Complete'
   );
 }
 
@@ -4015,6 +4143,43 @@ function computeOverallProgress() {
     codexGate: { fulfilled: gsDone, total: Math.max(gsTotal, 1) }
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOAST NOTIFICATION SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
+function showToast(message, type, title) {
+  type = type || 'info';
+  title = title || '';
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const icons = { success: '✅', info: 'ℹ️', warning: '⚠️', error: '❌' };
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.innerHTML =
+    '<span class="toast-icon">' + (icons[type] || 'ℹ️') + '</span>' +
+    '<div class="toast-body">' +
+    (title ? '<strong>' + escHtml(title) + '</strong>' : '') +
+    '<span>' + escHtml(message) + '</span>' +
+    '</div>' +
+    '<button class="toast-close" onclick="this.parentElement.classList.add(\'toast-out\');setTimeout(function(){this.parentElement.remove()}.bind(this),250)">✕</button>';
+  container.appendChild(el);
+  setTimeout(function() {
+    if (el.parentElement) { el.classList.add('toast-out'); setTimeout(function(){ if (el.parentElement) el.remove(); }, 250); }
+  }, 4000);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTON RIPPLE EFFECT
+   ═══════════════════════════════════════════════════════════════════════════ */
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.refresh-btn, .export-btn, .submit-btn, .theme-btn, .level-btn, .sidebar-level-btn');
+  if (!btn) return;
+  var rect = btn.getBoundingClientRect();
+  var x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+  var y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+  btn.style.setProperty('--x', x + '%');
+  btn.style.setProperty('--y', y + '%');
+});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INIT
