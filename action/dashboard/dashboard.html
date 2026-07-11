@@ -711,7 +711,7 @@
     <a data-page="third-party"     onclick="showPage('third-party')">🔍 Third Party Review <span class="nav-badge" id="badge-third-party">0</span></a>
     <div class="nav-divider"></div>
     <div class="nav-label">Help</div>
-    <a data-page="reviewers-guide" onclick="showPage('reviewers-guide')">📖 Reviewer's Guide</a>
+    <a data-page="reviewers-guide" onclick="showPage('reviewers-guide')">📖 Instructor's Guide</a>
   </div>
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
@@ -957,7 +957,7 @@ function clearSearchResults() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ENVIRONMENT CHECK — prompts reviewer to confirm environment is adequate
+   ENVIRONMENT CHECK — prompts instructor to confirm environment is adequate
    ═══════════════════════════════════════════════════════════════════════════ */
 const ENV_CONFIRMED_KEY = 'mue_env_confirmed';
 
@@ -1080,7 +1080,7 @@ function renderLevelProgressionSidebar() {
   let html = '<div style="margin:8px 0;padding:8px;background:var(--sidebar-hover-bg);border-radius:6px;border:1px solid var(--sidebar-level-btn-border)">';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
     '<span style="font-size:10px;color:var(--sidebar-footer-text);font-weight:600">📊 Level Progression</span>' +
-    '<span style="font-size:9px;color:#6c63ff;background:#6c63ff22;padding:1px 6px;border-radius:4px;font-weight:600">🔍 Reviewer</span>' +
+    '<span style="font-size:9px;color:#6c63ff;background:#6c63ff22;padding:1px 6px;border-radius:4px;font-weight:600">🔍 Instructor</span>' +
     '</div>';
   
   for (let l = 1; l <= 4; l++) {
@@ -1316,7 +1316,7 @@ function updateSidebarLevelButtons() {
     const lvl = parseInt(btn.dataset.level);
     const li = prog.levels[lvl];
     const isLocked = li && !li.is_unlocked;
-    // Reviewers always have full access to all levels
+    // Instructors always have full access to all levels
     btn.style.opacity = '1';
   });
 }
@@ -2163,29 +2163,29 @@ function renderAll() {
     '<strong style="font-size:13px;color:#4CAF50">🌱 Level 1: Foundation</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Remember & Understand</span>' +
     '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Build vocabulary and basic concepts with maximum scaffolding.<br>' +
     '<strong>Expected tasks:</strong> Identify, describe, follow guided steps.<br>' +
-    '<strong>Reviewer focus:</strong> Is the learner absorbing foundational concepts? Can they name modes, terms, and basic workflows without prompting?</p></div>' +
+    '<strong>Instructor focus:</strong> Is the learner absorbing foundational concepts? Can they name modes, terms, and basic workflows without prompting?</p></div>' +
     '<div style="background:#2196F311;border-radius:8px;padding:10px 14px;border:1px solid #2196F344">' +
     '<strong style="font-size:13px;color:#2196F3">🌿 Level 2: Development</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Apply</span>' +
     '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Build competence through guided application and practice.<br>' +
     '<strong>Expected tasks:</strong> Practice, implement, execute under guidance with clear success criteria.<br>' +
-    '<strong>Reviewer focus:</strong> Can the learner apply concepts to real scenarios? Are they following procedures correctly and producing valid artifacts?</p></div>' +
+    '<strong>Instructor focus:</strong> Can the learner apply concepts to real scenarios? Are they following procedures correctly and producing valid artifacts?</p></div>' +
     '<div style="background:#FF980011;border-radius:8px;padding:10px 14px;border:1px solid #FF980044">' +
     '<strong style="font-size:13px;color:#FF9800">🌳 Level 3: Operational</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Analyse & Evaluate</span>' +
     '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Deep concepts with significant independence and quality focus.<br>' +
     '<strong>Expected tasks:</strong> Compare, detect, assess, validate independently. Requires quality judgment and self-correction.<br>' +
-    '<strong>Reviewer focus:</strong> Does the learner show independent analytical thinking? Can they detect defects and validate without guidance?</p></div>' +
+    '<strong>Instructor focus:</strong> Does the learner show independent analytical thinking? Can they detect defects and validate without guidance?</p></div>' +
     '<div style="background:#9C27B011;border-radius:8px;padding:10px 14px;border:1px solid #9C27B044">' +
     '<strong style="font-size:13px;color:#9C27B0">🏆 Level 4: Mastery</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Create & Evaluate</span>' +
     '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Advanced optimization, automation, and strategic thinking with full autonomy.<br>' +
     '<strong>Expected tasks:</strong> Design, automate, optimize, mentor others. System-level thinking and strategy.<br>' +
-    '<strong>Reviewer focus:</strong> Can the learner produce production-ready work autonomously? Are they creating reusable assets and mentoring? A learner who still needs daily step-by-step guidance may need to consolidate at L3.</p></div>' +
+    '<strong>Instructor focus:</strong> Can the learner produce production-ready work autonomously? Are they creating reusable assets and mentoring? A learner who still needs daily step-by-step guidance may need to consolidate at L3.</p></div>' +
     '</div></div>' +
 
     // ── Card 3: Assessment & Enforcement Framework ──
     '<div class="card" style="border-left:4px solid var(--danger)">' +
     '<h3>📝 Assessment & Enforcement Framework</h3>' +
     '<p style="line-height:1.7;color:var(--text-secondary);margin-bottom:10px">' +
-    'Progression through the curriculum is gated by multiple enforcement mechanisms. As a reviewer, you are responsible for verifying that the learner meets <strong>all criteria</strong> before advancing to the next level. No level unlocks automatically — it requires reviewer confirmation.</p>' +
+    'Progression through the curriculum is gated by multiple enforcement mechanisms. As an instructor (educator, professor, or experienced BI professional), you are responsible for verifying that the learner meets <strong>all criteria</strong> before advancing to the next level. No level unlocks automatically — it requires instructor confirmation.</p>' +
 
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
     // Left column: Weekly Gates & Scorecard
@@ -2232,12 +2232,12 @@ function renderAll() {
     '<li>One clean reviewable change slice</li>' +
     '<li>One reusable team asset created</li>' +
     '</ul>' +
-    '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5"><strong>Reviewer enforcement:</strong> Verify each gate criterion against actual artifacts. A learner who cannot demonstrate these without assistance is not ready to advance.</p></div>' +
+    '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5"><strong>Instructor enforcement:</strong> Verify each gate criterion against actual artifacts. A learner who cannot demonstrate these without assistance is not ready to advance.</p></div>' +
     '</div>' +
 
     // ── Card 4: Weekly Themes & What to Verify ──
     '<div class="card" style="border-left:4px solid var(--success)">' +
-    '<h3>📆 Weekly Themes & Reviewer Verification Checklist</h3>' +
+    '<h3>📆 Weekly Themes & Instructor Verification Checklist</h3>' +
     '<p style="line-height:1.7;color:var(--text-secondary);margin-bottom:10px">' +
     'Each week has a specific theme, primary categories, and academic concepts. Use this to understand what the learner should be producing and what to verify at each stage.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">' +
@@ -2276,12 +2276,12 @@ function renderAll() {
     '<p style="font-size:12px;color:var(--text-secondary);line-height:1.5"><strong>Theme:</strong> Deliver a reviewable change slice, create a reusable asset, pass the Codex Gate.<br>' +
     '<strong>Categories:</strong> 📦 Delivery · ⚡ Codex · 🏗️ Pyramid · 📊 BI · 🧠 Retention · 💬 Team<br>' +
     '<strong>Academic concepts:</strong> BI maturity models, industry standards (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone<br>' +
-    '<strong>Verify:</strong> All 6 proof tasks complete, Codex Gate passed, handoff package is reviewer-ready, reusable asset created.</p></div>' +
+    '<strong>Verify:</strong> All 6 proof tasks complete, Codex Gate passed, handoff package is instructor-ready, reusable asset created.</p></div>' +
     '</div></div>' +
 
-    // ── Learner Fulfillment Infographic (reviewer-facing) ──
+    // ── Learner Fulfillment Infographic (instructor-facing) ──
     renderLearnerFulfillmentInfographic() +
-    // ── Full Curriculum Overview — always visible for reviewer assessment ──
+    // ── Full Curriculum Overview — always visible for instructor assessment ──
     '<div class="card"><h3>📖 Full Curriculum — All 4 Levels</h3><p class="caption">Bird\'s-eye view of the entire 4-level program — weekly category schedule, per-level calendar strips, and every category\'s descriptions, skills, and week assignments at a glance.</p>' +
     renderFullCurriculumOverview() +
     '</div>' +
@@ -2334,7 +2334,7 @@ function renderAll() {
   // ── PAGE 9: THIRD PARTY REVIEW (sync-from-action.py integration + version tracking) ──
   renderThirdPartyReview(rd, cf);
 
-  // ── PAGE 10: REVIEWER'S GUIDE ──
+  // ── PAGE 10: INSTRUCTOR'S GUIDE ──
   addPage('reviewers-guide', renderReviewersGuide());
 
   // Show overview with level banner
@@ -2350,7 +2350,7 @@ function renderReviewSection(aid, type, label, filename) {
   let html = '<div class="review-section">' +
     '<div class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rf_'+aid+'\').classList.toggle(\'open\')">💬 Review</div>' +
     '<div class="review-form" id="rf_'+aid+'">' +
-    '<label>Reviewer <span style="color:var(--danger)">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
+    '<label>Instructor <span style="color:var(--danger)">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rg_'+aid+'">' +
     ropts.map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="rc_'+aid+'" placeholder="Write your review feedback here..."></textarea>' +
@@ -2363,7 +2363,7 @@ function renderReviewSection(aid, type, label, filename) {
 function reviewToggleInline(aid, type, label, filename) {
   return '<span class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rif_'+aid+'\').classList.toggle(\'open\')">💬 Review</span>' +
     '<div class="review-form" id="rif_'+aid+'" style="display:none">' +
-    '<label>Reviewer <span style="color:var(--danger)">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
+    '<label>Instructor <span style="color:var(--danger)">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rig_'+aid+'">' +
     ['👍 Pass','⚡ Needs Work','❌ Rework'].map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="ric_'+aid+'" placeholder="Write your review..."></textarea>' +
@@ -2440,7 +2440,7 @@ function submitReview(aid, type, label, filename) {
 
   const subj = encodeURIComponent('[MUE Review] '+type+': '+label+' (v'+ctx.version+')');
   const body = encodeURIComponent(
-    'Reviewer: '+name+'\n' +
+    'Instructor: '+name+'\n' +
     'Artifact: '+type+'\n' +
     'File: '+filename+'\n' +
     'Label: '+label+'\n' +
@@ -2989,10 +2989,10 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   '</div>' +
   '<div style="margin-top:4px">' + reviewToggleInline('tp_review_coverage', 'Review Coverage', 'Third Party Review — Coverage & Targets', 'third-party') + '</div></div>';
 
-  // Reviewer Guide (collapsible) — expanded with category-specific criteria
+  // Instructor Guide (collapsible) — expanded with category-specific criteria
   h += '<div class="card" style="border-left:3px solid var(--accent);margin-bottom:16px">' +
     '<h3 style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleReviewerGuide()">' +
-    '📋 Reviewer Guide <span id="guideToggle" style="margin-left:auto;color:var(--text-muted);font-size:12px">▼ Expand</span></h3>' +
+    '📋 Instructor Guide <span id="guideToggle" style="margin-left:auto;color:var(--text-muted);font-size:12px">▼ Expand</span></h3>' +
     '<div id="reviewerGuideContent" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-light)">' +
 
     // Quick checklist
@@ -3030,7 +3030,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<tr><td style="padding:4px 8px;border:1px solid var(--border-color)">Change isolation</td><td style="padding:4px 8px;border:1px solid var(--border-color)">📦 Delivery &amp; Handoff · ⚡ Codex</td><td style="padding:4px 8px;border:1px solid var(--border-color)">Scoping narrow, reviewable changes — the foundation of clean handoffs</td></tr>' +
     '<tr style="background:var(--bg-muted)"><td style="padding:4px 8px;border:1px solid var(--border-color)">Validation order</td><td style="padding:4px 8px;border:1px solid var(--border-color)">📊 BI Judgment · 🏗️ Pyramid Platform</td><td style="padding:4px 8px;border:1px solid var(--border-color)">Bottom-up validation discipline — source before transformation before presentation</td></tr>' +
     '<tr><td style="padding:4px 8px;border:1px solid var(--border-color)">Deployment awareness</td><td style="padding:4px 8px;border:1px solid var(--border-color)">🏗️ Pyramid Platform · 📦 Delivery &amp; Handoff</td><td style="padding:4px 8px;border:1px solid var(--border-color)">Understanding the full delivery pipeline — deployment sequence, environment differences</td></tr>' +
-    '<tr style="background:var(--bg-muted)"><td style="padding:4px 8px;border:1px solid var(--border-color)">Reviewer handoff</td><td style="padding:4px 8px;border:1px solid var(--border-color)">📦 Delivery &amp; Handoff</td><td style="padding:4px 8px;border:1px solid var(--border-color)">Quality of communication — handoff notes, context provision, reviewer readiness</td></tr>' +
+    '<tr style="background:var(--bg-muted)"><td style="padding:4px 8px;border:1px solid var(--border-color)">Instructor handoff</td><td style="padding:4px 8px;border:1px solid var(--border-color)">📦 Delivery &amp; Handoff</td><td style="padding:4px 8px;border:1px solid var(--border-color)">Quality of communication — handoff notes, context provision, instructor readiness</td></tr>' +
     '<tr><td style="padding:4px 8px;border:1px solid var(--border-color)">Reusability</td><td style="padding:4px 8px;border:1px solid var(--border-color)">📦 Delivery &amp; Handoff · ⚡ Codex</td><td style="padding:4px 8px;border:1px solid var(--border-color)">Creating assets that outlast one task — prompt templates, checklists, runbooks</td></tr>' +
     '</table>' +
     '<p style="font-size:10px;color:var(--text-muted);margin-top:4px">💡 Tip: A low score in "Change isolation" suggests gaps in Delivery &amp; Handoff and/or Codex, not necessarily Pyramid or BI Judgment. Use this map to target review feedback to the right category.</p>' +
@@ -3057,7 +3057,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">📋 Overview</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Pulse check — start here</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Top-level metrics (days, weeks, evidence, classification), 📘 Learner Artifact Changes summary, infrastructure toggle, day grid (green=grey=pending), category grid, track distribution chart, program-level review.' +
-      '<br><strong>Reviewer focus:</strong> Start here for a quick pulse. The 📘 Learner Artifact Changes section lists files modified since last commit — this is your entry point. Review the day grid for completion gaps. Click a page name in the change table to jump directly to those files for detailed review.</div></div>' +
+      '<br><strong>Instructor focus:</strong> Start here for a quick pulse. The 📘 Learner Artifact Changes section lists files modified since last commit — this is your entry point. Review the day grid for completion gaps. Click a page name in the change table to jump directly to those files for detailed review.</div></div>' +
       // Page 2
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3065,7 +3065,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">📅 Daily Progress</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Day-by-day notes</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Chronological list of daily training notes with scorecard chips (P/F), evidence links, what-learned/next-step fields. Each note has an embedded 💬 Review form. Note artifacts in <code>action/notes/</code> shown below with change and review status.' +
-      '<br><strong>Reviewer focus:</strong> Verify each day has a completed note with meaningful reflection. Check that scorecard progression trends upward. Use the 💬 Review form on each day to give feedback on specific entries. Look for missing days or sparse notes.</div></div>' +
+      '<br><strong>Instructor focus:</strong> Verify each day has a completed note with meaningful reflection. Check that scorecard progression trends upward. Use the 💬 Review form on each day to give feedback on specific entries. Look for missing days or sparse notes.</div></div>' +
       // Page 3
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3073,7 +3073,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">🏆 Scorecard</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Competency trends</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 7 scorecard areas (Prompt discipline, Change isolation, Validation order, etc.) with Pass/Partial/Fail history. Each area shows trend direction (📈 Improving / 📉 Needs attention). Each area has an embedded 💬 Review form.' +
-      '<br><strong>Reviewer focus:</strong> Look for consistent progression. A cluster of Fails in related areas (e.g. Deployment awareness + Validation order) suggests a root cause in Pyramid/BI Judgment training. The 🏆 Scorecard → Learning Categories map (above) helps you connect low scores to the right categories. Use 💬 Review to flag concerns.</div></div>' +
+      '<br><strong>Instructor focus:</strong> Look for consistent progression. A cluster of Fails in related areas (e.g. Deployment awareness + Validation order) suggests a root cause in Pyramid/BI Judgment training. The 🏆 Scorecard → Learning Categories map (above) helps you connect low scores to the right categories. Use 💬 Review to flag concerns.</div></div>' +
       // Page 4
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3081,7 +3081,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">✅ Proof Tasks</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Completion tracking</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 6 proof tasks (e.g. BICC peer review, ticket audit validation) with completion status and the days they were found on. Overall progress bar.' +
-      '<br><strong>Reviewer focus:</strong> All 6 must be completed before Codex Gate. Verify that each task has genuine evidence of completion — not just a tick. Use 💬 Review to confirm or challenge each task.</div></div>' +
+      '<br><strong>Instructor focus:</strong> All 6 must be completed before Codex Gate. Verify that each task has genuine evidence of completion — not just a tick. Use 💬 Review to confirm or challenge each task.</div></div>' +
       // Page 5
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3089,7 +3089,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">📁 Evidence</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Artifact gallery</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Evidence files (screenshots, logs, output) grouped by ISO week. Each file has a 💬 Review form. Agent-changed files highlighted with ✏️ badge.' +
-      '<br><strong>Reviewer focus:</strong> Check that evidence files are present, correctly named, and genuinely demonstrate the claimed skill. Look for gaps where days have notes but no supporting evidence. Agent-changed files (✏️) may need closer scrutiny.</div></div>' +
+      '<br><strong>Instructor focus:</strong> Check that evidence files are present, correctly named, and genuinely demonstrate the claimed skill. Look for gaps where days have notes but no supporting evidence. Agent-changed files (✏️) may need closer scrutiny.</div></div>' +
       // Page 6
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3097,7 +3097,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">📈 Classification</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Readiness trend</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Line chart and bar chart of readiness classification over time (Foundational → Developing → Operational → Ready for Codex Acceleration). Embedded 💬 Review form.' +
-      '<br><strong>Reviewer focus:</strong> The trend should show upward progression. Plateaus or regressions need investigation — check what happened on those days. The final classification determines if the learner is ready for Codex Gate.</div></div>' +
+      '<br><strong>Instructor focus:</strong> The trend should show upward progression. Plateaus or regressions need investigation — check what happened on those days. The final classification determines if the learner is ready for Codex Gate.</div></div>' +
       // Page 7
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3105,7 +3105,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">🚪 Codex Gate</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Final checkpoint</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 8 gate criteria (end-to-end workflow, business logic ownership, validation evidence, proof tasks, change slice, reusable asset, etc.) each with Yes/No/— status. Overall Pass/Fail banner.' +
-      '<br><strong>Reviewer focus:</strong> All gates must be ✅ Yes. If any are ❌ No or ⬜ pending, the learner is not ready. Use 💬 Review to document which gates need more work and what evidence is still missing. This is the final go/no-go decision point.</div></div>' +
+      '<br><strong>Instructor focus:</strong> All gates must be ✅ Yes. If any are ❌ No or ⬜ pending, the learner is not ready. Use 💬 Review to document which gates need more work and what evidence is still missing. This is the final go/no-go decision point.</div></div>' +
       // Page 8
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3113,7 +3113,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">📚 Curriculum Review</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Complete framework explorer</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Complete curriculum framework explorer — learner fulfillment infographic (notes, evidence, scorecard, proof tasks, Codex gates), full 4-level curriculum reference with weekly category schedule and calendar strips, Curriculum Target Progress rings (categories + skills engaged), level-specific skills summary grid, per-category deep-dive with skill coverage rings and source file mappings, Source Criteria Index table with category tags, and 28-day curriculum calendar.' +
-      '<br><strong>Reviewer focus:</strong> Your most comprehensive view of the entire training program. Use the 🌱🌿🌳🏆 level selector to match the learner\'s proficiency tier. Verify all 8 categories have activity at the active level. Check that skill targets align with artifact quality. The fulfillment infographic shows submission rates at a glance; the calendar highlights which training days are complete vs pending.</div></div>' +
+      '<br><strong>Instructor focus:</strong> Your most comprehensive view of the entire training program. Use the 🌱🌿🌳🏆 level selector to match the learner\'s proficiency tier. Verify all 8 categories have activity at the active level. Check that skill targets align with artifact quality. The fulfillment infographic shows submission rates at a glance; the calendar highlights which training days are complete vs pending.</div></div>' +
       // Page 9
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3121,7 +3121,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">📂 All Artifacts</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Complete file browser</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> All files in <code>action/</code> organised by category (Notes, Evidence, Reports, Templates, Scripts, Dashboard, Other) with icons, size, modified date, change status (✏️), sync status (✅), learning category tags, and 👁️ preview + 💬 review per file. Filterable by search, category, and learning area.' +
-      '<br><strong>Reviewer focus:</strong> Use the search and category filters to zero in on specific files. The ✏️ badge highlights files the agent changed since last commit — prioritise those for review. The ✅ badge shows what\'s already synced to <code>review/</code>. Click 👁️ for a quick preview of a file\'s content.</div></div>' +
+      '<br><strong>Instructor focus:</strong> Use the search and category filters to zero in on specific files. The ✏️ badge highlights files the agent changed since last commit — prioritise those for review. The ✅ badge shows what\'s already synced to <code>review/</code>. Click 👁️ for a quick preview of a file\'s content.</div></div>' +
       // Page 10
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3129,7 +3129,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<strong style="font-size:13px">🔍 Third Party Review</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Review hub &amp; sync (key 0)</span></div>' +
       '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Central review dashboard. Top metrics (learner changes, synced files, reviews submitted, source criteria). 📘 Learner Artifact Changes table with per-page change counts and 💬 Comment buttons. ⚙️ Infrastructure changes (collapsible). 📖 Source Training Criteria table with category tags. 📤 Export and Sync buttons.' +
-      '<br><strong>Reviewer focus:</strong> This is your command centre. Start with the 📘 Learner Artifact Changes table — these are the files that need your attention. Use 💬 Comment to leave feedback on version changes. Use 📤 Export All Reviews to download all feedback as JSON. Use 📤 Sync to copy completed work to <code>review/</code> for formal assessment. The Source Training Criteria table at the bottom is your reference for what the learner should be demonstrating.</div></div>' +
+      '<br><strong>Instructor focus:</strong> This is your command centre. Start with the 📘 Learner Artifact Changes table — these are the files that need your attention. Use 💬 Comment to leave feedback on version changes. Use 📤 Export All Reviews to download all feedback as JSON. Use 📤 Sync to copy completed work to <code>review/</code> for formal assessment. The Source Training Criteria table at the bottom is your reference for what the learner should be demonstrating.</div></div>' +
     '</div>' +
     '<p class="caption" style="margin-bottom:12px">💡 <strong>Suggested review workflow:</strong> Overview (1) → check learner changes → jump to pages with changes → review each file with 💬 → return to Third Party Review (10) → 📤 Export Reviews → 📤 Sync when ready.</p>' +
 
@@ -3291,7 +3291,7 @@ function versionComment(filePath, version, diffStat, pageName) {
   const reviewerName = getReviewerName() || '________________';
   const subj = encodeURIComponent('[MUE Review] Version ' + (ctx.version || version) + ' — ' + filePath);
   const body = encodeURIComponent(
-    'Reviewer: ' + reviewerName + '\n' +
+    'Instructor: ' + reviewerName + '\n' +
     'Artifact: Version Change' + '\n' +
     'File: ' + filePath + '\n' +
     'Label: ' + pageName + '\n' +
@@ -3419,7 +3419,7 @@ function exportReviews() {
     const rvs = all[k];
     t += 'Artifact: ' + k + '\n' + '-'.repeat(40) + '\n';
     rvs.forEach(r => {
-      t += '  Reviewer: ' + r.name + '\n  Rating:   ' + r.rating + '\n  Type:     ' + (r.type || '') + '\n  File:     ' + (r.filename || '') + '\n  Date:     ' + r.timestamp + '\n  Comment:  ' + r.text + '\n\n';
+      t += '  Instructor: ' + r.name + '\n  Rating:   ' + r.rating + '\n  Type:     ' + (r.type || '') + '\n  File:     ' + (r.filename || '') + '\n  Date:     ' + r.timestamp + '\n  Comment:  ' + r.text + '\n\n';
     });
   });
   const blobTxt = new Blob([t], { type: 'text/plain' });
@@ -3576,16 +3576,16 @@ function renderSectionProgress(fulfilled, total, sectionLabel, aid, type, itemLa
 }
 
 /**
- * Render full curriculum overview across all 4 levels for reviewers.
+ * Render full curriculum overview across all 4 levels for instructors.
  * Shows every level's categories, skills, and descriptions simultaneously
- * so the reviewer can grasp the entire curriculum at a glance.
+ * so the instructor can grasp the entire curriculum at a glance.
  */
 function renderFullCurriculumOverview() {
   const cats = DATA.categories || {};
   const lvlCats = DATA.level_categories || {};
   const levels = DATA.levels || {};
 
-  let html = '<p class="caption" style="margin-bottom:12px">End-to-end view of the MUE curriculum — all 4 proficiency levels displayed side by side. Each level contains 8 learning categories assigned across 4 weekly blocks (28 working days). Reviewers can compare skill expectations across levels, verify category coverage, and check that weekly assignments align with the source criteria.</p>';
+  let html = '<p class="caption" style="margin-bottom:12px">End-to-end view of the MUE curriculum — all 4 proficiency levels displayed side by side. Each level contains 8 learning categories assigned across 4 weekly blocks (28 working days). Instructors (educators, professors, teachers, and experienced BI professionals) can compare skill expectations across levels, verify category coverage, and check that weekly assignments align with the source criteria.</p>';
 
   // ── Week-by-week schedule grid (all levels, one table) ──
   html += '<div style="margin-bottom:16px"><h4 style="font-size:13px;margin-bottom:6px">📆 Weekly Category Schedule — which of the 8 learning categories are active during each of the 4 weekly blocks</h4>' +
@@ -3663,7 +3663,7 @@ function renderFullCurriculumOverview() {
 }
 
 /**
- * Render learner fulfillment infographic for reviewer.
+ * Render learner fulfillment infographic for instructor.
  * Shows per-level progress bars with fulfilled vs unfulfilled counts
  * across notes, evidence, scorecard, proof tasks, and codex gates.
  */
@@ -3699,7 +3699,7 @@ function renderLearnerFulfillmentInfographic() {
     { label: '🚪 Codex Gate', fulfilled: gsDone, total: Math.max(gsTotal, 1), color: '#e8728a', icon: '🚪' },
   ];
 
-  let html = '<div class="card"><h3>📊 Learner Input Fulfillment <span style="font-size:12px;color:var(--text-muted);font-weight:400">reviewer overview — fulfilled vs unfulfilled</span></h3>' +
+  let html = '<div class="card"><h3>📊 Learner Input Fulfillment <span style="font-size:12px;color:var(--text-muted);font-weight:400">instructor overview — fulfilled vs unfulfilled</span></h3>' +
     '<p class="caption">Aggregate view of all learner-submitted artifacts and their fulfillment status across the entire program.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:8px">';
   
@@ -3749,24 +3749,24 @@ function renderLearnerFulfillmentInfographic() {
   }
   
   html += '<div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:center">' +
-    '📋 Reviewers have full access to all levels — locked levels can be previewed with 👁️ Preview badges.</div>' +
+    '📋 Instructors (academics, professors, teachers, and experienced BI professionals) have full access to all levels — locked levels can be previewed with 👁️ Preview badges.</div>' +
     '</div>';
   
   return html;
 }
 
 /**
- * Render a comprehensive Reviewer's Guide — explains every feature of the dashboard
- * so new reviewers can navigate, understand level progression, review artifacts,
- * use reviewer mode, sync changes, and interpret learner data.
+ * Render a comprehensive Instructor's Guide — explains every feature of the dashboard
+ * so new instructors (educators, professors, teachers, and experienced BI professionals) can navigate, understand level progression, review artifacts,
+ * use instructor mode, sync changes, and interpret learner data.
  */
 function renderReviewersGuide() {
   const hasData = DATA && DATA.summary && (DATA.summary.total_days || 0) > 0;
   const prog = getLevelProgression();
   const currLevel = prog ? prog.current_level || 1 : 1;
 
-  let html = '<h2>📖 Reviewer\'s Guide</h2>' +
-    '<p class="subtitle">How to navigate the MUE Third-Party Review Dashboard — everything a reviewer needs to know.</p>';
+  let html = '<h2>📖 Instructor\'s Guide</h2>' +
+    '<p class="subtitle">How to navigate the MUE Third-Party Review Dashboard — everything an instructor (educator, professor, teacher, or experienced BI professional) needs to know.</p>';
 
   // ══════ 1. INTRODUCTION ══════
   html += '<div class="card" style="border-left:4px solid var(--accent)">' +
@@ -3776,7 +3776,7 @@ function renderReviewersGuide() {
     '<strong>MUE 4-level curriculum framework</strong>. It tracks daily notes, evidence artifacts, scorecard trends, ' +
     'proof tasks, classification readiness, and Codex Gate status — all synced from the learner\'s <code>action/</code> directory.</p>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    'As a <strong>third-party reviewer</strong>, you can browse all levels freely, review individual artifacts, ' +
+    'As an <strong>instructor</strong> (educator, professor, teacher, or experienced BI professional), you can browse all levels freely, review individual artifacts, ' +
     'leave feedback, and sync your reviews back to the repository.</p></div>';
 
   // ══════ 2. NAVIGATION ══════
@@ -3792,7 +3792,7 @@ function renderReviewersGuide() {
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🚪 Codex Gate</td><td style="padding:6px 4px;color:var(--text-secondary)">6 gates that must all pass before learner advances — final checkpoint</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📚 Curriculum Review</td><td style="padding:6px 4px;color:var(--text-secondary)">Complete curriculum framework explorer — learner fulfillment infographic, full 4-level curriculum reference, level-specific skill grids, category deep-dives with source file mappings, and 28-day calendar</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📂 All Artifacts</td><td style="padding:6px 4px;color:var(--text-secondary)">Complete file listing of <code>action/</code> with agent-change badges, sync status, and per-file review</td></tr>' +
-    '<tr><td style="padding:6px 4px">🔍 Third Party Review</td><td style="padding:6px 4px;color:var(--text-secondary)">All synced reviews from <code>review/reviews.json</code> and local reviewer feedback, with change summaries</td></tr>' +
+    '<tr><td style="padding:6px 4px">🔍 Third Party Review</td><td style="padding:6px 4px;color:var(--text-secondary)">All synced reviews from <code>review/reviews.json</code> and local instructor feedback, with change summaries</td></tr>' +
     '</table></div>';
 
   // ══════ 3. LEVEL SYSTEM ══════
@@ -3816,7 +3816,7 @@ function renderReviewersGuide() {
   html += '<div class="card" style="border-left:4px solid #6c63ff;background:var(--bg-accent-subtle)">' +
     '<h3>🔍 Dashboard Capabilities</h3>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
-    'This dashboard is designed exclusively for <strong>third-party reviewers</strong>. You have full access to all 4 levels ' +
+    'This dashboard is designed exclusively for <strong>instructors</strong> (educators, professors, teachers, and experienced BI professionals). You have full access to all 4 levels ' +
     'at all times, bypassing the learner\'s level locks. Key capabilities:</p>' +
     '<ul style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
     '<li>🔒 locked levels display as <strong>⏳ 👁️ Preview</strong> — you can view their content freely</li>' +
@@ -3851,9 +3851,9 @@ function renderReviewersGuide() {
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:4px"><em>Teacher context (top of page):</em></p>' +
     '<ol style="margin:4px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
     '<li><strong>📋 Program Purpose & Learning Objectives</strong> — the overarching goal of MUE, target learner profile, 8 learning categories, and program structure (28 days/level, 112 total)</li>' +
-    '<li><strong>🎯 Level Progression Objectives & Bloom\'s Taxonomy</strong> — cognitive demand tiers for each level (Remember through Create), expected task types, and what the reviewer should evaluate at each tier</li>' +
+    '<li><strong>🎯 Level Progression Objectives & Bloom\'s Taxonomy</strong> — cognitive demand tiers for each level (Remember through Create), expected task types, and what the instructor should evaluate at each tier</li>' +
     '<li><strong>📝 Assessment & Enforcement Framework</strong> — weekly progression gates, all 6 proof tasks with due days, readiness classification milestones, and the Codex Gate criteria that must pass before advancement</li>' +
-    '<li><strong>📆 Weekly Themes & Reviewer Verification Checklist</strong> — what each week covers, which categories are active, academic concepts introduced, and what to verify before the learner advances</li>' +
+    '<li><strong>📆 Weekly Themes & Instructor Verification Checklist</strong> — what each week covers, which categories are active, academic concepts introduced, and what to verify before the learner advances</li>' +
     '</ol>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px"><em>Learner data (below):</em></p>' +
     '<ol start="5" style="margin:4px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
@@ -3872,7 +3872,7 @@ function renderReviewersGuide() {
     'let you switch the active curriculum level. This affects what content is shown in the <strong>Curriculum Review</strong> page ' +
     'and which skills/categories are displayed across the dashboard.</p>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    'The active level is highlighted with its theme color. As a reviewer, locked levels show <strong>👁️ Preview</strong> badges ' +
+    'The active level is highlighted with its theme color. As an instructor, locked levels show <strong>👁️ Preview</strong> badges ' +
     'and remain fully clickable — you can browse freely without restrictions.</p></div>';
 
   // ══════ 8. SYNC & REFRESH ══════
@@ -3909,7 +3909,7 @@ function renderReviewersGuide() {
     '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>📝 In Progress</strong><br><span style="color:var(--text-muted)">Learner has submitted some artifacts</span></div>' +
     '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>✅ Complete</strong><br><span style="color:var(--text-muted)">28/28 days — level passed</span></div>' +
     '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>🔒 Locked</strong><br><span style="color:var(--text-muted)">Prior level not yet complete (learner view)</span></div>' +
-    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>👁️ Preview</strong><br><span style="color:var(--text-muted)">Locked level — reviewers can preview content</span></div>' +
+    '<div style="background:var(--bg-muted);border-radius:6px;padding:8px 10px;font-size:12px"><strong>👁️ Preview</strong><br><span style="color:var(--text-muted)">Locked level — instructors can preview content</span></div>' +
     '</div></div>';
 
   // ══════ 11. CURRENT STATE ══════
