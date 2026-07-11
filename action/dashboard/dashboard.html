@@ -1487,8 +1487,8 @@ function renderCurriculumReviewContent() {
 
   let html = '<div style="margin-bottom:8px">' +
     '<div class="level-selector">' + levelBtns + '</div>' +
-    '<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px"><strong>Active:</strong> ' + lvlData.emoji + ' Level ' + level + ' (' + lvlData.label + ')' +
-    ' — <span style="color:var(--text-secondary)">' + lvlData.subtitle + '</span></p></div>';
+    '<p style="font-size:12px;color:var(--text-muted);margin-bottom:12px"><strong>Active level:</strong> ' + lvlData.emoji + ' Level ' + level + ': ' + lvlData.label + '' +
+    ' — <span style="color:var(--text-secondary)">' + lvlData.subtitle + '</span> Switching levels updates the skills grid, category deep-dives, and weekly schedule below.</p></div>';
 
   // ── Timeline header with status ──
   const startDate = s.curriculum_start_date || '—';
@@ -1544,7 +1544,7 @@ function renderCurriculumReviewContent() {
   // Level-specific skills summary
   html += '<div class="card" style="border-left:3px solid ' + lvlColor + '">' +
     '<h3>' + lvlData.emoji + ' Level ' + level + ' Skills — ' + lvlData.label + '</h3>' +
-    '<p class="caption">At this level, learners focus on the following skills across all 8 categories:</p>' +
+    '<p class="caption">Key skills the learner should demonstrate at Level ' + level + ' (' + lvlData.label + '). Each category lists up to 4 priority skills — use these as review checkpoints when evaluating artifact quality.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px">' +
     Object.values(levelCats).map(cat =>
       '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 12px;border:1px solid var(--border-color)">' +
@@ -1556,7 +1556,7 @@ function renderCurriculumReviewContent() {
 
   // Learning categories deep-dive (level-aware)
   html += '<div class="card"><h3>📚 All Learning Categories — Level ' + level + '</h3>' +
-    '<p class="caption">Each skill area below shows the level-adjusted topics, focus skills, and which reference files support it.</p>' +
+    '<p class="caption">Deep-dive into each of the 8 learning categories at Level ' + level + '. Each card shows the level-adjusted description, priority skill targets, a progress ring of demonstrated vs total skills, the number of training days with related notes, and the source criteria files mapped to that category.</p>' +
     '<div style="margin-top:8px">' +
     Object.values(levelCats).map(cat => {
       const catFiles = srcCrit.filter(f => {
@@ -1618,7 +1618,7 @@ function renderCurriculumReviewContent() {
     '</div></div>';
 
   // Source criteria quick reference
-  html += '<div class="card"><h3>📖 Source Criteria Index</h3><p class="caption">All ' + srcCrit.length + ' training reference files in <code>source/</code> that spell out what learners need to learn and do.</p>' +
+  html += '<div class="card"><h3>📖 Source Criteria Index</h3><p class="caption">Complete index of ' + srcCrit.length + ' training reference files in <code>source/</code> — each file defines what learners need to know and demonstrate. Category tags show which learning areas each file supports; click 👁️ to preview file contents.</p>' +
     '<table class="artifact-table"><thead><tr><th>File</th><th style="width:60px">Size</th><th>Categories</th><th style="width:40px">View</th></tr></thead><tbody>' +
     srcCrit.map(f => {
       const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
@@ -1653,7 +1653,7 @@ function renderCurriculumReviewContent() {
   const isSameDate = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">' +
     (startDt ? 'Curriculum started ' + fmtDate(startDt) + ' — ' : '') +
-    'Full calendar weeks, day numbers on weekdays (Mon–Fri). Weekends are muted.</p>' +
+    '28 working days mapped to a Mon–Fri calendar grid. Each cell represents one training day; green cells indicate days where the learner submitted a note. The highlighted cell marks today. Weekends are shown in muted grey.</p>' +
     '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px">' +
     ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => '<div style="font-size:10px;color:var(--text-muted);text-align:center;font-weight:600;padding:2px 0">' + d + '</div>').join('') +
     // 6 calendar-week rows needed to fit 28 working days (5 per week + partial final week)
@@ -2125,15 +2125,15 @@ function renderAll() {
   const skillTotal = Object.values(catProgress).reduce((a, c) => a + c.skillsTotal, 0);
   addPage('curriculum-review',
     '<h2>📚 Curriculum Review</h2>' +
-    '<p class="subtitle" id="curriculumSubtitle">Full curriculum scope — 4 proficiency levels (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery), 8 learning categories, 28 days per level, 112 days total.</p>' +
+    '<p class="subtitle" id="curriculumSubtitle">Complete curriculum framework explorer — switch between 4 proficiency levels (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery) to review 8 learning categories across a 28-working-day schedule per level (112 days total). Includes learner fulfillment tracking, per-category skill coverage, source file mappings, and a full calendar view.</p>' +
     // ── Learner Fulfillment Infographic (reviewer-facing) ──
     renderLearnerFulfillmentInfographic() +
     // ── Full Curriculum Overview — always visible for reviewer assessment ──
-    '<div class="card"><h3>📖 Full Curriculum — All 4 Levels</h3>' +
+    '<div class="card"><h3>📖 Full Curriculum — All 4 Levels</h3><p class="caption">Bird's-eye view of the entire 4-level program — weekly category schedule, per-level calendar strips, and every category's descriptions, skills, and week assignments at a glance.</p>' +
     renderFullCurriculumOverview() +
     '</div>' +
     // ── Level-specific curriculum content ──
-    '<div class="card"><h3>🎯 Curriculum Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">category & skill coverage</span></h3>' +
+    '<div class="card"><h3>🎯 Curriculum Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">how much of the current level's curriculum the learner has engaged with</span></h3>' +
     '<div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
     '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
     renderProgressRing(catFulfilled, Math.max(catTotal,1), 44) +
@@ -2958,9 +2958,9 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
       '<span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">8</span>' +
       '<strong style="font-size:13px">📚 Curriculum Review</strong>' +
-      '<span style="font-size:10px;color:var(--text-light)">Full curriculum scope</span></div>' +
-      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Level-aware 4-level × 8-category × 28-day curriculum view. Metrics row (weeks, categories, source files, days done). Weekly overview cards, skills summary grid, deep-dive into each category with level-adjusted skills and mapped source files. Source Criteria Index table with category tags. 28-day curriculum calendar.' +
-      '<br><strong>Reviewer focus:</strong> This is your bird\'s-eye view of the entire curriculum. Use the 🌱🌿🌳🏆 level selector at the top to match the learner\'s proficiency tier. Verify that all 8 categories have activity. Check that source criteria files are mapped to the right categories. The curriculum calendar shows which days are complete vs pending.</div></div>' +
+      '<span style="font-size:10px;color:var(--text-light)">Complete framework explorer</span></div>' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Complete curriculum framework explorer — learner fulfillment infographic (notes, evidence, scorecard, proof tasks, Codex gates), full 4-level curriculum reference with weekly category schedule and calendar strips, Curriculum Target Progress rings (categories + skills engaged), level-specific skills summary grid, per-category deep-dive with skill coverage rings and source file mappings, Source Criteria Index table with category tags, and 28-day curriculum calendar.' +
+      '<br><strong>Reviewer focus:</strong> Your most comprehensive view of the entire training program. Use the 🌱🌿🌳🏆 level selector to match the learner\'s proficiency tier. Verify all 8 categories have activity at the active level. Check that skill targets align with artifact quality. The fulfillment infographic shows submission rates at a glance; the calendar highlights which training days are complete vs pending.</div></div>' +
       // Page 9
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">' +
@@ -3432,10 +3432,10 @@ function renderFullCurriculumOverview() {
   const lvlCats = DATA.level_categories || {};
   const levels = DATA.levels || {};
 
-  let html = '<p class="caption" style="margin-bottom:12px">Complete 4-level curriculum framework — 8 categories × 28 days per level = 112 training days total. Reviewers can read every description, every skill, and the weekly schedule for each level.</p>';
+  let html = '<p class="caption" style="margin-bottom:12px">End-to-end view of the MUE curriculum — all 4 proficiency levels displayed side by side. Each level contains 8 learning categories assigned across 4 weekly blocks (28 working days). Reviewers can compare skill expectations across levels, verify category coverage, and check that weekly assignments align with the source criteria.</p>';
 
   // ── Week-by-week schedule grid (all levels, one table) ──
-  html += '<div style="margin-bottom:16px"><h4 style="font-size:13px;margin-bottom:6px">📆 Weekly Category Schedule — Which categories are active each week</h4>' +
+  html += '<div style="margin-bottom:16px"><h4 style="font-size:13px;margin-bottom:6px">📆 Weekly Category Schedule — which of the 8 learning categories are active during each of the 4 weekly blocks</h4>' +
     '<div style="overflow-x:auto"><table class="artifact-table" style="font-size:11px"><thead><tr><th style="width:140px">Category</th>';
   for (let w = 1; w <= 4; w++) html += '<th style="text-align:center;width:60px">Week ' + w + '</th>';
   html += '<th style="text-align:center;width:60px">Total Days</th></tr></thead><tbody>';
@@ -3637,7 +3637,7 @@ function renderReviewersGuide() {
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📁 Evidence</td><td style="padding:6px 4px;color:var(--text-secondary)">All evidence files submitted by the learner, with review and preview</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📈 Classification</td><td style="padding:6px 4px;color:var(--text-secondary)">Readiness classification trend (Foundational → Ready for Codex Acceleration) with chart</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🚪 Codex Gate</td><td style="padding:6px 4px;color:var(--text-secondary)">6 gates that must all pass before learner advances — final checkpoint</td></tr>' +
-    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📚 Curriculum Review</td><td style="padding:6px 4px;color:var(--text-secondary)">Level-aware curriculum browser with fulfillment infographic, full multi-level curriculum, and per-category skill tracking</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📚 Curriculum Review</td><td style="padding:6px 4px;color:var(--text-secondary)">Complete curriculum framework explorer — learner fulfillment infographic, full 4-level curriculum reference, level-specific skill grids, category deep-dives with source file mappings, and 28-day calendar</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📂 All Artifacts</td><td style="padding:6px 4px;color:var(--text-secondary)">Complete file listing of <code>action/</code> with agent-change badges, sync status, and per-file review</td></tr>' +
     '<tr><td style="padding:6px 4px">🔍 Third Party Review</td><td style="padding:6px 4px;color:var(--text-secondary)">All synced reviews from <code>review/reviews.json</code> and local reviewer feedback, with change summaries</td></tr>' +
     '</table></div>';
@@ -3693,14 +3693,16 @@ function renderReviewersGuide() {
   // ══════ 6. CURRICULUM REVIEW ══════
   html += '<div class="card"><h3>📚 Browsing the Curriculum</h3>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
-    'The <strong>📚 Curriculum Review</strong> page is your window into the MUE curriculum framework. It has three sections:</p>' +
+    'The <strong>📚 Curriculum Review</strong> page is the most comprehensive view of the MUE training program. It combines learner progress data with the full curriculum blueprint so you can assess whether the learner is meeting expectations at their current level.</p>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">The page is organized into four sections:</p>' +
     '<ol style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
-    '<li><strong>📊 Learner Input Fulfillment</strong> — aggregate overview of what the learner has completed vs what\'s still pending across all levels, with per-level breakdown cards</li>' +
-    '<li><strong>📖 Full Curriculum — All 4 Levels</strong> — collapsible view showing every level\'s categories, descriptions, and skills simultaneously. Click the header to expand</li>' +
-    '<li><strong>Level-specific content</strong> — use the level selector bar at the top to switch between levels. Each level shows: weekly overview, skills summary, per-category deep-dive with skill targets and source file mappings</li>' +
+    '<li><strong>📊 Learner Input Fulfillment</strong> — high-level dashboard showing artifact submission rates across daily notes, evidence files, scorecard areas, proof tasks, and Codex gates, with per-level progress breakdowns</li>' +
+    '<li><strong>📖 Full Curriculum — All 4 Levels</strong> — a side-by-side reference showing every level's categories, descriptions, skills, and weekly schedule. Use this to understand what the learner is expected to know at each tier</li>' +
+    '<li><strong>🎯 Curriculum Target Progress</strong> — progress rings showing how many of the 8 categories and individual skill targets the learner has engaged with at the active level</li>' +
+    '<li><strong>Level-specific deep-dive</strong> — use the level selector bar at the top to switch between levels. Each level shows a weekly overview with date ranges, a skills summary grid, per-category cards with skill coverage rings and source file mappings, a source criteria index table, and a 28-day curriculum calendar</li>' +
     '</ol>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    '💡 <strong>Tip:</strong> Use the 🌱/🌿/🌳/🏆 buttons at the top of the sidebar to quickly switch the active level across the dashboard.</p></div>';
+    '💡 <strong>Tip:</strong> Use the 🌱/🌿/🌳/🏆 buttons at the top of the sidebar to quickly switch the active level across the entire dashboard. As a reviewer, all levels are accessible — locked levels show 👁️ Preview badges but remain fully browsable.</p></div>';
 
   // ══════ 7. LEVEL BUTTONS ══════
   html += '<div class="card"><h3>🎚️ Level Buttons (Sidebar Top)</h3>' +
