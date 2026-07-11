@@ -2126,6 +2126,159 @@ function renderAll() {
   addPage('curriculum-review',
     '<h2>📚 Curriculum Review</h2>' +
     '<p class="subtitle" id="curriculumSubtitle">Complete curriculum framework explorer — switch between 4 proficiency levels (🌱 Foundation → 🌿 Development → 🌳 Operational → 🏆 Mastery) to review 8 learning categories across a 28-working-day schedule per level (112 days total). Includes learner fulfillment tracking, per-category skill coverage, source file mappings, and a full calendar view.</p>' +
+    // ════════════════════════════════════════════════════════════════════════
+    // TEACHER-FACING CURRICULUM CONTEXT — objectives, goals, criteria, enforcement
+    // ════════════════════════════════════════════════════════════════════════
+
+    // ── Card 1: Program Purpose & Learning Objectives ──
+    '<div class="card" style="border-left:4px solid var(--accent)">' +
+    '<h3>📋 Program Purpose & Learning Objectives</h3>' +
+    '<p style="line-height:1.7;color:var(--text-secondary);margin-bottom:10px">' +
+    'The <strong>MUE (Multifaceted User Education)</strong> program is a structured onboarding curriculum designed to transform a learner into a confident, operationally reliable <strong>Business Intelligence (BI) team contributor</strong>. ' +
+    'The learner must demonstrate they can <em>analyse data, validate logic, deploy models, communicate with the team, and hand off work cleanly</em> — using Pyramid, Codex, BI judgment, and team collaboration skills.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:12px">' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 14px;border:1px solid var(--border-color)">' +
+    '<strong style="font-size:12px">🎯 Overarching Goal</strong>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;line-height:1.5">Produce a team member who can independently analyse, validate, deploy, and hand off BI work — with Codex as an accelerator, not a crutch.</p></div>' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 14px;border:1px solid var(--border-color)">' +
+    '<strong style="font-size:12px">👥 Target Learner</strong>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;line-height:1.5">Range from complete amateurs (🌱 L1) to expert-ready practitioners (🏆 L4). Each level has its own independent 28-day cycle with escalating cognitive demand.</p></div>' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 14px;border:1px solid var(--border-color)">' +
+    '<strong style="font-size:12px">📚 8 Learning Categories</strong>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;line-height:1.5">AI & Copilot · Codex Productivity · Pyramid Platform · BI Judgment · Data & Lineage · Delivery & Handoff · Retention & Readiness · Team Communication</p></div>' +
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:10px 14px;border:1px solid var(--border-color)">' +
+    '<strong style="font-size:12px">📅 Program Structure</strong>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;line-height:1.5">28 working days per level, 4 themed weeks, 112 days total across all 4 levels. Weekdays only — weekends are excluded from the day count.</p></div>' +
+    '</div>' +
+    '<p style="font-size:12px;color:var(--text-muted);line-height:1.5"><strong>Source of truth:</strong> <code>source/4-Week Onboarding Map.md</code> (scheduling), <code>source/LEARNING_CATEGORIES.md</code> (category definitions), <code>source/BI Academic Framework.md</code> (theory layer). ' +
+    'The curriculum condenses a 60-day execution guide into a 28-working-day programme while preserving all 6 proof tasks, 8 learning categories, and evidence-backed readiness gates.</p></div>' +
+
+    // ── Card 2: Level Progression Objectives & Bloom\'s Taxonomy ──
+    '<div class="card" style="border-left:4px solid var(--warning)">' +
+    '<h3>🎯 Level Progression Objectives & Bloom\'s Taxonomy</h3>' +
+    '<p style="line-height:1.7;color:var(--text-secondary);margin-bottom:10px">' +
+    'Each of the 4 levels targets a different tier of cognitive demand. <strong>28 working days at L4 is not the same workload as 28 working days at L1</strong> — higher levels require greater independence, higher-quality artifacts, and demonstrated judgment, not just compliance.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">' +
+    '<div style="background:#4CAF5011;border-radius:8px;padding:10px 14px;border:1px solid #4CAF5044">' +
+    '<strong style="font-size:13px;color:#4CAF50">🌱 Level 1: Foundation</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Remember & Understand</span>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Build vocabulary and basic concepts with maximum scaffolding.<br>' +
+    '<strong>Expected tasks:</strong> Identify, describe, follow guided steps.<br>' +
+    '<strong>Reviewer focus:</strong> Is the learner absorbing foundational concepts? Can they name modes, terms, and basic workflows without prompting?</p></div>' +
+    '<div style="background:#2196F311;border-radius:8px;padding:10px 14px;border:1px solid #2196F344">' +
+    '<strong style="font-size:13px;color:#2196F3">🌿 Level 2: Development</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Apply</span>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Build competence through guided application and practice.<br>' +
+    '<strong>Expected tasks:</strong> Practice, implement, execute under guidance with clear success criteria.<br>' +
+    '<strong>Reviewer focus:</strong> Can the learner apply concepts to real scenarios? Are they following procedures correctly and producing valid artifacts?</p></div>' +
+    '<div style="background:#FF980011;border-radius:8px;padding:10px 14px;border:1px solid #FF980044">' +
+    '<strong style="font-size:13px;color:#FF9800">🌳 Level 3: Operational</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Analyse & Evaluate</span>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Deep concepts with significant independence and quality focus.<br>' +
+    '<strong>Expected tasks:</strong> Compare, detect, assess, validate independently. Requires quality judgment and self-correction.<br>' +
+    '<strong>Reviewer focus:</strong> Does the learner show independent analytical thinking? Can they detect defects and validate without guidance?</p></div>' +
+    '<div style="background:#9C27B011;border-radius:8px;padding:10px 14px;border:1px solid #9C27B044">' +
+    '<strong style="font-size:13px;color:#9C27B0">🏆 Level 4: Mastery</strong><br><span style="font-size:11px;color:var(--text-muted)">Bloom\'s: Create & Evaluate</span>' +
+    '<p style="font-size:12px;color:var(--text-secondary);margin:6px 0 0;line-height:1.5"><strong>Objective:</strong> Advanced optimization, automation, and strategic thinking with full autonomy.<br>' +
+    '<strong>Expected tasks:</strong> Design, automate, optimize, mentor others. System-level thinking and strategy.<br>' +
+    '<strong>Reviewer focus:</strong> Can the learner produce production-ready work autonomously? Are they creating reusable assets and mentoring? A learner who still needs daily step-by-step guidance may need to consolidate at L3.</p></div>' +
+    '</div></div>' +
+
+    // ── Card 3: Assessment & Enforcement Framework ──
+    '<div class="card" style="border-left:4px solid var(--danger)">' +
+    '<h3>📝 Assessment & Enforcement Framework</h3>' +
+    '<p style="line-height:1.7;color:var(--text-secondary);margin-bottom:10px">' +
+    'Progression through the curriculum is gated by multiple enforcement mechanisms. As a reviewer, you are responsible for verifying that the learner meets <strong>all criteria</strong> before advancing to the next level. No level unlocks automatically — it requires reviewer confirmation.</p>' +
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
+    // Left column: Weekly Gates & Scorecard
+    '<div>' +
+    '<h4 style="font-size:13px;margin-bottom:6px">🚦 Weekly Progression Gates</h4>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 8px;font-weight:600">Week 1 Gate</td><td style="padding:6px 8px;color:var(--text-secondary)">If <strong>2+ scorecard areas score Fail</strong>, repeat Week 1 before advancing</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 8px;font-weight:600">Week 2 Gate</td><td style="padding:6px 8px;color:var(--text-secondary)">PT1 (Repository Analysis) and PT3 (Metric Lineage) <strong>must be complete</strong></td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 8px;font-weight:600">Week 3 Gate</td><td style="padding:6px 8px;color:var(--text-secondary)">If <strong>2+ scorecard areas score Fail</strong>, repeat this layer in Week 4 instead of expanding scope</td></tr>' +
+    '<tr><td style="padding:6px 8px;font-weight:600">Week 4 Gate</td><td style="padding:6px 8px;color:var(--text-secondary)">All 6 proof tasks complete + Codex Gate passed → <strong>level advancement eligible</strong></td></tr>' +
+    '</table></div>' +
+
+    // Right column: Proof Tasks & Codex Gate
+    '<div>' +
+    '<h4 style="font-size:13px;margin-bottom:6px">📋 Proof Tasks (Mandatory Milestones)</h4>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:4px 8px;font-weight:600;width:40px">PT1</td><td style="padding:4px 8px">Repository Analysis Brief</td><td style="padding:4px 8px;color:var(--text-muted);width:50px">Day 9</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:4px 8px;font-weight:600">PT2</td><td style="padding:4px 8px">Review Workflow Dry Run</td><td style="padding:4px 8px;color:var(--text-muted)">Day 21</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:4px 8px;font-weight:600">PT3</td><td style="padding:4px 8px">Metric Lineage Walkthrough</td><td style="padding:4px 8px;color:var(--text-muted)">Day 13</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:4px 8px;font-weight:600">PT4</td><td style="padding:4px 8px">QC Evidence Pack</td><td style="padding:4px 8px;color:var(--text-muted)">Day 16</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:4px 8px;font-weight:600">PT5</td><td style="padding:4px 8px">Deployment Rehearsal</td><td style="padding:4px 8px;color:var(--text-muted)">Day 18</td></tr>' +
+    '<tr><td style="padding:4px 8px;font-weight:600">PT6</td><td style="padding:4px 8px">Reviewer Handoff Test</td><td style="padding:4px 8px;color:var(--text-muted)">Day 21</td></tr>' +
+    '</table></div>' +
+    '</div>' +
+
+    // Classification milestones & Codex Gate
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+    '<div>' +
+    '<h4 style="font-size:13px;margin-bottom:6px">📈 Readiness Classification Milestones</h4>' +
+    '<div style="display:flex;flex-direction:column;gap:4px">' +
+    '<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="background:#4CAF50;color:#fff;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600">Day 1</span><span style="color:var(--text-secondary)"><strong>Foundational</strong> — vocabulary stage, guided steps</span></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="background:#2196F3;color:#fff;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600">Day 8</span><span style="color:var(--text-secondary)"><strong>Developing</strong> — applying concepts with guidance</span></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="background:#FF9800;color:#fff;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600">Day 18</span><span style="color:var(--text-secondary)"><strong>Operational</strong> — independent analysis and validation</span></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="background:#9C27B0;color:#fff;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:600">Day 25</span><span style="color:var(--text-secondary)"><strong>Ready for Codex Acceleration</strong> — autonomous, production-ready</span></div>' +
+    '</div></div>' +
+    '<div>' +
+    '<h4 style="font-size:13px;margin-bottom:6px">🚪 Codex Gate (Final Checkpoint)</h4>' +
+    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.6">All <strong>6 Codex gates</strong> must pass before level advancement. The gate verifies:</p>' +
+    '<ul style="margin:4px 0 0 16px;font-size:12px;color:var(--text-secondary);line-height:1.7">' +
+    '<li>One end-to-end workflow completed</li>' +
+    '<li>Business-logic ownership understood</li>' +
+    '<li>Validation evidence produced without help</li>' +
+    '<li>All proof tasks completed</li>' +
+    '<li>One clean reviewable change slice</li>' +
+    '<li>One reusable team asset created</li>' +
+    '</ul>' +
+    '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5"><strong>Reviewer enforcement:</strong> Verify each gate criterion against actual artifacts. A learner who cannot demonstrate these without assistance is not ready to advance.</p></div>' +
+    '</div>' +
+
+    // ── Card 4: Weekly Themes & What to Verify ──
+    '<div class="card" style="border-left:4px solid var(--success)">' +
+    '<h3>📆 Weekly Themes & Reviewer Verification Checklist</h3>' +
+    '<p style="line-height:1.7;color:var(--text-secondary);margin-bottom:10px">' +
+    'Each week has a specific theme, primary categories, and academic concepts. Use this to understand what the learner should be producing and what to verify at each stage.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">' +
+    // Week 1
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 14px;border:1px solid var(--border-color)">' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+    '<span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Week 1</span>' +
+    '<strong style="font-size:13px">🏗️ Foundation</strong></div>' +
+    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.5"><strong>Theme:</strong> Establish the learning frame — AI habits, BI reasoning, and Pyramid awareness.<br>' +
+    '<strong>Categories:</strong> 🤖 AI · 📊 BI · 🏗️ Pyramid · 🧠 Retention · 💬 Team<br>' +
+    '<strong>Academic concepts:</strong> DIKW pyramid, descriptive vs. diagnostic analytics, data model basics, why visualisation matters<br>' +
+    '<strong>Verify:</strong> Learner can name AI modes, describe prompt structure, trace basic lineage, and give a standup update.</p></div>' +
+    // Week 2
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 14px;border:1px solid var(--border-color)">' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+    '<span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Week 2</span>' +
+    '<strong style="font-size:13px">🔗 Data Foundation</strong></div>' +
+    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.5"><strong>Theme:</strong> Validate source-to-model data foundation. Complete PT1 and PT3.<br>' +
+    '<strong>Categories:</strong> 🔗 Data · 📊 BI · ⚡ Codex · 🏗️ Pyramid<br>' +
+    '<strong>Academic concepts:</strong> Analytics maturity (4 types), ETL/ELT, dimensional modelling, grain as a threshold concept<br>' +
+    '<strong>Verify:</strong> PT1 repository analysis is thorough, row ownership and deduplication logic are correct, grain boundaries are understood.</p></div>' +
+    // Week 3
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 14px;border:1px solid var(--border-color)">' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+    '<span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Week 3</span>' +
+    '<strong style="font-size:13px">⚡ Operations & QC</strong></div>' +
+    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.5"><strong>Theme:</strong> Validate snapshot/rollup logic, run QC, rehearse deployment. Complete PT3-PT5.<br>' +
+    '<strong>Categories:</strong> 🏗️ Pyramid · ⚡ Codex · 📊 BI · 📦 Delivery<br>' +
+    '<strong>Academic concepts:</strong> Kimball lifecycle, data governance, star schemas, validation chain methodology<br>' +
+    '<strong>Verify:</strong> QC evidence pack is complete and accurate, deployment rehearsal was executed cleanly, rollup logic is validated.</p></div>' +
+    // Week 4
+    '<div style="background:var(--bg-muted);border-radius:8px;padding:12px 14px;border:1px solid var(--border-color)">' +
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+    '<span style="background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">Week 4</span>' +
+    '<strong style="font-size:13px">📦 Contribution & Handoff</strong></div>' +
+    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.5"><strong>Theme:</strong> Deliver a reviewable change slice, create a reusable asset, pass the Codex Gate.<br>' +
+    '<strong>Categories:</strong> 📦 Delivery · ⚡ Codex · 🏗️ Pyramid · 📊 BI · 🧠 Retention · 💬 Team<br>' +
+    '<strong>Academic concepts:</strong> BI maturity models, industry standards (DMBOK/TDWI/SFIA), far-transfer assessment, portfolio capstone<br>' +
+    '<strong>Verify:</strong> All 6 proof tasks complete, Codex Gate passed, handoff package is reviewer-ready, reusable asset created.</p></div>' +
+    '</div></div>' +
+
     // ── Learner Fulfillment Infographic (reviewer-facing) ──
     renderLearnerFulfillmentInfographic() +
     // ── Full Curriculum Overview — always visible for reviewer assessment ──
@@ -3694,15 +3847,23 @@ function renderReviewersGuide() {
   html += '<div class="card"><h3>📚 Browsing the Curriculum</h3>' +
     '<p style="line-height:1.6;color:var(--text-secondary)">' +
     'The <strong>📚 Curriculum Review</strong> page is the most comprehensive view of the MUE training program. It combines learner progress data with the full curriculum blueprint so you can assess whether the learner is meeting expectations at their current level.</p>' +
-    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">The page is organized into four sections:</p>' +
-    '<ol style="margin:6px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">The page is organized into <strong>eight sections</strong>, grouped into teacher context and learner data:</p>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:4px"><em>Teacher context (top of page):</em></p>' +
+    '<ol style="margin:4px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
+    '<li><strong>📋 Program Purpose & Learning Objectives</strong> — the overarching goal of MUE, target learner profile, 8 learning categories, and program structure (28 days/level, 112 total)</li>' +
+    '<li><strong>🎯 Level Progression Objectives & Bloom\'s Taxonomy</strong> — cognitive demand tiers for each level (Remember through Create), expected task types, and what the reviewer should evaluate at each tier</li>' +
+    '<li><strong>📝 Assessment & Enforcement Framework</strong> — weekly progression gates, all 6 proof tasks with due days, readiness classification milestones, and the Codex Gate criteria that must pass before advancement</li>' +
+    '<li><strong>📆 Weekly Themes & Reviewer Verification Checklist</strong> — what each week covers, which categories are active, academic concepts introduced, and what to verify before the learner advances</li>' +
+    '</ol>' +
+    '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px"><em>Learner data (below):</em></p>' +
+    '<ol start="5" style="margin:4px 0 0 16px;line-height:1.8;color:var(--text-secondary)">' +
     '<li><strong>📊 Learner Input Fulfillment</strong> — high-level dashboard showing artifact submission rates across daily notes, evidence files, scorecard areas, proof tasks, and Codex gates, with per-level progress breakdowns</li>' +
-    '<li><strong>📖 Full Curriculum — All 4 Levels</strong> — a side-by-side reference showing every level\'s categories, descriptions, skills, and weekly schedule. Use this to understand what the learner is expected to know at each tier</li>' +
+    '<li><strong>📖 Full Curriculum — All 4 Levels</strong> — a side-by-side reference showing every level\'s categories, descriptions, skills, and weekly schedule</li>' +
     '<li><strong>🎯 Curriculum Target Progress</strong> — progress rings showing how many of the 8 categories and individual skill targets the learner has engaged with at the active level</li>' +
     '<li><strong>Level-specific deep-dive</strong> — use the level selector bar at the top to switch between levels. Each level shows a weekly overview with date ranges, a skills summary grid, per-category cards with skill coverage rings and source file mappings, a source criteria index table, and a 28-day curriculum calendar</li>' +
     '</ol>' +
     '<p style="line-height:1.6;color:var(--text-secondary);margin-top:6px">' +
-    '💡 <strong>Tip:</strong> Use the 🌱/🌿/🌳/🏆 buttons at the top of the sidebar to quickly switch the active level across the entire dashboard. As a reviewer, all levels are accessible — locked levels show 👁️ Preview badges but remain fully browsable.</p></div>';
+    '💡 <strong>Tip:</strong> Start with the teacher context cards at the top to understand what the learner should be achieving, then scroll down to the learner data sections to see actual progress. Use the 🌱/🌿/🌳/🏆 buttons at the top of the sidebar to switch the active level across the entire dashboard.</p></div>';
 
   // ══════ 7. LEVEL BUTTONS ══════
   html += '<div class="card"><h3>🎚️ Level Buttons (Sidebar Top)</h3>' +
