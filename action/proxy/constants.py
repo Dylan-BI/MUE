@@ -154,6 +154,26 @@ CATEGORIES = {
         'weeks': [1, 2, 3, 4],
         'skills': ['Cross-track recall', 'Self-assessment', 'Proof task tracking', 'Gate readiness evaluation'],
     },
+    'team-communication': {
+        'id': 'team-communication',
+        'emoji': '💬',
+        'label': 'Team Communication & Task Management',
+        'description': 'Team collaboration, status communication, task tracking, feedback, blocker escalation, shared workflows. Learners practise daily standups, status reporting, and feedback incorporation.',
+        'weeks': [1, 2, 3, 4],
+        'skills': ['Daily standup updates', 'Status reporting', 'Asking for help effectively', 'Giving/receiving feedback', 'Task tracking with GitHub Issues', 'Blocker communication', 'Team decision documentation'],
+    },
+}
+
+# ── Emoji tag → category id mapping (used by curriculum tags) ──
+TAG_TO_CATEGORY_MAP = {
+    '🤖 AI': 'ai-copilot',
+    '⚡ Codex': 'codex',
+    '🏗️ Pyr': 'pyramid',
+    '📊 BI': 'bi-judgment',
+    '🔗 Data': 'data-lineage',
+    '📦 Del': 'delivery-handoff',
+    '🧠 Ret': 'readiness',
+    '💬 Team': 'team-communication',
 }
 
 # ── Source file → category mapping (inferred from path/filename patterns) ──
@@ -259,6 +279,11 @@ LEVEL_CATEGORIES = {
             'skills': ['Progress tracking', 'Simple check-ins', 'Basic self-assessment', 'Learning awareness'],
             'weeks': [1, 2, 3, 4],
         },
+        'team-communication': {
+            'description': 'What does it mean to work with a team? Learn how to give a standup update, report status, and ask for help when you need it.',
+            'skills': ['Standup introduction', 'Status updates', 'Asking for help', 'Listening to feedback', 'Task awareness'],
+            'weeks': [1, 2, 3, 4],
+        },
     },
     2: {
         'ai-copilot': {
@@ -294,6 +319,11 @@ LEVEL_CATEGORIES = {
         'readiness': {
             'description': 'Track progress across all learning tracks. Practice accurate self-assessment. Complete proof tasks and build gate awareness.',
             'skills': ['Cross-track recall', 'Self-assessment practice', 'Proof task completion', 'Gate awareness'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'team-communication': {
+            'description': 'Give regular standup updates and status reports. Practise asking for help effectively and receiving feedback constructively. Start tracking tasks in a shared board.',
+            'skills': ['Daily standup updates', 'Status reporting', 'Asking for help effectively', 'Receiving feedback', 'Task board basics'],
             'weeks': [1, 2, 3, 4],
         },
     },
@@ -333,6 +363,11 @@ LEVEL_CATEGORIES = {
             'skills': ['Proof task tracking', 'Gate readiness evaluation', 'Self-directed progress', 'Quality assessment'],
             'weeks': [1, 2, 3, 4],
         },
+        'team-communication': {
+            'description': 'Lead standups and status updates. Give and receive feedback professionally. Track and prioritise tasks across the team. Escalate blockers promptly and document team decisions.',
+            'skills': ['Standup leadership', 'Giving/receiving feedback', 'Task prioritisation', 'Blocker escalation', 'Team decision documentation'],
+            'weeks': [1, 2, 3, 4],
+        },
     },
     4: {
         'ai-copilot': {
@@ -368,6 +403,11 @@ LEVEL_CATEGORIES = {
         'readiness': {
             'description': 'Evaluate program-level effectiveness. Improve the curriculum based on outcomes. Mentor others through their readiness journey. Drive quality assurance.',
             'skills': ['Program evaluation', 'Curriculum improvement', 'Mentoring', 'Quality assurance'],
+            'weeks': [1, 2, 3, 4],
+        },
+        'team-communication': {
+            'description': 'Lead team communication strategy. Design feedback frameworks and escalation protocols. Mentor others in effective collaboration. Drive team productivity through shared workflows.',
+            'skills': ['Communication strategy', 'Feedback framework design', 'Escalation protocol', 'Collaboration mentoring', 'Workflow optimisation'],
             'weeks': [1, 2, 3, 4],
         },
     },

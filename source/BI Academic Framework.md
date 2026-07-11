@@ -31,7 +31,7 @@ The framework draws from:
 | | Chapman, P. — "Data Mining: A Practical Guide to Discovering Hidden Patterns" | 2000 |
 | | Zhang, Y., & Wang, Y. — "A Review of Analytics and Business Intelligence Research" | 2020 |
 
-### Integration with the 7 Learning Categories
+### Integration with the 8 Learning Categories
 
 | Academic Concept | Primary Category | Level Introduced | Peer-Reviewed Source |
 |---|---|---|---|
