@@ -682,8 +682,8 @@
      ═══════════════════════════════════════════════════════════════════════ */
 
   /* ── Smooth Page Transitions ── */
-  .page { opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .25s ease; }
-  .page.active { opacity: 1; transform: translateY(0); }
+  .page { opacity: 0; transform: translateY(12px) scale(.98); transition: opacity .3s ease, transform .3s ease; will-change: opacity, transform; }
+  .page.active { opacity: 1; transform: translateY(0) scale(1); }
 
   /* ── Enhanced Card Interactions ── */
   .card { position: relative; overflow: hidden; }
@@ -774,8 +774,8 @@
   .alert-warning { border-left: 4px solid var(--warning-hue); }
 
   /* ── Third-Party Card Enhancement ── */
-  .third-party-card { transition: box-shadow .2s ease, transform .2s ease; }
-  .third-party-card:hover { box-shadow: var(--card-hover-shadow); }
+  .third-party-card { transition: box-shadow .25s ease, transform .25s ease; }
+  .third-party-card:hover { box-shadow: var(--card-hover-shadow); transform: translateY(-2px); }
 
   /* ── Version Chip Interaction ── */
   .version-chip { transition: background .15s ease, border-color .15s ease; cursor: default; }
@@ -1857,7 +1857,14 @@ function showPage(name) {
   document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
   const link = document.querySelector('.nav a[data-page="' + name + '"]');
   if (link) link.classList.add('active');
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Hide outgoing pages instantly (remove active without transition)
+  document.querySelectorAll('.page.active').forEach(p => {
+    p.style.transition = 'none';
+    p.classList.remove('active');
+    // Force reflow so the transition removal takes effect
+    void p.offsetHeight;
+    p.style.transition = '';
+  });
   const el = document.getElementById('page-' + name);
   if (el) {
     el.classList.add('active');
