@@ -382,6 +382,34 @@
   .timeline-item .day-details.open { display: block; }
   .score-chip { display: inline-block; width: 26px; height: 26px; border-radius: 6px; text-align: center; line-height: 26px; font-size: 10px; font-weight: 700; color: #fff; margin: 1px; }
   .score-pass { background: var(--score-pass); color:#fff; } .score-partial { background: var(--score-partial); color: #333; } .score-fail { background: var(--score-fail); color:#fff; }
+  /* ── Interactive Score Chips & Override Popup ── */
+  .score-chip.interactive { cursor: pointer; position: relative; transition: transform .15s, box-shadow .15s; }
+  .score-chip.interactive:hover { transform: scale(1.18); box-shadow: 0 2px 10px rgba(0,0,0,.25); z-index: 2; }
+  .score-chip.overridden { box-shadow: 0 0 0 2.5px var(--accent); }
+  .score-chip.overridden::after { content: '✓'; position: absolute; top: -5px; right: -5px; font-size: 8px; background: var(--accent); color: #fff; border-radius: 50%; width: 13px; height: 13px; line-height: 13px; text-align: center; }
+  .score-chip-tooltip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 6px; padding: 6px 10px; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,.2); pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 10; }
+  .score-chip.interactive:hover .score-chip-tooltip { opacity: 1; }
+  .score-popup { position: fixed; z-index: 1000; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 10px; padding: 14px; width: 290px; box-shadow: 0 8px 32px rgba(0,0,0,.28); animation: scorePopupIn .18s ease; }
+  .score-popup .popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .score-popup .popup-header h4 { margin: 0; font-size: 13px; }
+  .score-popup .popup-close { cursor: pointer; font-size: 16px; color: var(--text-muted); background: none; border: none; padding: 2px 6px; border-radius: 4px; }
+  .score-popup .popup-close:hover { background: var(--bg-muted); }
+  .score-popup .popup-original { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
+  .score-popup .popup-original strong { color: var(--text-primary); }
+  .score-popup .override-group { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .score-popup .override-btn { flex: 1; min-width: 55px; padding: 7px 6px; border: 2px solid var(--border-light); border-radius: 6px; background: var(--bg-muted); color: var(--text-primary); font-size: 11px; font-weight: 600; cursor: pointer; text-align: center; transition: all .15s; }
+  .score-popup .override-btn:hover { border-color: var(--accent); }
+  .score-popup .override-btn.selected { border-color: var(--accent); color: #fff; }
+  .score-popup .override-btn.none-btn.selected { border-color: var(--text-muted); background: var(--text-muted); color: #fff; }
+  .score-popup textarea { width: 100%; min-height: 48px; border: 1px solid var(--border-input); border-radius: 6px; padding: 6px 8px; font-size: 12px; background: var(--bg-card); color: var(--text-primary); resize: vertical; margin-bottom: 10px; font-family: inherit; }
+  .score-popup textarea:focus { outline: none; border-color: var(--accent); }
+  .score-popup .popup-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .score-popup .popup-save { padding: 6px 16px; border: none; border-radius: 6px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+  .score-popup .popup-save:hover { opacity: .85; }
+  .score-popup .popup-remove { padding: 6px 10px; border: 1px solid var(--danger); border-radius: 6px; background: transparent; color: var(--danger); font-size: 11px; cursor: pointer; transition: all .15s; }
+  .score-popup .popup-remove:hover { background: var(--danger); color: #fff; }
+  .score-popup .popup-override-info { font-size: 11px; color: var(--accent); margin-bottom: 6px; }
+  @keyframes scorePopupIn { from { opacity: 0; transform: scale(.92) translateY(-4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   .pt-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light); }
   .pt-row:last-child { border-bottom: none; }
   .pt-icon { font-size: 18px; width: 24px; text-align: center; }
@@ -1299,6 +1327,21 @@ function getMergedReviews(aid) {
   return merged;
 }
 
+/* ── Score Override Storage ── */
+const SCORE_OVERRIDES_KEY = 'mue_score_overrides';
+function getScoreOverrides() { try { return JSON.parse(localStorage.getItem(SCORE_OVERRIDES_KEY)) || {}; } catch { return {}; } }
+function saveScoreOverride(areaKey, dayIndex, override) {
+  const all = getScoreOverrides();
+  const key = areaKey + '_' + dayIndex;
+  if (!override) { delete all[key]; }
+  else { all[key] = { ...override, timestamp: new Date().toISOString() }; }
+  localStorage.setItem(SCORE_OVERRIDES_KEY, JSON.stringify(all));
+  return all;
+}
+function getScoreOverride(areaKey, dayIndex) {
+  return getScoreOverrides()[areaKey + '_' + dayIndex] || null;
+}
+
 /* ── Save all local reviews to review/reviews.json (downloads JSON file) ── */
 function saveReviewsToReview() {
   const all = getReviews();
@@ -2123,7 +2166,7 @@ function renderAll() {
       const e=tr[a]||[];
       const safe = a.replace(/[^a-zA-Z0-9]/g,'_');
       sh2+='<div class="card"><h3>'+a.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+'</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';
-      e.forEach(v=>{sh2+='<span class="score-chip" style="background:'+(SCORE_COLORS[v.score]||'#888')+'">'+v.score[0]+'</span>';});
+      e.forEach((v,vi)=>{const ov=getScoreOverride(a,vi);const display=ov&&ov.overrideScore?ov.overrideScore:v.score;const cls=ov&&ov.overrideScore?'score-chip interactive overridden':'score-chip interactive';sh2+='<span class="'+cls+'" style="background:'+(SCORE_COLORS[display]||'#888')+'" data-area="'+a+'" data-day="'+vi+'" data-original="'+v.score+'" title="'+v.score+' — Click to override'+((ov&&ov.overrideScore)?' (Override: '+ov.overrideScore+')':'')+'" onclick="openScorePopup('+JSON.stringify(a)+','+vi+','+JSON.stringify(v.score)+',event)">'+display[0]+'</span>';});
       sh2+='</div><p class="caption">';
       const vl=e.map(v=>({'Pass':2,'Partial':1,'Fail':0}[v.score]||0));
       if(vl.length>=2){if(vl[vl.length-1]>vl[0])sh2+='📈 Improving';else if(vl[vl.length-1]<vl[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}
@@ -2600,6 +2643,111 @@ function submitReview(aid, type, label, filename) {
   window.open('mailto:'+REVIEW_EMAIL+'?subject='+subj+'&body='+body, '_blank');
   if (tInput) tInput.value = '';
   btns.forEach(b=>b.classList.remove('selected'));
+}
+
+/* ── Score Override Popup ── */
+let _activeScorePopup = null;
+function openScorePopup(areaKey, dayIdx, originalScore, ev) {
+  closeScorePopup();
+  if (ev) ev.stopPropagation();
+  const ov = getScoreOverride(areaKey, dayIdx);
+  const popup = document.createElement('div');
+  popup.className = 'score-popup';
+  const opts = ['Pass','Partial','Fail'];
+  let btns = '<div class="override-btn none-btn' + (!ov || !ov.overrideScore ? ' selected' : '') + '" data-val="" onclick="pickScoreOverride(this,' + JSON.stringify(areaKey) + ',' + dayIdx + ',\'\')">No Override</div>';
+  opts.forEach(o => {
+    const isSel = ov && ov.overrideScore === o;
+    btns += '<div class="override-btn' + (isSel ? ' selected' : '') + '" data-val="' + o + '" onclick="pickScoreOverride(this,' + JSON.stringify(areaKey) + ',' + dayIdx + ',\'' + o + '\')" style="' + (isSel ? 'background:' + (SCORE_COLORS[o]||'#888') + ';color:#fff' : '') + '">' + o + '</div>';
+  });
+  popup.innerHTML =
+    '<div class="popup-header"><h4>🎯 Score Override</h4><button class="popup-close" onclick="closeScorePopup()">✕</button></div>' +
+    '<div class="popup-original">Original: <strong style="color:' + (SCORE_COLORS[originalScore]||'#888') + '">' + originalScore + '</strong> · Day ' + (dayIdx + 1) + (ov && ov.overrideScore ? ' <span style="color:var(--accent)">(override active)</span>' : '') + '</div>' +
+    '<label style="font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600">Instructor Override</label>' +
+    '<div class="override-group" id="ovBtns_' + areaKey + '_' + dayIdx + '">' + btns + '</div>' +
+    '<textarea id="ovComment_' + areaKey + '_' + dayIdx + '" placeholder="Instructor comment (optional)...">' + (ov ? (ov.comment || '') : '') + '</textarea>' +
+    '<div class="popup-actions">' +
+    (ov ? '<button class="popup-remove" onclick="removeScoreOv(' + JSON.stringify(areaKey) + ',' + dayIdx + ')">Remove</button>' : '') +
+    '<button class="popup-save" onclick="saveScoreOvPopup(' + JSON.stringify(areaKey) + ',' + dayIdx + ')">Save</button></div>';
+  document.body.appendChild(popup);
+  // Position near the clicked chip
+  if (ev && ev.target) {
+    const rect = ev.target.getBoundingClientRect();
+    let left = rect.left, top = rect.bottom + 8;
+    if (left + 290 > window.innerWidth) left = window.innerWidth - 300;
+    if (top + 260 > window.innerHeight) top = rect.top - 270;
+    if (left < 10) left = 10;
+    popup.style.left = left + 'px';
+    popup.style.top = Math.max(10, top) + 'px';
+  } else {
+    popup.style.left = '50%'; popup.style.top = '50%';
+    popup.style.transform = 'translate(-50%,-50%)';
+  }
+  _activeScorePopup = popup;
+  setTimeout(() => document.addEventListener('click', _scorePopupOutside), 0);
+}
+function closeScorePopup() {
+  if (_activeScorePopup) { _activeScorePopup.remove(); _activeScorePopup = null; }
+  document.removeEventListener('click', _scorePopupOutside);
+}
+function _scorePopupOutside(e) {
+  if (_activeScorePopup && !_activeScorePopup.contains(e.target) && !e.target.closest('.score-chip')) closeScorePopup();
+}
+function pickScoreOverride(btn, areaKey, dayIdx, value) {
+  const grp = document.getElementById('ovBtns_' + areaKey + '_' + dayIdx);
+  if (!grp) return;
+  grp.querySelectorAll('.override-btn').forEach(b => {
+    b.classList.remove('selected');
+    b.style.background = '';
+    b.style.color = '';
+  });
+  btn.classList.add('selected');
+  if (value) { btn.style.background = SCORE_COLORS[value] || '#888'; btn.style.color = '#fff'; }
+}
+function saveScoreOvPopup(areaKey, dayIdx) {
+  const grp = document.getElementById('ovBtns_' + areaKey + '_' + dayIdx);
+  const cmt = document.getElementById('ovComment_' + areaKey + '_' + dayIdx);
+  if (!grp) return;
+  let overrideScore = null;
+  grp.querySelectorAll('.override-btn.selected').forEach(b => {
+    const v = b.getAttribute('data-val');
+    if (v) overrideScore = v;
+  });
+  const comment = cmt ? cmt.value.trim() : '';
+  const reviewerName = getReviewerName();
+  if (overrideScore || comment) {
+    saveScoreOverride(areaKey, dayIdx, { overrideScore, comment, reviewerName });
+    showToast('Score override saved for Day ' + (dayIdx + 1), 'success', 'Override Saved');
+  } else {
+    saveScoreOverride(areaKey, dayIdx, null);
+    showToast('Override cleared for Day ' + (dayIdx + 1), 'info', 'Override Removed');
+  }
+  closeScorePopup();
+  refreshScorecardChips();
+}
+function removeScoreOv(areaKey, dayIdx) {
+  saveScoreOverride(areaKey, dayIdx, null);
+  showToast('Override cleared for Day ' + (dayIdx + 1), 'info', 'Override Removed');
+  closeScorePopup();
+  refreshScorecardChips();
+}
+function refreshScorecardChips() {
+  document.querySelectorAll('.score-chip.interactive').forEach(chip => {
+    const area = chip.dataset.area, day = parseInt(chip.dataset.day, 10);
+    if (!area || isNaN(day)) return;
+    const ov = getScoreOverride(area, day);
+    const orig = chip.dataset.original;
+    if (ov && ov.overrideScore) {
+      chip.classList.add('overridden');
+      chip.style.background = SCORE_COLORS[ov.overrideScore] || '#888';
+      chip.textContent = ov.overrideScore[0];
+      chip.title = 'Original: ' + orig + ' → Override: ' + ov.overrideScore + (ov.comment ? ' — ' + ov.comment : '');
+    } else {
+      chip.classList.remove('overridden');
+      chip.style.background = SCORE_COLORS[orig] || '#888';
+      chip.textContent = orig ? orig[0] : '?';
+      chip.title = orig + ' — Click to override';
+    }
+  });
 }
 
 function renderReviewList(aid) {
@@ -3590,6 +3738,7 @@ function exportReviews() {
 function clearAllReviews() {
   if (!confirm('Delete ALL local reviews? This cannot be undone.')) return;
   localStorage.removeItem(REVIEWS_KEY);
+  localStorage.removeItem(SCORE_OVERRIDES_KEY);
   const active = document.querySelector('.nav a.active');
   if (active) showPage(active.dataset.page);
 }
