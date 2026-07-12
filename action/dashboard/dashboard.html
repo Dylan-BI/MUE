@@ -470,6 +470,20 @@
   .review-item .r-rating { font-size: 11px; padding: 1px 8px; border-radius: 8px; color: #fff; }
   .review-item .r-date { font-size: 10px; color: var(--text-light); }
   .review-item .r-text { color: var(--text-secondary); font-size: 12px; }
+  .review-actions { display: flex; gap: 6px; margin-top: 4px; }
+  .review-actions button { font-size: 10px; padding: 2px 8px; border: 1px solid var(--border-input); border-radius: 4px; background: var(--bg-card); color: var(--text-muted); cursor: pointer; transition: all .15s; }
+  .review-actions button:hover { border-color: var(--accent); color: var(--accent); }
+  .review-actions .delete-btn:hover { border-color: var(--danger); color: var(--danger); }
+  .review-edit-form { margin-top: 4px; background: var(--bg-muted); border-radius: 6px; padding: 8px; }
+  .review-edit-form textarea { width: 100%; padding: 4px 8px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 12px; min-height: 40px; font-family: inherit; background: var(--bg-card); color: var(--text-primary); resize: vertical; margin-bottom: 6px; }
+  .review-edit-form .edit-rating-group { display: flex; gap: 4px; margin-bottom: 6px; }
+  .review-edit-form .edit-rating-btn { flex: 1; padding: 3px; border: 1px solid var(--border-input); border-radius: 6px; text-align: center; cursor: pointer; font-size: 11px; background: var(--bg-card); color: var(--text-primary); transition: all .15s; }
+  .review-edit-form .edit-rating-btn:hover { border-color: var(--accent); }
+  .review-edit-form .edit-rating-btn.selected { border-color: var(--accent); color: #fff; background: var(--accent); }
+  .review-edit-actions { display: flex; gap: 4px; justify-content: flex-end; }
+  .review-edit-actions button { font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer; border: 1px solid var(--border-input); }
+  .review-edit-actions .save-btn { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .review-edit-actions .cancel-btn { background: var(--bg-card); color: var(--text-muted); }
   .export-btn { background: var(--accent); color: var(--text-on-accent); border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer; font-weight: 600; }
   .export-btn:hover { background: var(--accent-hover); }
   .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -2775,13 +2789,19 @@ function refreshScorecardChips() {
 function renderReviewList(aid) {
   const items = getMergedReviews(aid).reverse();
   if (!items.length) return '';
+  const currentName = getReviewerName();
   let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:var(--text-muted)">Reviews</strong>';
-  items.forEach(r=>{
+  items.forEach((r,ri)=>{
     const d=new Date(r.timestamp), rc=r.rating.includes('Pass')?'#198754':(r.rating.includes('Rework')?'#dc3545':'#ffc107');
     const sourceBadge = r._source === 'synced'
       ? '<span style="font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin-left:4px">📥 Synced</span>'
       : '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:4px">💻 Local</span>';
-    h += '<div class="review-item"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+'</div></div>';
+    const isAuthor = currentName && r.name === currentName && r._source === 'local';
+    const actionsHtml = isAuthor
+      ? '<div class="review-actions"><button onclick="startEditReview(\''+aid+'\',\''+r.id+'\')">✏️ Edit</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>'
+      : '';
+    const editedTag = r.editedAt ? ' <span style="font-size:9px;color:var(--text-muted)">(edited)</span>' : '';
+    h += '<div class="review-item" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
@@ -2791,6 +2811,86 @@ function renderReviewList(aid) {
   }
   h += '</div>';
   return h;
+}
+
+function startEditReview(aid, reviewId) {
+  const all = getReviews();
+  const reviews = all[aid] || [];
+  const review = reviews.find(r => r.id === reviewId);
+  if (!review) return;
+  const currentName = getReviewerName();
+  if (!currentName || review.name !== currentName) {
+    showToast('Only the review author can edit this review.', 'warning', 'Not Author');
+    return;
+  }
+  const el = document.getElementById('rv_'+aid+'_'+reviewId);
+  if (!el) return;
+  const ratingOpts = ['👍 Pass','⚡ Needs Work','❌ Rework'];
+  const editIdx = ratingOpts.indexOf(review.rating);
+  el.innerHTML = '<div class="review-edit-form">' +
+    '<div class="edit-rating-group" id="erg_'+aid+'_'+reviewId+'">' +
+    ratingOpts.map((r,i)=>'<div class="edit-rating-btn'+(i===editIdx?' selected':'')+'" onclick="selectEditRating(\''+aid+'\',\''+reviewId+'\','+i+')">'+r+'</div>').join('') +
+    '</div>' +
+    '<textarea id="ert_'+aid+'_'+reviewId+'">'+escHtml(review.text)+'</textarea>' +
+    '<div class="review-edit-actions">' +
+    '<button class="cancel-btn" onclick="cancelEditReview(\''+aid+'\',\''+reviewId+'\')">Cancel</button>' +
+    '<button class="save-btn" onclick="saveEditReview(\''+aid+'\',\''+reviewId+'\')">Save</button>' +
+    '</div></div>';
+}
+
+function selectEditRating(aid, reviewId, idx) {
+  const btns = document.querySelectorAll('#erg_'+aid+'_'+reviewId+' .edit-rating-btn');
+  btns.forEach(b => b.classList.remove('selected'));
+  if (btns[idx]) btns[idx].classList.add('selected');
+}
+
+function cancelEditReview(aid, reviewId) {
+  const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
+  if (list) list.innerHTML = renderReviewList(aid);
+}
+
+function saveEditReview(aid, reviewId) {
+  const all = getReviews();
+  const reviews = all[aid] || [];
+  const review = reviews.find(r => r.id === reviewId);
+  if (!review) return;
+  const currentName = getReviewerName();
+  if (!currentName || review.name !== currentName) {
+    showToast('Only the review author can edit this review.', 'warning', 'Not Author');
+    return;
+  }
+  const textarea = document.getElementById('ert_'+aid+'_'+reviewId);
+  const newText = textarea ? textarea.value.trim() : '';
+  if (!newText) { showToast('Comment cannot be empty.', 'warning', 'Empty Comment'); return; }
+  let newRating = review.rating;
+  const btns = document.querySelectorAll('#erg_'+aid+'_'+reviewId+' .edit-rating-btn');
+  btns.forEach(b => { if (b.classList.contains('selected')) newRating = b.textContent.trim(); });
+  review.text = newText;
+  review.rating = newRating;
+  review.editedAt = new Date().toISOString();
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
+  if (list) list.innerHTML = renderReviewList(aid);
+  showToast('Review updated.', 'success', 'Review Saved');
+}
+
+function deleteReview(aid, reviewId) {
+  const all = getReviews();
+  const reviews = all[aid] || [];
+  const review = reviews.find(r => r.id === reviewId);
+  if (!review) return;
+  const currentName = getReviewerName();
+  if (!currentName || review.name !== currentName) {
+    showToast('Only the review author can delete this review.', 'warning', 'Not Author');
+    return;
+  }
+  if (!confirm('Delete your review? This cannot be undone.')) return;
+  all[aid] = reviews.filter(r => r.id !== reviewId);
+  if (!all[aid].length) delete all[aid];
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
+  if (list) list.innerHTML = renderReviewList(aid);
+  showToast('Review deleted.', 'info', 'Review Removed');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
