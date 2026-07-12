@@ -474,6 +474,13 @@
   .review-actions button { font-size: 10px; padding: 2px 8px; border: 1px solid var(--border-input); border-radius: 4px; background: var(--bg-card); color: var(--text-muted); cursor: pointer; transition: all .15s; }
   .review-actions button:hover { border-color: var(--accent); color: var(--accent); }
   .review-actions .delete-btn:hover { border-color: var(--danger); color: var(--danger); }
+  .review-actions .cancel-review-btn:hover { border-color: var(--warning-hue); color: var(--warning-hue); }
+  .review-actions .restore-btn:hover { border-color: var(--success); color: var(--success); }
+  .review-item.cancelled { opacity: 0.55; border-style: dashed; }
+  .review-item.cancelled .r-rating { text-decoration: line-through; opacity: 0.7; }
+  .review-item.cancelled .r-text { text-decoration: line-through; }
+  .cancelled-badge { font-size: 9px; background: var(--warning-hue); color: #fff; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
+  .restore-badge { font-size: 9px; background: var(--success); color: #fff; padding: 1px 5px; border-radius: 4px; margin-left: 4px; }
   .review-edit-form { margin-top: 4px; background: var(--bg-muted); border-radius: 6px; padding: 8px; }
   .review-edit-form textarea { width: 100%; padding: 4px 8px; border: 1px solid var(--border-input); border-radius: 6px; font-size: 12px; min-height: 40px; font-family: inherit; background: var(--bg-card); color: var(--text-primary); resize: vertical; margin-bottom: 6px; }
   .review-edit-form .edit-rating-group { display: flex; gap: 4px; margin-bottom: 6px; }
@@ -1331,10 +1338,11 @@ function getReviewerStats() {
   Object.entries(all).forEach(([aid, reviews]) => {
     reviews.forEach(r => {
       const name = r.name || 'Unknown';
-      if (!stats[name]) stats[name] = { name, total: 0, ratings: {}, artifacts: new Set(), types: new Set(), firstReview: r.timestamp, lastReview: r.timestamp, comments: 0 };
+      if (!stats[name]) stats[name] = { name, total: 0, active: 0, cancelled: 0, ratings: {}, artifacts: new Set(), types: new Set(), firstReview: r.timestamp, lastReview: r.timestamp, comments: 0 };
       const s = stats[name];
       s.total++;
-      s.ratings[r.rating] = (s.ratings[r.rating] || 0) + 1;
+      if (r.cancelled) { s.cancelled++; } else { s.active++; }
+      if (!r.cancelled) { s.ratings[r.rating] = (s.ratings[r.rating] || 0) + 1; }
       if (r.label) s.artifacts.add(r.label);
       if (r.type) s.types.add(r.type);
       if (r.text) s.comments++;
@@ -2818,17 +2826,25 @@ function renderReviewList(aid) {
   let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:var(--text-muted)">Reviews</strong>';
   items.forEach((r,ri)=>{
     const d=new Date(r.timestamp), rc=r.rating.includes('Pass')?'#198754':(r.rating.includes('Rework')?'#dc3545':'#ffc107');
+    const isCancelled = !!r.cancelled;
+    const cancelClass = isCancelled ? ' cancelled' : '';
     const sourceBadge = r._source === 'synced'
       ? '<span style="font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin-left:4px">📥 Synced</span>'
       : '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:4px">💻 Local</span>';
+    const cancelledBadge = isCancelled ? '<span class="cancelled-badge">⛔ Cancelled</span>' : '';
     const isAuthor = currentName && r.name === currentName && r._source === 'local';
-    const actionsHtml = isAuthor
-      ? '<div class="review-actions"><button onclick="startEditReview(\''+aid+'\',\''+r.id+'\')">✏️ Edit</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>'
-      : '';
+    let actionsHtml = '';
+    if (isAuthor) {
+      if (isCancelled) {
+        actionsHtml = '<div class="review-actions"><button class="restore-btn" onclick="restoreReview(\''+aid+'\',\''+r.id+'\')">♻️ Restore</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>';
+      } else {
+        actionsHtml = '<div class="review-actions"><button onclick="startEditReview(\''+aid+'\',\''+r.id+'\')">✏️ Edit</button><button class="cancel-review-btn" onclick="cancelReview(\''+aid+'\',\''+r.id+'\')">🚫 Cancel</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>';
+      }
+    }
     const editedTag = r.editedAt ? ' <span style="font-size:9px;color:var(--text-muted)">(edited)</span>' : '';
     const roleBadge = r.role ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">'+escHtml(r.role)+'</span>' : '';
     const typeBadge = r.type ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:2px">'+escHtml(r.type)+'</span>' : '';
-    h += '<div class="review-item" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
+    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+cancelledBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
@@ -2848,6 +2864,10 @@ function startEditReview(aid, reviewId) {
   const currentName = getReviewerName();
   if (!currentName || review.name !== currentName) {
     showToast('Only the review author can edit this review.', 'warning', 'Not Author');
+    return;
+  }
+  if (review.cancelled) {
+    showToast('Restore this review before editing.', 'warning', 'Review Cancelled');
     return;
   }
   const el = document.getElementById('rv_'+aid+'_'+reviewId);
@@ -2886,6 +2906,10 @@ function saveEditReview(aid, reviewId) {
     showToast('Only the review author can edit this review.', 'warning', 'Not Author');
     return;
   }
+  if (review.cancelled) {
+    showToast('Cannot edit a cancelled review.', 'warning', 'Review Cancelled');
+    return;
+  }
   const textarea = document.getElementById('ert_'+aid+'_'+reviewId);
   const newText = textarea ? textarea.value.trim() : '';
   if (!newText) { showToast('Comment cannot be empty.', 'warning', 'Empty Comment'); return; }
@@ -2914,7 +2938,7 @@ function renderReviewerActivity() {
     h += '<div style="flex:1;min-width:220px;background:var(--bg-muted);border:1px solid var(--border-light);border-radius:8px;padding:12px">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
       '<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+initials+'</div>' +
-      '<div><strong style="font-size:13px">'+escHtml(s.name)+'</strong><br><span style="font-size:10px;color:var(--text-muted)">'+s.total+' review'+(s.total!==1?'s':'')+' · '+s.artifactCount+' artifact'+(s.artifactCount!==1?'s':'')+'</span></div>' +
+      '<div><strong style="font-size:13px">'+escHtml(s.name)+'</strong><br><span style="font-size:10px;color:var(--text-muted)">'+s.active+' review'+(s.active!==1?'s':'')+' · '+s.artifactCount+' artifact'+(s.artifactCount!==1?'s':'')+(s.cancelled?' · <span style="color:var(--warning-hue)">'+s.cancelled+' cancelled</span>':'')+'</span></div>' +
       '</div>' +
       '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px">'+ratingBreakdown+'</div>' +
       '<div style="font-size:10px;color:var(--text-muted)">' +
@@ -2953,6 +2977,45 @@ function deleteReview(aid, reviewId) {
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   showToast('Review deleted.', 'info', 'Review Removed');
+}
+
+function cancelReview(aid, reviewId) {
+  const all = getReviews();
+  const reviews = all[aid] || [];
+  const review = reviews.find(r => r.id === reviewId);
+  if (!review) return;
+  const currentName = getReviewerName();
+  if (!currentName || review.name !== currentName) {
+    showToast('Only the review author can cancel this review.', 'warning', 'Not Author');
+    return;
+  }
+  if (!confirm('Cancel this review? It will be hidden from stats but you can restore it later.')) return;
+  review.cancelled = true;
+  review.cancelledAt = new Date().toISOString();
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
+  if (list) list.innerHTML = renderReviewList(aid);
+  showToast('Review cancelled. Restore it anytime.', 'warning', 'Review Cancelled');
+  refreshReviewerActivity();
+}
+
+function restoreReview(aid, reviewId) {
+  const all = getReviews();
+  const reviews = all[aid] || [];
+  const review = reviews.find(r => r.id === reviewId);
+  if (!review) return;
+  const currentName = getReviewerName();
+  if (!currentName || review.name !== currentName) {
+    showToast('Only the review author can restore this review.', 'warning', 'Not Author');
+    return;
+  }
+  review.cancelled = false;
+  delete review.cancelledAt;
+  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
+  if (list) list.innerHTML = renderReviewList(aid);
+  showToast('Review restored.', 'success', 'Review Restored');
+  refreshReviewerActivity();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -3426,6 +3489,8 @@ function previewArtifactByPath(path) {
 function renderThirdPartyReview(reviewData, changedFiles) {
   const allRv = getAllReviews();
   const rvCnt = Object.keys(allRv).reduce((a,k)=>a+allRv[k].length,0);
+  const rvCancelled = Object.keys(allRv).reduce((a,k)=>a+allRv[k].filter(r=>r.cancelled).length,0);
+  const rvActive = rvCnt - rvCancelled;
   const rtc = Object.values(reviewData).reduce((a,b)=>a+b.length,0);
   const changedSet = new Set((changedFiles||[]).map(f=>f.replace(/\\/g,'/')));
   const srcCrit = DATA.source_criteria || [];
@@ -3441,7 +3506,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<div class="metric-row">' +
     '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum artifacts</div></div>' +
     '<div class="metric"><div class="value">' + rtc + '</div><div class="label">✅ Synced to review/</div></div>' +
-    '<div class="metric"><div class="value">' + rvCnt + '</div><div class="label">💬 Reviews Submitted</div></div>' +
+    '<div class="metric"><div class="value">' + rvActive + '</div><div class="label">💬 Reviews Submitted</div><div class="sublabel">' + (rvCancelled ? rvCancelled + ' cancelled' : 'all active') + '</div></div>' +
     '<div class="metric"><div class="value">' + srcCrit.length + '</div><div class="label">📖 Source Criteria Files</div></div></div>' +
     '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">' +
     '<button class="export-btn" onclick="exportReviews()">📤 Export All Reviews</button>' +
@@ -3454,8 +3519,8 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   '<div class="card"><h3>📊 Third Party Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">review coverage & targets</span></h3>' +
   '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:4px">' +
   '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
-  renderProgressRing(rvCnt, Math.max(Object.keys(allRv).length,1), 40) +
-  '<div><strong>💬 Reviews</strong><br><span style="font-size:11px;color:var(--text-muted)">' + rvCnt + ' total on ' + Object.keys(allRv).length + ' artifacts</span></div></div>' +
+  renderProgressRing(rvActive, Math.max(Object.keys(allRv).length,1), 40) +
+  '<div><strong>💬 Reviews</strong><br><span style="font-size:11px;color:var(--text-muted)">' + rvActive + ' active on ' + Object.keys(allRv).length + ' artifacts' + (rvCancelled ? ' · ' + rvCancelled + ' cancelled' : '') + '</span></div></div>' +
   '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
   renderProgressRing(rtc, Math.max(totalChanges || rtc, 1), 40, 'var(--success)') +
   '<div><strong>✅ Synced</strong><br><span style="font-size:11px;color:var(--text-muted)">' + rtc + ' files to review/</span></div></div>' +
