@@ -213,7 +213,7 @@ Part of the Delivery & Handoff category includes creating assets that others can
 
 ### Asset Quality Rubric
 
-| Criterion | Pass | Partial | Fail |
+| Criterion | Pass | Moderate | Fail |
 |-----------|------|---------|------|
 | **Documented** | Usage, inputs, outputs explained | Partial docs | No docs |
 | **Tested** | Works in expected scenarios | Works in happy path | Not tested |

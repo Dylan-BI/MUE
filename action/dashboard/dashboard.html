@@ -179,7 +179,7 @@
     --day-cell-pending-text: var(--gray-500);
     --nav-badge-text: #ffffff;
     --score-pass: var(--success-hue);
-    --score-partial: var(--warning-hue);
+    --score-moderate: var(--warning-hue);
     --score-fail: var(--danger-hue);
     --prog-bg: var(--gray-100);
     --scrollbar-thumb: var(--gray-300);
@@ -381,7 +381,7 @@
   .timeline-item .day-details { display: none; margin-top: 6px; padding: 10px 14px; background: var(--bg-muted); border-radius: 8px; font-size: 13px; line-height: 1.5; }
   .timeline-item .day-details.open { display: block; }
   .score-chip { display: inline-block; width: 26px; height: 26px; border-radius: 6px; text-align: center; line-height: 26px; font-size: 10px; font-weight: 700; color: #fff; margin: 1px; }
-  .score-pass { background: var(--score-pass); color:#fff; } .score-partial { background: var(--score-partial); color: #333; } .score-fail { background: var(--score-fail); color:#fff; }
+  .score-pass { background: var(--score-pass); color:#fff; } .score-moderate { background: var(--score-moderate); color: #333; } .score-fail { background: var(--score-fail); color:#fff; }
   /* ── Interactive Score Chips & Override Popup ── */
   .score-chip.interactive { cursor: pointer; position: relative; transition: transform .15s, box-shadow .15s; }
   .score-chip.interactive:hover { transform: scale(1.18); box-shadow: 0 2px 10px rgba(0,0,0,.25); z-index: 2; }
@@ -651,7 +651,7 @@
   [data-theme="dark"] .day-cell.done { color: #fff; }
   [data-theme="dark"] .cls-bar { color: #fff; }
   [data-theme="dark"] .score-chip { color: #fff; }
-  [data-theme="dark"] .score-partial { color: #333; }
+  [data-theme="dark"] .score-moderate { color: #333; }
   [data-theme="dark"] .update-banner button { color: var(--accent); }
   [data-theme="dark"] .filter-bar input, [data-theme="dark"] .filter-bar select { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-input); }
   [data-theme="dark"] .review-form input, [data-theme="dark"] .review-form textarea, [data-theme="dark"] .review-form select { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-input); }
@@ -1284,7 +1284,7 @@ const CLS_COLORS = {
 };
 const SCORE_COLORS = {
   'Pass': getComputedStyle(document.documentElement).getPropertyValue('--score-pass').trim() || '#2b9d6e',
-  'Partial': getComputedStyle(document.documentElement).getPropertyValue('--score-partial').trim() || '#d49330',
+  'Moderate': getComputedStyle(document.documentElement).getPropertyValue('--score-moderate').trim() || '#d49330',
   'Fail': getComputedStyle(document.documentElement).getPropertyValue('--score-fail').trim() || '#d9445a'
 };
 const TRACK_COLORS = {
@@ -1964,7 +1964,7 @@ function renderAll() {
     // Data-dependent pages → show empty state message
     addPage('overview','<h2>📋 Third-Party Review Overview</h2><p class="subtitle">MUE training summary — learner-completed artifact tracking, change monitoring, and review hub.</p>' + emptyMsg);
     addPage('daily','<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips, primary track tags, evidence artifacts, and note file previews.</p>' + emptyMsg);
-    addPage('scorecard','<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Partial/Fail entries with improvement trend and Fail warnings.</p>' + emptyMsg);
+    addPage('scorecard','<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Moderate/Fail entries with improvement trend and Fail warnings.</p>' + emptyMsg);
     addPage('proof-tasks','<h2>✅ Proof Task Tracker</h2><p class="subtitle">Checklist of 6 required proof tasks — completion checkboxes, day evidence found, per-task review, and overall progress bar.</p>' + emptyMsg);
     addPage('evidence','<h2>📁 Evidence Gallery</h2><p class="subtitle">Evidence files from action/evidence/ grouped by ISO week — file name, size, modification date, preview, Agent-changed badge, and per-file review.</p>' + emptyMsg);
     addPage('classification','<h2>📈 Readiness Classification Trend</h2><p class="subtitle">Line chart and colored bars showing classification level (1-Foundational through 4-Mastery) on each training day, with current vs target-minimum comparison.</p>' + emptyMsg);
@@ -2093,7 +2093,7 @@ function renderAll() {
   // ── PAGE 2: DAILY PROGRESS + review + agent changes + version tracking ──
   const dailyArts = pa.daily || [];
   const archivedNoteCount = notes.filter(n => n.archived).length;
-  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips (Pass/Partial/Fail), primary track tags, required evidence artifacts, and note file previews from action/notes/.</p>';
+  let dh = '<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips (Pass/Moderate/Fail), primary track tags, required evidence artifacts, and note file previews from action/notes/.</p>';
   dh += renderPageChanges('daily', 'Daily Progress');
   // ≡≡≡ Daily Progress Widget — learner input vs requirement ≡≡≡
   const daysWithNotes = notes.filter(n => n.what_learned && n.what_learned.trim()).length;
@@ -2145,7 +2145,7 @@ function renderAll() {
 
   // ── PAGE 3: SCORECARD + review per area + version tracking ──
   const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
-  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Partial/Fail entries showing whether the learner is Improving, Steady, or Needs Attention per area, with Fail warnings.</p>';
+  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Moderate/Fail entries showing whether the learner is Improving, Steady, or Needs Attention per area, with Fail warnings.</p>';
   sh2 += renderPageChanges('scorecard', 'Scorecard');
   // ≡≡≡ Scorecard Progress Widget — Pass rate per area ≡≡≡
   const scorePassAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Pass'; });
@@ -2168,7 +2168,7 @@ function renderAll() {
       sh2+='<div class="card"><h3>'+a.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+'</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';
       e.forEach((v,vi)=>{const ov=getScoreOverride(a,vi);const display=ov&&ov.overrideScore?ov.overrideScore:v.score;const cls=ov&&ov.overrideScore?'score-chip interactive overridden':'score-chip interactive';sh2+='<span class="'+cls+'" style="background:'+(SCORE_COLORS[display]||'#888')+'" data-area="'+a+'" data-day="'+vi+'" data-original="'+v.score+'" title="'+v.score+' — Click to override'+((ov&&ov.overrideScore)?' (Override: '+ov.overrideScore+')':'')+'" onclick="openScorePopup('+JSON.stringify(a)+','+vi+','+JSON.stringify(v.score)+',event)">'+display[0]+'</span>';});
       sh2+='</div><p class="caption">';
-      const vl=e.map(v=>({'Pass':2,'Partial':1,'Fail':0}[v.score]||0));
+      const vl=e.map(v=>({'Pass':2,'Moderate':1,'Fail':0}[v.score]||0));
       if(vl.length>=2){if(vl[vl.length-1]>vl[0])sh2+='📈 Improving';else if(vl[vl.length-1]<vl[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}
       sh2+='</p>'+renderReviewSection('score_'+safe,'Scorecard Area',a.replace(/_/g,' '),'scorecard/'+a)+'</div>';
     });
@@ -2653,7 +2653,7 @@ function openScorePopup(areaKey, dayIdx, originalScore, ev) {
   const ov = getScoreOverride(areaKey, dayIdx);
   const popup = document.createElement('div');
   popup.className = 'score-popup';
-  const opts = ['Pass','Partial','Fail'];
+  const opts = ['Pass','Moderate','Fail'];
   let btns = '<div class="override-btn none-btn' + (!ov || !ov.overrideScore ? ' selected' : '') + '" data-val="" onclick="pickScoreOverride(this,' + JSON.stringify(areaKey) + ',' + dayIdx + ',\'\')">No Override</div>';
   opts.forEach(o => {
     const isSel = ov && ov.overrideScore === o;
@@ -3363,7 +3363,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<span style="background:var(--accent);color:var(--text-on-accent);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">3</span>' +
       '<strong style="font-size:13px">🏆 Scorecard</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Competency trends</span></div>' +
-      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 7 scorecard areas (Prompt discipline, Change isolation, Validation order, etc.) with Pass/Partial/Fail history. Each area shows trend direction (📈 Improving / 📉 Needs attention). Each area has an embedded 💬 Review form.' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> 7 scorecard areas (Prompt discipline, Change isolation, Validation order, etc.) with Pass/Moderate/Fail history. Each area shows trend direction (📈 Improving / 📉 Needs attention). Each area has an embedded 💬 Review form.' +
       '<br><strong>Instructor focus:</strong> Look for consistent progression. A cluster of Fails in related areas (e.g. Deployment awareness + Validation order) suggests a root cause in Pyramid/BI Judgment training. The 🏆 Scorecard → Learning Categories map (above) helps you connect low scores to the right categories. Use 💬 Review to flag concerns.</div></div>' +
       // Page 4
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
@@ -3438,7 +3438,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<div style="margin-top:12px;padding:8px 12px;background:var(--bg-metric-blue);border:1px solid var(--border-light);border-radius:8px">' +
     '<h4 style="font-size:12px;color:var(--text-accent);margin-bottom:4px">🎓 BI Academic Framework</h4>' +
     '<p style="font-size:11px;color:var(--text-muted)">The <strong>BI Academic Framework</strong> adds a BI theory layer to this curriculum — DIKW pyramid, dimensional modelling, analytics maturity, data governance, and more — mapped to each proficiency level. ' +
-    'See <code>source/BI Academic Framework.md</code> for the full reference, including a 4-level analytic rubric (replacing Pass/Partial/Fail), threshold concept deep-dives, and industry standards alignment (DMBOK, TDWI, SFIA). ' +
+    'See <code>source/BI Academic Framework.md</code> for the full reference, including a 4-level analytic rubric (replacing Pass/Moderate/Fail), threshold concept deep-dives, and industry standards alignment (DMBOK, TDWI, SFIA). ' +
     '<a href="https://github.com/Dylan-BI/MUE/blob/main/source/BI%20Academic%20Framework.md" target="_blank" style="color:var(--accent)">📖 Open Academic Framework →</a></p>' +
     '</div>' +
 
@@ -4069,7 +4069,7 @@ function renderReviewersGuide() {
     '<tr style="border-bottom:1px solid var(--border-color)"><th style="text-align:left;padding:6px 4px;width:160px">Section</th><th style="text-align:left;padding:6px 4px">What It Shows</th></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📋 Overview</td><td style="padding:6px 4px;color:var(--text-secondary)">High-level metrics: curriculum day, weeks active, evidence count, classification, change counts, curriculum timeline</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📅 Daily Progress</td><td style="padding:6px 4px;color:var(--text-secondary)">Timeline of all daily notes with scorecard scores, evidence, and review buttons per note</td></tr>' +
-    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🏆 Scorecard</td><td style="padding:6px 4px;color:var(--text-secondary)">7 competency areas tracked over time (Pass/Partial/Fail) with trend analysis and per-area review</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🏆 Scorecard</td><td style="padding:6px 4px;color:var(--text-secondary)">7 competency areas tracked over time (Pass/Moderate/Fail) with trend analysis and per-area review</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">✅ Proof Tasks</td><td style="padding:6px 4px;color:var(--text-secondary)">6 mandatory proof tasks — shows which are found in learner notes, with review per task</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📁 Evidence</td><td style="padding:6px 4px;color:var(--text-secondary)">All evidence files submitted by the learner, with review and preview</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📈 Classification</td><td style="padding:6px 4px;color:var(--text-secondary)">Readiness classification trend (Foundational → Ready for Codex Acceleration) with chart</td></tr>' +

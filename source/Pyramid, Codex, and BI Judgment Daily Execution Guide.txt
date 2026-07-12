@@ -55,7 +55,7 @@ Start every day with these steps before doing the day-specific work.
    - What remains open
 
 WEEKLY SCORECARD STANDARD
-At the end of each working week, score these areas as Pass, Partial, or Fail:
+At the end of each working week, score these areas as Pass, Moderate, or Fail:
 
 - prompt discipline
 - repo or workspace analysis

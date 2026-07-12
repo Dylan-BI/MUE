@@ -68,7 +68,7 @@ def extract_daily_data(filepath):
         'Validation order', 'Deployment awareness', 'Reviewer handoff', 'Reusability'
     ]
     for area, label in zip(score_areas, score_labels):
-        pattern = re.compile(rf'{re.escape(label)}:\s*(Pass|Partial|Fail)', re.IGNORECASE)
+        pattern = re.compile(rf'{re.escape(label)}:\s*(Pass|Moderate|Fail)', re.IGNORECASE)
         match = pattern.search(content)
         data['scorecard'][area] = match.group(1).capitalize() if match else None
 

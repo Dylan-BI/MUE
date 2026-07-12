@@ -90,7 +90,7 @@ Introduce one core principle from **Edward Tufte**: *"Above all else, show the d
 
 ### 2.5 What Is a Rubric?
 
-Introduce the concept of a scoring rubric: *"A set of criteria with clear descriptions of what each score level looks like."* The current Pass/Partial/Fail scorecard is a simple rubric. Learners should understand that reviewers use rubrics to score consistently.
+Introduce the concept of a scoring rubric: *"A set of criteria with clear descriptions of what each score level looks like."* The current Pass/Moderate/Fail scorecard is a simple rubric. Learners should understand that reviewers use rubrics to score consistently.
 
 **Level 1 expectation:** The learner can explain why rubrics are better than subjective scoring ("because two reviewers will give the same score for the same work").
 

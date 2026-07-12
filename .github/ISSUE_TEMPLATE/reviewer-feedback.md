@@ -37,13 +37,13 @@ assignees: []
 
 | Area | Score | Notes |
 |------|-------|-------|
-| Prompt discipline | Pass / Partial / Fail | |
-| Repo/workspace analysis | Pass / Partial / Fail | |
-| Change isolation | Pass / Partial / Fail | |
-| Validation order | Pass / Partial / Fail | |
-| Deployment awareness | Pass / Partial / Fail | |
-| Reviewer handoff | Pass / Partial / Fail | |
-| Reusability | Pass / Partial / Fail | |
+| Prompt discipline | Pass / Moderate / Fail | |
+| Repo/workspace analysis | Pass / Moderate / Fail | |
+| Change isolation | Pass / Moderate / Fail | |
+| Validation order | Pass / Moderate / Fail | |
+| Deployment awareness | Pass / Moderate / Fail | |
+| Reviewer handoff | Pass / Moderate / Fail | |
+| Reusability | Pass / Moderate / Fail | |
 
 ---
 
@@ -60,7 +60,7 @@ assignees: []
 
 ### Rating
 
-<!-- Select one: Pass, Partial, Fail -->
+<!-- Select one: Pass, Moderate, Fail -->
 
 **Overall Rating:** Pass
 

@@ -214,7 +214,7 @@ Every day **must** produce at least one evidence artifact saved to `notes/` or `
 ### Weekly Reporting Standard
 
 At the end of each week, produce:
-1. **Weekly Scorecard** (`Pass` / `Partial` / `Fail` for all 7 areas)
+1. **Weekly Scorecard** (`Pass` / `Moderate` / `Fail` for all 7 areas)
 2. **Proof Task Progress** — which tasks are complete, which remain
 3. **Readiness Classification** — Foundational / Developing / Operational / Ready For Codex Acceleration
 4. **Category Coverage Summary** — which categories advanced most this week

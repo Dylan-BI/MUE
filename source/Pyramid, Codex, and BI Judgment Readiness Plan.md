@@ -316,7 +316,7 @@ What it proves: your output is consumable by another person without back-and-for
 
 ## Weekly Scorecard
 
-Score yourself at the end of each week using `Pass`, `Partial`, or `Fail`.
+Score yourself at the end of each week using `Pass`, `Moderate`, or `Fail`.
 
 | Area | Pass Standard |
 |---|---|

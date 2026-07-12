@@ -14,7 +14,7 @@ The output format must include these exact patterns:
   - ## What evidence I produced:
   - ## What remains open:
   - ## Next narrow step:
-  - ## Scorecard:  (Area: Pass|Partial|Fail)
+  - ## Scorecard:  (Area: Pass|Moderate|Fail)
   - ## Codex gates: (Gate: Yes|No)
 """
 
@@ -27,41 +27,41 @@ from action.proxy.curriculum import (
 # ── Scorecard progression templates ─────────────────────────────────────────
 # Maps day ranges to expected scorecard state (trending from Fail→Pass)
 _SCORECARD_PROGRESSION = {
-    # Early days: mostly Fail/Partial
-    range(1, 4):   {'Prompt discipline': 'Partial', 'Repo or workspace analysis': 'Partial',
+    # Early days: mostly Fail/Moderate
+    range(1, 4):   {'Prompt discipline': 'Moderate', 'Repo or workspace analysis': 'Moderate',
                      'Change isolation': 'Fail', 'Validation order': 'Fail',
                      'Deployment awareness': 'Fail', 'Reviewer handoff': 'Fail',
                      'Reusability': 'Fail'},
-    # Week 1 end: some Partial
-    range(4, 7):   {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Partial',
-                     'Change isolation': 'Partial', 'Validation order': 'Fail',
+    # Week 1 end: some Moderate
+    range(4, 7):   {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Moderate',
+                     'Change isolation': 'Moderate', 'Validation order': 'Fail',
                      'Deployment awareness': 'Fail', 'Reviewer handoff': 'Fail',
                      'Reusability': 'Fail'},
     # Week 2 start: improving
     range(7, 10):  {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Pass',
-                     'Change isolation': 'Partial', 'Validation order': 'Partial',
+                     'Change isolation': 'Moderate', 'Validation order': 'Moderate',
                      'Deployment awareness': 'Fail', 'Reviewer handoff': 'Fail',
                      'Reusability': 'Fail'},
     # Week 2 mid
     range(10, 14): {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Pass',
-                     'Change isolation': 'Pass', 'Validation order': 'Partial',
-                     'Deployment awareness': 'Partial', 'Reviewer handoff': 'Fail',
+                     'Change isolation': 'Pass', 'Validation order': 'Moderate',
+                     'Deployment awareness': 'Moderate', 'Reviewer handoff': 'Fail',
                      'Reusability': 'Fail'},
     # Week 3 start
     range(14, 17): {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Pass',
                      'Change isolation': 'Pass', 'Validation order': 'Pass',
-                     'Deployment awareness': 'Partial', 'Reviewer handoff': 'Partial',
+                     'Deployment awareness': 'Moderate', 'Reviewer handoff': 'Moderate',
                      'Reusability': 'Fail'},
     # Week 3 end
     range(17, 21): {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Pass',
                      'Change isolation': 'Pass', 'Validation order': 'Pass',
-                     'Deployment awareness': 'Pass', 'Reviewer handoff': 'Partial',
-                     'Reusability': 'Partial'},
+                     'Deployment awareness': 'Pass', 'Reviewer handoff': 'Moderate',
+                     'Reusability': 'Moderate'},
     # Week 4: strong
     range(21, 25): {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Pass',
                      'Change isolation': 'Pass', 'Validation order': 'Pass',
                      'Deployment awareness': 'Pass', 'Reviewer handoff': 'Pass',
-                     'Reusability': 'Partial'},
+                     'Reusability': 'Moderate'},
     # Final days: all Pass
     range(25, 29): {'Prompt discipline': 'Pass', 'Repo or workspace analysis': 'Pass',
                      'Change isolation': 'Pass', 'Validation order': 'Pass',

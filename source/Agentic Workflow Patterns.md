@@ -63,7 +63,7 @@ From any handoff note, PR description, or issue, extract these 5 facts in <60s:
 
 ### Handoff Quality Rubric
 
-| Criterion | Pass | Partial | Fail |
+| Criterion | Pass | Moderate | Fail |
 |-----------|------|---------|------|
 | **Completeness** | All 5 facts present | 3-4 facts present | <3 facts |
 | **Specificity** | References file names, function names | Vague references | No references |
