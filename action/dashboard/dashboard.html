@@ -1434,7 +1434,7 @@ function updateSidebar() {
   document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-refresh active (30 min)';
 
   // Update nav badges — use learner-scoped change counts (curriculum artifacts only)
-  const learnerCc = DATA.learner_change_counts || {};
+  const learnerCc = DATA.learner_change_counts || DATA.change_counts || {};
   Object.keys(learnerCc).forEach(pageId => {
     const badge = document.getElementById('badge-' + pageId);
     if (badge) {
