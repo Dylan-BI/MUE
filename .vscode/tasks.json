@@ -39,6 +39,16 @@
       "problemMatcher": [],
       "isBackground": true,
       "presentation": { "reveal": "never", "close": true }
+    },
+    {
+      "label": "review server: start (multi-reviewer collaboration)",
+      "type": "shell",
+      "command": "python",
+      "args": ["action/dashboard/review_server.py", "--port", "8080"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" }
     }
   ]
 }

@@ -1297,6 +1297,87 @@ function renderLevelProgressionSidebar() {
 let DATA = null;
 let LAST_GENERATED = null;
 const REVIEW_EMAIL = 'dylan@bicyclebi.com';
+
+/* ── Review Server API (multi-reviewer collaboration) ── */
+let REVIEW_SERVER = null;  // URL of review server when available, null otherwise
+let SERVER_REVIEWS = {};   // Reviews fetched from server (artifactId → [reviews])
+let SERVER_CONNECTED = false;
+
+async function detectReviewServer() {
+  try {
+    const resp = await fetch('/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
+    if (resp.ok) {
+      REVIEW_SERVER = window.location.origin;
+      SERVER_REVIEWS = await resp.json();
+      SERVER_CONNECTED = true;
+      updateServerStatus();
+      return true;
+    }
+  } catch (e) {}
+  REVIEW_SERVER = null;
+  SERVER_CONNECTED = false;
+  updateServerStatus();
+  return false;
+}
+
+async function serverFetchReviews() {
+  if (!REVIEW_SERVER) return null;
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
+    if (resp.ok) { SERVER_REVIEWS = await resp.json(); updateServerStatus(); return SERVER_REVIEWS; }
+  } catch (e) {}
+  return null;
+}
+
+async function serverAddReview(artifactId, review) {
+  if (!REVIEW_SERVER) return null;
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/reviews', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({artifactId, review})
+    });
+    if (resp.ok) { const r = await resp.json(); await serverFetchReviews(); return r; }
+  } catch (e) {}
+  return null;
+}
+
+async function serverUpdateReview(artifactId, reviewId, updates) {
+  if (!REVIEW_SERVER) return false;
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/reviews', {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({artifactId, reviewId, updates})
+    });
+    if (resp.ok) { await serverFetchReviews(); return true; }
+  } catch (e) {}
+  return false;
+}
+
+async function serverDeleteReview(artifactId, reviewId) {
+  if (!REVIEW_SERVER) return false;
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/reviews', {
+      method: 'DELETE', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({artifactId, reviewId})
+    });
+    if (resp.ok) { await serverFetchReviews(); return true; }
+  } catch (e) {}
+  return false;
+}
+
+function updateServerStatus() {
+  const el = document.getElementById('serverStatus');
+  if (el) {
+    if (SERVER_CONNECTED) {
+      el.innerHTML = '<span style="color:var(--success)">🟢</span> Server connected — reviews shared across all reviewers';
+      el.title = 'Review server active: ' + REVIEW_SERVER;
+    } else {
+      el.innerHTML = '<span style="color:var(--text-muted)">⚪</span> Offline mode — reviews stored locally only';
+      el.title = 'No review server detected. Reviews saved to this browser only.';
+    }
+  }
+}
+
 const CLS_COLORS = {
   'foundational': getComputedStyle(document.documentElement).getPropertyValue('--cls-foundational').trim() || '#8e90a6',
   'developing': getComputedStyle(document.documentElement).getPropertyValue('--cls-developing').trim() || '#f5a623',
@@ -1360,16 +1441,19 @@ function getSyncedReviews() {
   try { return (DATA && DATA.synced_reviews) || {}; } catch { return {}; }
 }
 
-/* ── Merge local and synced reviews for a given artifact ── */
+/* ── Merge local, synced, and server reviews for a given artifact ── */
 function getMergedReviews(aid) {
   const local = getReviews();
   const synced = getSyncedReviews();
   const localRev = local[aid] || [];
   const syncedRev = synced[aid] || [];
-  // Return local first, then synced; tag each with source
+  const serverRev = SERVER_REVIEWS[aid] || [];
+  // Deduplicate by review ID: server > synced > local
   const merged = [];
-  localRev.forEach(r => merged.push({ ...r, _source: 'local' }));
-  syncedRev.forEach(r => merged.push({ ...r, _source: 'synced' }));
+  const seen = new Set();
+  serverRev.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'synced' }); } });
+  syncedRev.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'synced' }); } });
+  localRev.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'local' }); } });
   return merged;
 }
 
@@ -1442,6 +1526,7 @@ async function loadData() {
   updateSidebarLevelButtons();
   startAutoRefresh();
   checkEnvironment();
+  detectReviewServer();
   // Show a brief welcome toast on first load
   var noteCount = (DATA.summary && DATA.summary.total_days) || 0;
   if (noteCount > 0) {
@@ -1460,7 +1545,8 @@ function updateSidebar() {
   info.innerHTML = '<strong>' + s.total_days + '</strong> / 28 working days (' + Math.min(Math.round(s.total_days/28*100),100) + '%)' +
     '<div class="prog-bar"><div class="prog-fill" style="width:' + Math.min(s.total_days/28*100,100) + '%;background:var(--accent)"></div></div>' +
     'Classification: <strong>' + s.latest_classification + '</strong> &middot; Evidence: ' + s.evidence_count + ' files' +
-    '<br>Version: <span class="version-chip">' + (v.commit || '—') + '</span>';
+    '<br>Version: <span class="version-chip">' + (v.commit || '—') + '</span>' +
+    '<div id="serverStatus" style="margin-top:6px;font-size:11px;color:var(--text-muted)">⚪ Checking server…</div>';
   document.getElementById('sidebarMeta').textContent = 'Generated: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
   document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-sync active (2 min)';
 
@@ -1544,6 +1630,7 @@ function updateSidebarLevelButtons() {
 }
 
 let refreshInterval = null;
+let serverPollInterval = null;
 function startAutoRefresh() {
   if (refreshInterval) clearInterval(refreshInterval);
   document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-sync active (2 min)';
@@ -1553,7 +1640,6 @@ function startAutoRefresh() {
       if (!resp.ok) return;
       const fresh = await resp.json();
       if (fresh.generated && fresh.generated !== LAST_GENERATED) {
-        // New data detected — auto-reload silently
         LAST_GENERATED = fresh.generated;
         DATA = fresh;
         updateSidebar();
@@ -1563,6 +1649,19 @@ function startAutoRefresh() {
       }
     } catch (e) {}
   }, 2 * 60 * 1000);
+  // Poll review server every 30s for new reviews from other reviewers
+  if (serverPollInterval) clearInterval(serverPollInterval);
+  serverPollInterval = setInterval(async () => {
+    if (!REVIEW_SERVER) { detectReviewServer(); return; }
+    const prev = JSON.stringify(SERVER_REVIEWS);
+    await serverFetchReviews();
+    const next = JSON.stringify(SERVER_REVIEWS);
+    if (prev !== next && Object.keys(SERVER_REVIEWS).length) {
+      renderAll();
+      refreshReviewerActivity();
+      showToast('New reviews from other reviewers', 'info', 'Reviews Updated');
+    }
+  }, 30 * 1000);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2674,7 +2773,7 @@ function getReviewContext(filename, type) {
   return ctx;
 }
 
-function submitReview(aid, type, label, filename) {
+async function submitReview(aid, type, label, filename) {
   const nInput = document.getElementById('rn_'+aid) || document.getElementById('rin_'+aid);
   const tInput = document.getElementById('rc_'+aid) || document.getElementById('ric_'+aid);
   const name = (nInput ? nInput.value : '').trim();
@@ -2686,10 +2785,16 @@ function submitReview(aid, type, label, filename) {
   const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn, #rig_'+aid+' .rating-btn');
   btns.forEach((b,i)=>{if(b.classList.contains('selected'))rating=b.textContent.trim();});
   const review = {name,rating,text,type,label,filename,role: 'Instructor'};
-  saveReview(aid, review);
+  if (REVIEW_SERVER) {
+    const result = await serverAddReview(aid, review);
+    if (result) { showToast('Review shared with all reviewers', 'success', 'Review Shared'); }
+    else { saveReview(aid, review); showToast('Review saved locally (server unavailable)', 'warning', 'Local Only'); }
+  } else {
+    saveReview(aid, review);
+    showToast('Review submitted for ' + label, 'success', 'Review Saved');
+  }
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
-  showToast('Review submitted for ' + label, 'success', 'Review Saved');
 
   // Build context-aware version/changes block
   const ctx = getReviewContext(filename, type);
@@ -2837,7 +2942,7 @@ function renderReviewList(aid) {
       ? '<span style="font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin-left:4px">📥 Synced</span>'
       : '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:4px">💻 Local</span>';
     const cancelledBadge = isCancelled ? '<span class="cancelled-badge">⛔ Cancelled</span>' : '';
-    const isAuthor = currentName && r.name === currentName && r._source === 'local';
+    const isAuthor = currentName && r.name === currentName;
     let actionsHtml = '';
     if (isAuthor) {
       if (isCancelled) {
@@ -2862,9 +2967,10 @@ function renderReviewList(aid) {
 }
 
 function startEditReview(aid, reviewId) {
+  const serverRev = (SERVER_REVIEWS[aid] || []).find(r => r.id === reviewId);
   const all = getReviews();
-  const reviews = all[aid] || [];
-  const review = reviews.find(r => r.id === reviewId);
+  const localRev = (all[aid] || []).find(r => r.id === reviewId);
+  const review = serverRev || localRev;
   if (!review) return;
   const currentName = getReviewerName();
   if (!currentName || review.name !== currentName) {
@@ -2901,12 +3007,13 @@ function cancelEditReview(aid, reviewId) {
   if (list) list.innerHTML = renderReviewList(aid);
 }
 
-function saveEditReview(aid, reviewId) {
-  const all = getReviews();
-  const reviews = all[aid] || [];
-  const review = reviews.find(r => r.id === reviewId);
-  if (!review) return;
+async function saveEditReview(aid, reviewId) {
   const currentName = getReviewerName();
+  const serverRev = (SERVER_REVIEWS[aid] || []).find(r => r.id === reviewId);
+  const all = getReviews();
+  const localRev = (all[aid] || []).find(r => r.id === reviewId);
+  const review = serverRev || localRev;
+  if (!review) return;
   if (!currentName || review.name !== currentName) {
     showToast('Only the review author can edit this review.', 'warning', 'Not Author');
     return;
@@ -2921,10 +3028,14 @@ function saveEditReview(aid, reviewId) {
   let newRating = review.rating;
   const btns = document.querySelectorAll('#erg_'+aid+'_'+reviewId+' .edit-rating-btn');
   btns.forEach(b => { if (b.classList.contains('selected')) newRating = b.textContent.trim(); });
-  review.text = newText;
-  review.rating = newRating;
-  review.editedAt = new Date().toISOString();
-  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  if (REVIEW_SERVER && serverRev) {
+    await serverUpdateReview(aid, reviewId, { text: newText, rating: newRating });
+  } else if (localRev) {
+    localRev.text = newText;
+    localRev.rating = newRating;
+    localRev.editedAt = new Date().toISOString();
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  }
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   showToast('Review updated.', 'success', 'Review Saved');
@@ -2965,58 +3076,75 @@ function refreshReviewerActivity() {
   }
 }
 
-function deleteReview(aid, reviewId) {
-  const all = getReviews();
-  const reviews = all[aid] || [];
-  const review = reviews.find(r => r.id === reviewId);
-  if (!review) return;
+async function deleteReview(aid, reviewId) {
   const currentName = getReviewerName();
+  // Check server reviews
+  const serverRev = (SERVER_REVIEWS[aid] || []).find(r => r.id === reviewId);
+  // Check local reviews
+  const all = getReviews();
+  const localRev = (all[aid] || []).find(r => r.id === reviewId);
+  const review = serverRev || localRev;
+  if (!review) return;
   if (!currentName || review.name !== currentName) {
     showToast('Only the review author can delete this review.', 'warning', 'Not Author');
     return;
   }
   if (!confirm('Delete your review? This cannot be undone.')) return;
-  all[aid] = reviews.filter(r => r.id !== reviewId);
-  if (!all[aid].length) delete all[aid];
-  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  if (REVIEW_SERVER && serverRev) {
+    await serverDeleteReview(aid, reviewId);
+  } else if (localRev) {
+    all[aid] = (all[aid] || []).filter(r => r.id !== reviewId);
+    if (!all[aid].length) delete all[aid];
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  }
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   showToast('Review deleted.', 'info', 'Review Removed');
 }
 
-function cancelReview(aid, reviewId) {
-  const all = getReviews();
-  const reviews = all[aid] || [];
-  const review = reviews.find(r => r.id === reviewId);
-  if (!review) return;
+async function cancelReview(aid, reviewId) {
   const currentName = getReviewerName();
+  const serverRev = (SERVER_REVIEWS[aid] || []).find(r => r.id === reviewId);
+  const all = getReviews();
+  const localRev = (all[aid] || []).find(r => r.id === reviewId);
+  const review = serverRev || localRev;
+  if (!review) return;
   if (!currentName || review.name !== currentName) {
     showToast('Only the review author can cancel this review.', 'warning', 'Not Author');
     return;
   }
   if (!confirm('Cancel this review? It will be hidden from stats but you can restore it later.')) return;
-  review.cancelled = true;
-  review.cancelledAt = new Date().toISOString();
-  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  if (REVIEW_SERVER && serverRev) {
+    await serverUpdateReview(aid, reviewId, { cancelled: true, cancelledAt: new Date().toISOString() });
+  } else if (localRev) {
+    localRev.cancelled = true;
+    localRev.cancelledAt = new Date().toISOString();
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  }
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   showToast('Review cancelled. Restore it anytime.', 'warning', 'Review Cancelled');
   refreshReviewerActivity();
 }
 
-function restoreReview(aid, reviewId) {
-  const all = getReviews();
-  const reviews = all[aid] || [];
-  const review = reviews.find(r => r.id === reviewId);
-  if (!review) return;
+async function restoreReview(aid, reviewId) {
   const currentName = getReviewerName();
+  const serverRev = (SERVER_REVIEWS[aid] || []).find(r => r.id === reviewId);
+  const all = getReviews();
+  const localRev = (all[aid] || []).find(r => r.id === reviewId);
+  const review = serverRev || localRev;
+  if (!review) return;
   if (!currentName || review.name !== currentName) {
     showToast('Only the review author can restore this review.', 'warning', 'Not Author');
     return;
   }
-  review.cancelled = false;
-  delete review.cancelledAt;
-  localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  if (REVIEW_SERVER && serverRev) {
+    await serverUpdateReview(aid, reviewId, { cancelled: false, cancelledAt: null });
+  } else if (localRev) {
+    localRev.cancelled = false;
+    delete localRev.cancelledAt;
+    localStorage.setItem(REVIEWS_KEY, JSON.stringify(all));
+  }
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   showToast('Review restored.', 'success', 'Review Restored');
