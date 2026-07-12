@@ -1820,7 +1820,7 @@ function renderCurriculumReviewContent() {
         '<strong>Skills coverage:</strong> ' + fulfilledSkills.length + '/' + catSkills.length + ' demonstrated' +
         ' · <strong>Days:</strong> ' + catDays.length + '/' + expectedDays +
         '</div>' +
-        '<div>' + reviewToggleInline('curriculum_cat_' + cat.id, 'Curriculum Category', cat.label + ' — Learner Progress', 'curriculum/' + cat.id) + '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted)">' + catDays.length + ' day(s) with notes</div>' +
         '</div>' +
         // ── Skill target list (collapsible) ──
         '<div style="margin-bottom:6px">' +
@@ -2549,7 +2549,7 @@ function renderAll() {
     renderProgressRing(skillFulfilled, Math.max(skillTotal,1), 44) +
     '<div><strong>✦ Skills</strong><br><span style="font-size:11px;color:var(--text-muted)">' + skillFulfilled + '/' + skillTotal + ' demonstrated</span></div></div>' +
     '</div>' +
-    '<div style="margin-top:4px">' + reviewToggleInline('curriculum_progress_req', 'Curriculum Targets', 'Curriculum — Learner Category & Skill Progress', 'curriculum') + '</div></div>' +
+    '<div style="margin-top:4px;font-size:11px;color:var(--text-muted)">' + catFulfilled + '/' + catTotal + ' categories engaged · ' + skillFulfilled + '/' + skillTotal + ' skills demonstrated</div></div>' +
     '<div id="curriculumContent">' + renderCurriculumReviewContent() + '</div>'
   );
 
@@ -3528,7 +3528,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   renderProgressRing(learnerTotal, Math.max(learnerTotal + infraTotal, 1), 40, 'var(--warning-hue)') +
   '<div><strong>📘 Learner Changes</strong><br><span style="font-size:11px;color:var(--text-muted)">' + learnerTotal + ' learner artifacts</span></div></div>' +
   '</div>' +
-  '<div style="margin-top:4px">' + reviewToggleInline('tp_review_coverage', 'Review Coverage', 'Third Party Review — Coverage & Targets', 'third-party') + '</div></div>';
+  '</div>'
 
   // Instructor Guide (collapsible) — expanded with category-specific criteria
   h += '<div class="card" style="border-left:3px solid var(--accent);margin-bottom:16px">' +
@@ -3779,10 +3779,9 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     if (infraFiles.length) {
       h += '<div class="card"><h3>⚙️ Infrastructure Changes <span class="changed-badge">' + infraFiles.length + ' file(s)</span></h3>' +
         '<p class="caption">Dashboard, templates, scripts, source, and CI/CD files changed. <span style="color:var(--text-muted);cursor:pointer" onclick="toggleInfraPending()">📘 Show learner artifacts only</span></p>' +
-        '<table class="artifact-table" id="infraPendingTable"><thead><tr><th>File</th><th style="width:80px">Version</th><th style="width:80px">Review</th></tr></thead><tbody>';
+        '<table class="artifact-table" id="infraPendingTable"><thead><tr><th>File</th><th style="width:80px">Version</th><th style="width:60px">View</th></tr></thead><tbody>';
       infraFiles.forEach(f => {
-        const aid = 'if_' + f.replace(/[^a-zA-Z0-9]/g, '_');
-        h += '<tr><td class="fp">⚙️ ' + escHtml(f) + '</td><td><span class="version-chip">' + v.commit + '</span></td><td style="display:flex;gap:4px"><span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewArtifactByPath(\'' + escHtml(f).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>' + reviewToggleInline(aid, 'Infrastructure', f, f) + '</td></tr>';
+        h += '<tr><td class="fp">⚙️ ' + escHtml(f) + '</td><td><span class="version-chip">' + v.commit + '</span></td><td><span style="font-size:16px;color:var(--accent);cursor:pointer" onclick="previewArtifactByPath(\'' + escHtml(f).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span></td></tr>';
       });
       h += '</tbody></table></div>';
     }
@@ -3794,12 +3793,11 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       if (!items.length) return;
       h += '<div class="third-party-card"><h3>🔍 ' + catLabels[cat] + ' — Synced to review/</h3>' +
         '<p class="caption">' + items.length + ' file(s) ready for third-party assessment</p>' +
-        '<table class="artifact-table"><thead><tr><th>Path</th><th style="width:60px">Size</th><th style="width:100px">Synced</th><th style="width:80px">Review</th></tr></thead><tbody>';
+        '<table class="artifact-table"><thead><tr><th>Path</th><th style="width:60px">Size</th><th style="width:100px">Synced</th></tr></thead><tbody>';
       items.forEach(f => {
         const sz = f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B';
         const md = new Date(f.modified);
-        const aid = 'sync_' + f.path.replace(/[^a-zA-Z0-9]/g, '_');
-        h += '<tr><td class="fp"><span style="font-size:13px;color:var(--accent);cursor:pointer;margin-right:4px" onclick="previewArtifactByPath(\'' + escHtml('review/'+f.path).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td class="caption">' + md.toLocaleDateString() + '</td><td>' + reviewToggleInline(aid, 'Synced Artifact', f.path, f.path) + '</td></tr>';
+        h += '<tr><td class="fp"><span style="font-size:13px;color:var(--accent);cursor:pointer;margin-right:4px" onclick="previewArtifactByPath(\'' + escHtml('review/'+f.path).replace(/'/g,"\\'") + '\')" title="Preview">👁️</span>' + escHtml(f.path) + '</td><td class="caption">' + sz + '</td><td class="caption">' + md.toLocaleDateString() + '</td></tr>';
       });
       h += '</tbody></table></div>';
     });
@@ -4071,8 +4069,6 @@ function renderTargetList(items, fulfilled, aid, type, label, filename) {
       escHtml(item.label) +
       '</div>';
   });
-  // Add review button for this target set
-  h += '<div style="margin-top:4px">' + reviewToggleInline(aid, type, label, filename) + '</div>';
   h += '</div>';
   return h;
 }
