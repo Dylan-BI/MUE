@@ -352,7 +352,7 @@ Bounded Codex is the meta-cognitive skill of knowing when *not* to use AI. This 
 
 ### 6.1 Proposed 4-Level Analytic Rubric
 
-Replace Pass/Partial/Fail with a 4-level scale for each of the 7 scorecard areas. This gives reviewers a **shared mental model** and improves inter-rater reliability.
+Replace Pass/Moderate/Fail with a 4-level scale for each of the 7 scorecard areas. This gives reviewers a **shared mental model** and improves inter-rater reliability.
 
 #### Prompt Discipline
 

@@ -394,7 +394,7 @@ Bounded Codex is the meta-cognitive skill of knowing when *not* to use AI. This 
 
 **Academic Foundation:** Based on the assessment rubric research from Wang & Strong (2005) and Few's (2013) evaluation framework.
 
-Replace Pass/Partial/Fail with a 4-level scale for each of the 7 scorecard areas. This gives reviewers a **shared mental model** and improves inter-rater reliability.
+Replace Pass/Moderate/Fail with a 4-level scale for each of the 7 scorecard areas. This gives reviewers a **shared mental model** and improves inter-rater reliability.
 
 #### Prompt Discipline
 
