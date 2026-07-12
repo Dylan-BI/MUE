@@ -894,7 +894,7 @@
     </div>
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
-    <div class="meta" id="autoRefreshStatus">⏱ Auto-refresh inactive</div>
+    <div class="meta" id="autoRefreshStatus">⏱ Auto-sync inactive</div>
     <div class="meta" id="syncStatusMeta"><span>⏳ Sync: waiting for data…</span></div>
     <div class="meta" id="agentChangesMeta"></div>
     <div id="sidebarCurriculumBar" style="margin:6px 0;padding:6px 8px;background:var(--bg-muted);border-radius:6px;font-size:11px;display:none">
@@ -1415,7 +1415,7 @@ function saveReviewsToReview() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LOAD DATA & AUTO-REFRESH (30 min polling)
+   LOAD DATA & AUTO-SYNC (2 min polling)
    ═══════════════════════════════════════════════════════════════════════════ */
 async function loadData() {
   document.getElementById('sidebarInfo').textContent = 'Loading…';
@@ -1462,7 +1462,7 @@ function updateSidebar() {
     'Classification: <strong>' + s.latest_classification + '</strong> &middot; Evidence: ' + s.evidence_count + ' files' +
     '<br>Version: <span class="version-chip">' + (v.commit || '—') + '</span>';
   document.getElementById('sidebarMeta').textContent = 'Generated: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
-  document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-refresh active (30 min)';
+  document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-sync active (2 min)';
 
   // Update nav badges — use learner-scoped change counts (curriculum artifacts only)
   const learnerCc = DATA.learner_change_counts || DATA.change_counts || {};
@@ -1546,18 +1546,23 @@ function updateSidebarLevelButtons() {
 let refreshInterval = null;
 function startAutoRefresh() {
   if (refreshInterval) clearInterval(refreshInterval);
-  document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-refresh active (30 min)';
+  document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-sync active (2 min)';
   refreshInterval = setInterval(async () => {
     try {
       const resp = await fetch('data.json?t=' + Date.now());
       if (!resp.ok) return;
       const fresh = await resp.json();
       if (fresh.generated && fresh.generated !== LAST_GENERATED) {
-        document.getElementById('updateBanner').classList.add('show');
+        // New data detected — auto-reload silently
         LAST_GENERATED = fresh.generated;
+        DATA = fresh;
+        updateSidebar();
+        renderAll();
+        updateSidebarLevelButtons();
+        showToast('Dashboard updated with new learner data', 'success', 'Auto-synced');
       }
     } catch (e) {}
-  }, 30 * 60 * 1000);
+  }, 2 * 60 * 1000);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2005,7 +2010,7 @@ function renderAll() {
       '• Levels 2–4 unlock sequentially after 28 days each</div>' +
       '</div>' +
       '<div style="margin-top:24px;font-size:12px;color:var(--text-muted)">' +
-      '🔄 Auto-refreshes every 30 minutes &middot; ' +
+      '🔄 Auto-syncs every 2 minutes &middot; ' +
       'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
 
     document.getElementById('main').innerHTML = '';
@@ -2046,7 +2051,7 @@ function renderAll() {
     const lvlProgEl = document.getElementById('sidebarLevelProgression');
     if (lvlProgEl) lvlProgEl.innerHTML = renderLevelProgressionSidebar();
     document.getElementById('sidebarMeta').textContent = 'Generated: ' + (DATA.generated ? new Date(DATA.generated).toLocaleString() : '—');
-    document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-refresh active (30 min)';
+    document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-sync active (2 min)';
     return;
   }
 
@@ -4406,12 +4411,12 @@ function renderReviewersGuide() {
     'and remain fully clickable — you can browse freely without restrictions.</p></div>';
 
   // ══════ 8. SYNC & REFRESH ══════
-  html += '<div class="card"><h3>🔄 Sync & Auto-Refresh</h3>' +
+  html += '<div class="card"><h3>🔄 Sync & Auto-Sync</h3>' +
     '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
     '<tr style="border-bottom:1px solid var(--border-color)"><th style="text-align:left;padding:6px 4px;width:160px">Button</th><th style="text-align:left;padding:6px 4px">What It Does</th></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">🔄 Refresh Now</td><td style="padding:6px 4px;color:var(--text-secondary)">Reloads <code>data.json</code> from the server — picks up any new learner artifacts or build updates</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-light)"><td style="padding:6px 4px">📤 Run Sync</td><td style="padding:6px 4px;color:var(--text-secondary)">Downloads all your local reviews as a <code>review/reviews.json</code> file — use this to submit your feedback to the repository</td></tr>' +
-    '<tr><td style="padding:6px 4px">⏱ Auto-refresh</td><td style="padding:6px 4px;color:var(--text-secondary)">The dashboard automatically checks for new data every 30 minutes. A banner appears when fresh data is available</td></tr>' +
+    '<tr><td style="padding:6px 4px">⏱ Auto-sync</td><td style="padding:6px 4px;color:var(--text-secondary)">The dashboard automatically checks for new learner data every 2 minutes and reloads when fresh data is detected. A file watcher also rebuilds data.json when notes, evidence, or reports change.</td></tr>' +
     '</table></div>';
 
   // ══════ 9. START DATE ══════

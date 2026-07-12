@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "auto-sync: rebuild data.json on learner data change",
+      "type": "shell",
+      "command": "python",
+      "args": ["action/dashboard/build_data.py"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "runOptions": { "runOn": "folderOpen" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "close": true }
+    },
+    {
+      "label": "auto-sync: rebuild data.json (manual)",
+      "type": "shell",
+      "command": "python",
+      "args": ["action/dashboard/build_data.py"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "close": true }
+    },
+    {
+      "label": "auto-sync: sync action/ to review/",
+      "type": "shell",
+      "command": "python",
+      "args": ["review/scripts/sync-from-action.py"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "close": true }
+    },
+    {
+      "label": "auto-sync: watch learner data",
+      "type": "shell",
+      "command": "python",
+      "args": ["action/dashboard/watch_and_build.py"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "runOptions": { "runOn": "folderOpen", "panel": "dedicated" },
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "never", "close": true }
+    }
+  ]
+}
