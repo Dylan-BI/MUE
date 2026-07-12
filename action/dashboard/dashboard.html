@@ -1324,6 +1324,29 @@ function saveReview(artifactPath, review) {
 }
 function getAllReviews() { return getReviews(); }
 
+/* ── Reviewer Statistics ── */
+function getReviewerStats() {
+  const all = getReviews();
+  const stats = {};
+  Object.entries(all).forEach(([aid, reviews]) => {
+    reviews.forEach(r => {
+      const name = r.name || 'Unknown';
+      if (!stats[name]) stats[name] = { name, total: 0, ratings: {}, artifacts: new Set(), types: new Set(), firstReview: r.timestamp, lastReview: r.timestamp, comments: 0 };
+      const s = stats[name];
+      s.total++;
+      s.ratings[r.rating] = (s.ratings[r.rating] || 0) + 1;
+      if (r.label) s.artifacts.add(r.label);
+      if (r.type) s.types.add(r.type);
+      if (r.text) s.comments++;
+      if (r.timestamp < s.firstReview) s.firstReview = r.timestamp;
+      if (r.timestamp > s.lastReview) s.lastReview = r.timestamp;
+    });
+  });
+  Object.values(stats).forEach(s => { s.artifactCount = s.artifacts.size; s.artifacts = [...s.artifacts]; s.types = [...s.types]; });
+  return stats;
+}
+function getReviewerCount() { return Object.keys(getReviewerStats()).length; }
+
 /* ── Synced reviews from review/reviews.json (via data.json) ── */
 function getSyncedReviews() {
   try { return (DATA && DATA.synced_reviews) || {}; } catch { return {}; }
@@ -1926,6 +1949,8 @@ function showPage(name) {
   const el = document.getElementById('page-' + name);
   if (el) {
     el.classList.add('active');
+    // Refresh reviewer activity panel when third-party page is shown
+    if (name === 'third-party') refreshReviewerActivity();
     // Inject level banner if not already present and page supports it
     if (!el.querySelector('.level-banner') && !['curriculum-review', 'reviewers-guide'].includes(name)) {
       const bannerHtml = renderLevelBanner(name);
@@ -2647,7 +2672,7 @@ function submitReview(aid, type, label, filename) {
   let rating = 'No rating';
   const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn, #rig_'+aid+' .rating-btn');
   btns.forEach((b,i)=>{if(b.classList.contains('selected'))rating=b.textContent.trim();});
-  const review = {name,rating,text,type,label,filename};
+  const review = {name,rating,text,type,label,filename,role: 'Instructor'};
   saveReview(aid, review);
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
@@ -2801,7 +2826,9 @@ function renderReviewList(aid) {
       ? '<div class="review-actions"><button onclick="startEditReview(\''+aid+'\',\''+r.id+'\')">✏️ Edit</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>'
       : '';
     const editedTag = r.editedAt ? ' <span style="font-size:9px;color:var(--text-muted)">(edited)</span>' : '';
-    h += '<div class="review-item" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
+    const roleBadge = r.role ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">'+escHtml(r.role)+'</span>' : '';
+    const typeBadge = r.type ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:2px">'+escHtml(r.type)+'</span>' : '';
+    h += '<div class="review-item" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
@@ -2872,6 +2899,41 @@ function saveEditReview(aid, reviewId) {
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
   showToast('Review updated.', 'success', 'Review Saved');
+}
+
+function renderReviewerActivity() {
+  const stats = getReviewerStats();
+  const reviewers = Object.values(stats).sort((a,b) => b.total - a.total);
+  if (!reviewers.length) return '<div id="reviewerActivityPanel" class="card"><h3>👥 Reviewer Activity</h3><p class="caption">No reviews submitted yet.</p></div>';
+  const ratingColor = r => r.includes('Pass') ? 'var(--success)' : (r.includes('Rework') ? 'var(--danger)' : 'var(--warning-hue)');
+  let h = '<div id="reviewerActivityPanel" class="card"><h3>👥 Reviewer Activity <span style="font-size:12px;color:var(--text-muted);font-weight:400">who reviewed what</span></h3>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
+  reviewers.forEach(s => {
+    const initials = s.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const ratingBreakdown = Object.entries(s.ratings).map(([r,c]) => '<span style="display:inline-block;margin-right:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+ratingColor(r)+';margin-right:2px;vertical-align:middle"></span>'+r+': <strong>'+c+'</strong></span>').join('');
+    h += '<div style="flex:1;min-width:220px;background:var(--bg-muted);border:1px solid var(--border-light);border-radius:8px;padding:12px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+      '<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+initials+'</div>' +
+      '<div><strong style="font-size:13px">'+escHtml(s.name)+'</strong><br><span style="font-size:10px;color:var(--text-muted)">'+s.total+' review'+(s.total!==1?'s':'')+' · '+s.artifactCount+' artifact'+(s.artifactCount!==1?'s':'')+'</span></div>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px">'+ratingBreakdown+'</div>' +
+      '<div style="font-size:10px;color:var(--text-muted)">' +
+      'Reviewed: '+s.artifacts.slice(0,3).join(', ')+(s.artifacts.length>3?' +'+(s.artifacts.length-3)+' more':'')+
+      '</div>' +
+      '<div style="font-size:10px;color:var(--text-light);margin-top:4px">Last: '+new Date(s.lastReview).toLocaleDateString()+'</div>' +
+      '</div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+function refreshReviewerActivity() {
+  const panel = document.getElementById('reviewerActivityPanel');
+  if (panel) {
+    const temp = document.createElement('div');
+    temp.innerHTML = renderReviewerActivity();
+    panel.parentNode.replaceChild(temp.firstChild, panel);
+  }
 }
 
 function deleteReview(aid, reviewId) {
@@ -3386,6 +3448,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
     '<button class="export-btn" style="background:var(--info-tint)" onclick="saveReviewsToReview()">💾 Save to review/reviews.json</button>' +
     '<button class="export-btn" style="background:var(--success)" onclick="runSync()">📤 Sync action/ → review/</button>' +
     '<button class="export-btn" style="background:var(--danger)" onclick="clearAllReviews()">🗑️ Clear Local Reviews</button></div>' +
+  renderReviewerActivity() +
 
   // ≡≡≡ Third-Party Review Progress Widget — review coverage ≡≡≡
   '<div class="card"><h3>📊 Third Party Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">review coverage & targets</span></h3>' +
