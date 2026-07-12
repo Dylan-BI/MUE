@@ -1348,7 +1348,8 @@ async function serverUpdateReview(artifactId, reviewId, updates) {
       method: 'PUT', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({artifactId, reviewId, updates})
     });
-    if (resp.ok) { await serverFetchReviews(); return true; }
+    if (resp.ok) { await serverFetchReviews(); return {ok: true}; }
+    if (resp.status === 409) { const err = await resp.json(); return {ok: false, error: err.error, edited_by: err.edited_by, edited_at: err.edited_at}; }
   } catch (e) {}
   return false;
 }
@@ -1363,6 +1364,64 @@ async function serverDeleteReview(artifactId, reviewId) {
     if (resp.ok) { await serverFetchReviews(); return true; }
   } catch (e) {}
   return false;
+}
+
+/* ── Edit Lock API (conflict prevention) ── */
+let ACTIVE_LOCKS = {};  // {"aid::rid": {name, timestamp, ttl}}
+let _pendingLock = null; // {artifactId, reviewId, name} — lock we're about to claim
+
+async function serverFetchLocks() {
+  if (!REVIEW_SERVER) return {};
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/locks?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
+    if (resp.ok) { ACTIVE_LOCKS = await resp.json(); return ACTIVE_LOCKS; }
+  } catch (e) {}
+  return {};
+}
+
+async function serverClaimLock(artifactId, reviewId, name) {
+  if (!REVIEW_SERVER) return {ok: true};
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/locks', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'claim', artifactId, reviewId, name})
+    });
+    const data = await resp.json();
+    if (resp.ok) return {ok: true};
+    return {ok: false, error: data.error || 'Lock unavailable'};
+  } catch (e) { return {ok: true}; }
+}
+
+async function serverReleaseLock(artifactId, reviewId, name) {
+  if (!REVIEW_SERVER) return;
+  try {
+    await fetch(REVIEW_SERVER + '/api/locks', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'release', artifactId, reviewId, name})
+    });
+  } catch (e) {}
+}
+
+async function serverCheckLock(artifactId, reviewId) {
+  if (!REVIEW_SERVER) return null;
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/locks', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'check', artifactId, reviewId})
+    });
+    const data = await resp.json();
+    return data.locked ? data.lock : null;
+  } catch (e) { return null; }
+}
+
+function isReviewLocked(aid, reviewId) {
+  const key = aid + '::' + reviewId;
+  const lock = ACTIVE_LOCKS[key];
+  if (!lock) return null;
+  const elapsed = (Date.now() / 1000) - lock.timestamp;
+  if (elapsed > (lock.ttl || 600)) { delete ACTIVE_LOCKS[key]; return null; }
+  if (lock.name === getReviewerName()) return null; // own lock
+  return lock;
 }
 
 function updateServerStatus() {
@@ -1649,19 +1708,28 @@ function startAutoRefresh() {
       }
     } catch (e) {}
   }, 2 * 60 * 1000);
-  // Poll review server every 30s for new reviews from other reviewers
+  // Poll review server every 8s for new reviews and lock changes from other reviewers
   if (serverPollInterval) clearInterval(serverPollInterval);
   serverPollInterval = setInterval(async () => {
     if (!REVIEW_SERVER) { detectReviewServer(); return; }
-    const prev = JSON.stringify(SERVER_REVIEWS);
+    const prevReviews = JSON.stringify(SERVER_REVIEWS);
+    const prevLocks = JSON.stringify(ACTIVE_LOCKS);
     await serverFetchReviews();
-    const next = JSON.stringify(SERVER_REVIEWS);
-    if (prev !== next && Object.keys(SERVER_REVIEWS).length) {
+    await serverFetchLocks();
+    const nextReviews = JSON.stringify(SERVER_REVIEWS);
+    const nextLocks = JSON.stringify(ACTIVE_LOCKS);
+    if (prevReviews !== nextReviews && Object.keys(SERVER_REVIEWS).length) {
       renderAll();
       refreshReviewerActivity();
       showToast('New reviews from other reviewers', 'info', 'Reviews Updated');
+    } else if (prevLocks !== nextLocks) {
+      // Locks changed — refresh review lists to show/hide editing indicators
+      document.querySelectorAll('.review-list').forEach(el => {
+        const aid = el.id.replace('rl_', '').replace('ril_', '');
+        if (aid) el.innerHTML = renderReviewList(aid);
+      });
     }
-  }, 30 * 1000);
+  }, 8 * 1000);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -2942,19 +3010,23 @@ function renderReviewList(aid) {
       ? '<span style="font-size:9px;background:var(--bg-source-tag);color:var(--text-alert-info);padding:1px 5px;border-radius:4px;margin-left:4px">📥 Synced</span>'
       : '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:4px">💻 Local</span>';
     const cancelledBadge = isCancelled ? '<span class="cancelled-badge">⛔ Cancelled</span>' : '';
+    // Editing lock indicator
+    const lock = isReviewLocked(aid, r.id);
+    const editLockBadge = lock ? '<span style="font-size:9px;background:#f59e0b;color:#000;padding:1px 5px;border-radius:4px;margin-left:4px">✏️ Being edited by '+escHtml(lock.name)+'</span>' : '';
     const isAuthor = currentName && r.name === currentName;
     let actionsHtml = '';
     if (isAuthor) {
       if (isCancelled) {
         actionsHtml = '<div class="review-actions"><button class="restore-btn" onclick="restoreReview(\''+aid+'\',\''+r.id+'\')">♻️ Restore</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>';
       } else {
-        actionsHtml = '<div class="review-actions"><button onclick="startEditReview(\''+aid+'\',\''+r.id+'\')">✏️ Edit</button><button class="cancel-review-btn" onclick="cancelReview(\''+aid+'\',\''+r.id+'\')">🚫 Cancel</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>';
+        const lockHeld = lock && lock.name !== currentName;
+        actionsHtml = '<div class="review-actions">' + (lockHeld ? '<span style="font-size:10px;color:var(--warning-hue);margin-right:4px">🔒 '+escHtml(lock.name)+' editing</span>' : '<button onclick="startEditReview(\''+aid+'\',\''+r.id+'\')">✏️ Edit</button>') + '<button class="cancel-review-btn" onclick="cancelReview(\''+aid+'\',\''+r.id+'\')">🚫 Cancel</button><button class="delete-btn" onclick="deleteReview(\''+aid+'\',\''+r.id+'\')">🗑️ Delete</button></div>';
       }
     }
     const editedTag = r.editedAt ? ' <span style="font-size:9px;color:var(--text-muted)">(edited)</span>' : '';
     const roleBadge = r.role ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">'+escHtml(r.role)+'</span>' : '';
     const typeBadge = r.type ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:2px">'+escHtml(r.type)+'</span>' : '';
-    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+cancelledBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
+    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
@@ -2981,6 +3053,23 @@ function startEditReview(aid, reviewId) {
     showToast('Restore this review before editing.', 'warning', 'Review Cancelled');
     return;
   }
+  // Claim edit lock
+  if (REVIEW_SERVER) {
+    _pendingLock = {artifactId: aid, reviewId: reviewId, name: currentName};
+    serverClaimLock(aid, reviewId, currentName).then(result => {
+      if (!result.ok) {
+        showToast(result.error || 'Another reviewer is editing this review', 'warning', 'Edit Locked');
+        _pendingLock = null;
+        return;
+      }
+      _openEditForm(aid, reviewId, review);
+    });
+  } else {
+    _openEditForm(aid, reviewId, review);
+  }
+}
+
+function _openEditForm(aid, reviewId, review) {
   const el = document.getElementById('rv_'+aid+'_'+reviewId);
   if (!el) return;
   const ratingOpts = ['👍 Pass','⚡ Needs Work','❌ Rework'];
@@ -3003,6 +3092,12 @@ function selectEditRating(aid, reviewId, idx) {
 }
 
 function cancelEditReview(aid, reviewId) {
+  if (_pendingLock && _pendingLock.reviewId === reviewId) {
+    serverReleaseLock(aid, reviewId, _pendingLock.name);
+    _pendingLock = null;
+  }
+  const currentName = getReviewerName();
+  if (REVIEW_SERVER && currentName) serverReleaseLock(aid, reviewId, currentName);
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
 }
@@ -3029,7 +3124,16 @@ async function saveEditReview(aid, reviewId) {
   const btns = document.querySelectorAll('#erg_'+aid+'_'+reviewId+' .edit-rating-btn');
   btns.forEach(b => { if (b.classList.contains('selected')) newRating = b.textContent.trim(); });
   if (REVIEW_SERVER && serverRev) {
-    await serverUpdateReview(aid, reviewId, { text: newText, rating: newRating });
+    const updates = { text: newText, rating: newRating, lastEditedBy: currentName, version: review.version || 1 };
+    const result = await serverUpdateReview(aid, reviewId, updates);
+    if (!result) {
+      showToast('Conflict: this review was modified by another reviewer. Refreshing...', 'warning', 'Version Conflict');
+      await serverFetchReviews();
+      const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
+      if (list) list.innerHTML = renderReviewList(aid);
+      return;
+    }
+    await serverReleaseLock(aid, reviewId, currentName);
   } else if (localRev) {
     localRev.text = newText;
     localRev.rating = newRating;
@@ -3092,6 +3196,7 @@ async function deleteReview(aid, reviewId) {
   if (!confirm('Delete your review? This cannot be undone.')) return;
   if (REVIEW_SERVER && serverRev) {
     await serverDeleteReview(aid, reviewId);
+    await serverReleaseLock(aid, reviewId, currentName);
   } else if (localRev) {
     all[aid] = (all[aid] || []).filter(r => r.id !== reviewId);
     if (!all[aid].length) delete all[aid];
@@ -3116,6 +3221,7 @@ async function cancelReview(aid, reviewId) {
   if (!confirm('Cancel this review? It will be hidden from stats but you can restore it later.')) return;
   if (REVIEW_SERVER && serverRev) {
     await serverUpdateReview(aid, reviewId, { cancelled: true, cancelledAt: new Date().toISOString() });
+    await serverReleaseLock(aid, reviewId, currentName);
   } else if (localRev) {
     localRev.cancelled = true;
     localRev.cancelledAt = new Date().toISOString();
@@ -3140,6 +3246,7 @@ async function restoreReview(aid, reviewId) {
   }
   if (REVIEW_SERVER && serverRev) {
     await serverUpdateReview(aid, reviewId, { cancelled: false, cancelledAt: null });
+    await serverReleaseLock(aid, reviewId, currentName);
   } else if (localRev) {
     localRev.cancelled = false;
     delete localRev.cancelledAt;

@@ -14,9 +14,16 @@ Usage:
 API:
     GET  /api/reviews              → all reviews as JSON
     POST /api/reviews              → add review   {artifactId, review}
-    PUT  /api/reviews              → update review {artifactId, reviewId, updates}
+    PUT  /api/reviews              → update review {artifactId, reviewId, updates, version?}
     DELETE /api/reviews            → delete review {artifactId, reviewId}
+    GET  /api/locks                → all active edit locks
+    POST /api/locks                → claim/release/check locks
     GET  /api/status               → server status + connected reviewer count
+
+Conflict Prevention:
+    - Edit locks: soft locks prevent concurrent editing (10 min TTL)
+    - Version tracking: each review has a version number, checked on update
+    - Fast polling: dashboard polls every 8s for real-time awareness
 
 Storage:
     review/reviews.json            → canonical shared review store
@@ -51,6 +58,11 @@ BUILD_SCRIPT = DASHBOARD_DIR / 'build_data.py'
 _reviews_lock = threading.Lock()
 _connected_clients = set()
 _client_lock = threading.Lock()
+
+# Edit locks: {(artifactId, reviewId): {name, timestamp, ttl}}
+_edit_locks = {}
+_edit_locks_lock = threading.Lock()
+LOCK_TTL = 600  # 10 minutes — auto-release if editor disconnects
 
 
 def load_reviews():
@@ -102,6 +114,53 @@ def generate_id():
     return str(int(time.time() * 1000)) + random.randint(1000, 9999).__format__('d')
 
 
+def _cleanup_expired_locks():
+    """Remove expired locks (called periodically)."""
+    now = time.time()
+    with _edit_locks_lock:
+        expired = [k for k, v in _edit_locks.items() if now - v['timestamp'] > v.get('ttl', LOCK_TTL)]
+        for k in expired:
+            del _edit_locks[k]
+
+
+def _get_all_locks():
+    """Return all active (non-expired) locks."""
+    _cleanup_expired_locks()
+    with _edit_locks_lock:
+        return {f"{k[0]}::{k[1]}": v for k, v in _edit_locks.items()}
+
+
+def _claim_lock(artifact_id, review_id, name, ttl=LOCK_TTL):
+    """Claim an edit lock. Returns (ok, error_msg)."""
+    _cleanup_expired_locks()
+    key = (artifact_id, review_id)
+    with _edit_locks_lock:
+        existing = _edit_locks.get(key)
+        if existing and existing['name'] != name:
+            return False, f"{existing['name']} is currently editing this review"
+        _edit_locks[key] = {'name': name, 'timestamp': time.time(), 'ttl': ttl}
+    return True, None
+
+
+def _release_lock(artifact_id, review_id, name):
+    """Release an edit lock. Returns True if released."""
+    key = (artifact_id, review_id)
+    with _edit_locks_lock:
+        existing = _edit_locks.get(key)
+        if existing and existing['name'] == name:
+            del _edit_locks[key]
+            return True
+    return False
+
+
+def _check_lock(artifact_id, review_id):
+    """Check if a review is locked. Returns lock info or None."""
+    _cleanup_expired_locks()
+    key = (artifact_id, review_id)
+    with _edit_locks_lock:
+        return _edit_locks.get(key)
+
+
 class ReviewHandler(SimpleHTTPRequestHandler):
     """HTTP handler: REST API for reviews + static file serving."""
 
@@ -128,6 +187,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
         if path == '/api/reviews':
             self._handle_get_reviews()
+        elif path == '/api/locks':
+            self._handle_get_locks()
         elif path == '/api/status':
             self._handle_get_status()
         else:
@@ -138,6 +199,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == '/api/reviews':
             self._handle_add_review()
+        elif parsed.path == '/api/locks':
+            self._handle_lock_action()
         else:
             self._send_json(404, {'error': 'Not found'})
 
@@ -161,6 +224,47 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         """GET /api/reviews — return all reviews."""
         reviews = load_reviews()
         self._send_json(200, reviews)
+
+    def _handle_get_locks(self):
+        """GET /api/locks — return all active edit locks."""
+        locks = _get_all_locks()
+        self._send_json(200, locks)
+
+    def _handle_lock_action(self):
+        """POST /api/locks — claim, release, or check locks."""
+        body = self._read_body()
+        if not body:
+            return
+        action = body.get('action')
+        artifact_id = body.get('artifactId')
+        review_id = body.get('reviewId')
+        name = body.get('name', '').strip()
+        if not action or not artifact_id or not review_id:
+            self._send_json(400, {'error': 'action, artifactId, and reviewId required'})
+            return
+        if action == 'claim':
+            if not name:
+                self._send_json(400, {'error': 'name required for claim'})
+                return
+            ok, err = _claim_lock(artifact_id, review_id, name)
+            if ok:
+                print(f'  🔒 Lock claimed: {name} editing {review_id[:12]}...')
+                self._send_json(200, {'ok': True})
+            else:
+                self._send_json(409, {'error': err})
+        elif action == 'release':
+            if not name:
+                self._send_json(400, {'error': 'name required for release'})
+                return
+            released = _release_lock(artifact_id, review_id, name)
+            if released:
+                print(f'  🔓 Lock released: {name} on {review_id[:12]}...')
+            self._send_json(200, {'ok': True, 'released': released})
+        elif action == 'check':
+            lock = _check_lock(artifact_id, review_id)
+            self._send_json(200, {'locked': lock is not None, 'lock': lock})
+        else:
+            self._send_json(400, {'error': f'Unknown action: {action}'})
 
     def _handle_get_status(self):
         """GET /api/status — server status."""
@@ -196,9 +300,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 self._send_json(400, {'error': f'Missing required field: {field}'})
                 return
 
-        # Assign ID and timestamp
+        # Assign ID, timestamp, and version
         review['id'] = review.get('id') or generate_id()
         review['timestamp'] = review.get('timestamp') or datetime.now().isoformat()
+        review['version'] = 1
         review['_source'] = 'synced'
 
         # Save to reviews.json
@@ -235,6 +340,20 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(404, {'error': 'Review not found'})
             return
 
+        # Version conflict check
+        client_version = updates.pop('version', None)
+        if client_version is not None:
+            server_version = review.get('version', 1)
+            if client_version != server_version:
+                self._send_json(409, {
+                    'error': 'Version conflict',
+                    'server_version': server_version,
+                    'client_version': client_version,
+                    'edited_by': review.get('lastEditedBy', 'unknown'),
+                    'edited_at': review.get('editedAt', 'unknown')
+                })
+                return
+
         # Apply updates
         for key, val in updates.items():
             if key.startswith('_'):
@@ -242,6 +361,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             review[key] = val
 
         review['editedAt'] = datetime.now().isoformat()
+        review['version'] = review.get('version', 0) + 1
         save_reviews(all_reviews)
 
         print(f'  ✏️ Review {review_id} updated by {review.get("name", "?")}')
