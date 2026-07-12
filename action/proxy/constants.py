@@ -493,7 +493,7 @@ def parse_note(filepath):
         note['level'] = 1
 
     for area in SCORE_AREAS:
-        p = re.compile(rf'{re.escape(area)}:\s*(Pass|Moderate|Fail)', re.IGNORECASE)
+        p = re.compile(rf'{re.escape(area)}:\s*(Pass|Moderate|Fail|Unscored)', re.IGNORECASE)
         m = p.search(content)
         if m:
             safe_key = area.lower().replace(' ', '_').replace('(', '').replace(')', '')

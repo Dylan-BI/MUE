@@ -381,7 +381,7 @@
   .timeline-item .day-details { display: none; margin-top: 6px; padding: 10px 14px; background: var(--bg-muted); border-radius: 8px; font-size: 13px; line-height: 1.5; }
   .timeline-item .day-details.open { display: block; }
   .score-chip { display: inline-block; width: 26px; height: 26px; border-radius: 6px; text-align: center; line-height: 26px; font-size: 10px; font-weight: 700; color: #fff; margin: 1px; }
-  .score-pass { background: var(--score-pass); color:#fff; } .score-moderate { background: var(--score-moderate); color: #333; } .score-fail { background: var(--score-fail); color:#fff; }
+  .score-pass { background: var(--score-pass); color:#fff; } .score-moderate { background: var(--score-moderate); color: #333; } .score-fail { background: var(--score-fail); color:#fff; } .score-unscored { background: #888; color: #fff; }
   /* ── Interactive Score Chips & Override Popup ── */
   .score-chip.interactive { cursor: pointer; position: relative; transition: transform .15s, box-shadow .15s; }
   .score-chip.interactive:hover { transform: scale(1.18); box-shadow: 0 2px 10px rgba(0,0,0,.25); z-index: 2; }
@@ -1285,7 +1285,8 @@ const CLS_COLORS = {
 const SCORE_COLORS = {
   'Pass': getComputedStyle(document.documentElement).getPropertyValue('--score-pass').trim() || '#2b9d6e',
   'Moderate': getComputedStyle(document.documentElement).getPropertyValue('--score-moderate').trim() || '#d49330',
-  'Fail': getComputedStyle(document.documentElement).getPropertyValue('--score-fail').trim() || '#d9445a'
+  'Fail': getComputedStyle(document.documentElement).getPropertyValue('--score-fail').trim() || '#d9445a',
+  'Unscored': '#888'
 };
 const TRACK_COLORS = {
   'Pyramid operations': getComputedStyle(document.documentElement).getPropertyValue('--chart-blue').trim() || '#5b8def',
@@ -2147,10 +2148,23 @@ function renderAll() {
   const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
   let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Moderate/Fail entries showing whether the learner is Improving, Steady, or Needs Attention per area, with Fail warnings.</p>';
   sh2 += renderPageChanges('scorecard', 'Scorecard');
+  // ≡≡≡ Score Legend ═══════════════════════════════════════════════════════
+  sh2 += '<div class="card" style="padding:10px 14px;margin-bottom:10px"><h3 style="margin:0 0 6px;font-size:13px">🎨 Score Color Key</h3>' +
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;line-height:1.5">' +
+    '<div style="display:flex;align-items:center;gap:6px"><span class="score-chip" style="background:' + (SCORE_COLORS['Pass'] || '#2b9d6e') + ';width:22px;height:22px;line-height:22px;font-size:9px;flex-shrink:0">P</span>' +
+    '<div><strong style="color:' + (SCORE_COLORS['Pass'] || '#2b9d6e') + '">Pass</strong><br><span style="color:var(--text-muted)">Learner demonstrated proficiency — area is on track</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:6px"><span class="score-chip" style="background:' + (SCORE_COLORS['Moderate'] || '#d49330') + ';width:22px;height:22px;line-height:22px;font-size:9px;flex-shrink:0;color:#333">M</span>' +
+    '<div><strong style="color:' + (SCORE_COLORS['Moderate'] || '#d49330') + '">Moderate</strong><br><span style="color:var(--text-muted)">Partial understanding shown — needs reinforcement</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:6px"><span class="score-chip" style="background:' + (SCORE_COLORS['Fail'] || '#d9445a') + ';width:22px;height:22px;line-height:22px;font-size:9px;flex-shrink:0">F</span>' +
+    '<div><strong style="color:' + (SCORE_COLORS['Fail'] || '#d9445a') + '">Fail</strong><br><span style="color:var(--text-muted)">Area not yet demonstrated — requires retraining</span></div></div>' +
+    '</div>' +
+    '<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border-light);font-size:11px;color:var(--text-muted)">' +
+    '💡 <strong>Tip:</strong> Click any score chip to override or add an instructor comment. Overridden chips show a <span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);vertical-align:middle"></span> accent ring.</div></div>';
   // ≡≡≡ Scorecard Progress Widget — Pass rate per area ≡≡≡
   const scorePassAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Pass'; });
   const scoreFailAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Fail'; });
-  sh2 += '<div class="card"><h3>📊 Scorecard Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">fulfilled vs unfulfilled</span></h3>' +
+  const scoreUnscoredAreas = trK.filter(k => { const e=tr[k]; return e&&e.length&&e[e.length-1].score==='Unscored'; });
+  sh2 += '<div class="card"><h3>📊 Scorecard Target Progress <span style="font-size:12px;color:var(--text-muted);font-weight:400">instructor-assigned scores</span></h3>' +
     '<div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">' +
     '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
     renderProgressRing(scorePassAreas.length, Math.max(trK.length,1), 44) +
@@ -2158,6 +2172,9 @@ function renderAll() {
     '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
     renderProgressRing(scoreFailAreas.length, Math.max(trK.length,1), 44, 'var(--danger)') +
     '<div><strong>❌ Needs Work</strong><br><span style="font-size:11px;color:var(--text-muted)">' + scoreFailAreas.length + '/' + trK.length + ' failing</span></div></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-muted);border-radius:8px">' +
+    renderProgressRing(scoreUnscoredAreas.length, Math.max(trK.length,1), 44, '#888') +
+    '<div><strong>— Unscored</strong><br><span style="font-size:11px;color:var(--text-muted)">' + scoreUnscoredAreas.length + '/' + trK.length + ' awaiting score</span></div></div>' +
     '</div>' +
     '<div style="margin-top:4px">' + reviewToggleInline('scorecard_progress_req', 'Scorecard Targets', 'Scorecard — Learner Target Progress', 'scorecard') + '</div></div>';
   if (!trK.length) sh2 += '<div class="alert alert-info">No scorecard data yet.</div>';
@@ -2166,14 +2183,19 @@ function renderAll() {
       const e=tr[a]||[];
       const safe = a.replace(/[^a-zA-Z0-9]/g,'_');
       sh2+='<div class="card"><h3>'+a.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())+'</h3><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">';
-      e.forEach((v,vi)=>{const ov=getScoreOverride(a,vi);const display=ov&&ov.overrideScore?ov.overrideScore:v.score;const cls=ov&&ov.overrideScore?'score-chip interactive overridden':'score-chip interactive';sh2+='<span class="'+cls+'" style="background:'+(SCORE_COLORS[display]||'#888')+'" data-area="'+a+'" data-day="'+vi+'" data-original="'+v.score+'" title="'+v.score+' — Click to override'+((ov&&ov.overrideScore)?' (Override: '+ov.overrideScore+')':'')+'" onclick="openScorePopup('+JSON.stringify(a)+','+vi+','+JSON.stringify(v.score)+',event)">'+display[0]+'</span>';});
+      e.forEach((v,vi)=>{const ov=getScoreOverride(a,vi);const display=ov&&ov.overrideScore?ov.overrideScore:v.score;const cls=ov&&ov.overrideScore?'score-chip interactive overridden':'score-chip interactive';const chipLabel=(display==='Unscored')?'—':display[0];const chipTitle=ov&&ov.overrideScore?('Instructor: '+ov.overrideScore+(ov.comment?' — '+ov.comment:'')+' (click to change)'):(v.score==='Unscored'?'No instructor score — Click to assign score':v.score+' — Click to assign score');sh2+='<span class="'+cls+'" style="background:'+(SCORE_COLORS[display]||'#888')+'" data-area="'+a+'" data-day="'+vi+'" data-original="'+v.score+'" title="'+chipTitle+'" onclick="openScorePopup('+JSON.stringify(a)+','+vi+','+JSON.stringify(v.score)+',event)">'+chipLabel+'</span>';});
       sh2+='</div><p class="caption">';
-      const vl=e.map(v=>({'Pass':2,'Moderate':1,'Fail':0}[v.score]||0));
-      if(vl.length>=2){if(vl[vl.length-1]>vl[0])sh2+='📈 Improving';else if(vl[vl.length-1]<vl[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}
+      const vl=e.map(v=>({'Pass':2,'Moderate':1,'Fail':0,'Unscored':-1}[v.score]||-1));
+      const scored=vl.filter(v=>v>=0);
+      if(scored.length>=2){if(scored[scored.length-1]>scored[0])sh2+='📈 Improving';else if(scored[scored.length-1]<scored[0])sh2+='📉 Needs attention';else sh2+='➡️ Steady';}
+      else if(scored.length===0){sh2+='⏳ Awaiting instructor scores';}
+      else{sh2+='➡️ Awaiting more scores';}
       sh2+='</p>'+renderReviewSection('score_'+safe,'Scorecard Area',a.replace(/_/g,' '),'scorecard/'+a)+'</div>';
     });
     const fa=trK.filter(k=>{const e=tr[k];return e&&e.length&&e[e.length-1].score==='Fail';});
     if (fa.length>=2) sh2+='<div class="alert alert-warning">⚠️ '+fa.length+' areas scored <strong>Fail</strong>. Repeat this layer.</div>';
+    const ua=trK.filter(k=>{const e=tr[k];return e&&e.length&&e[e.length-1].score==='Unscored';});
+    if (ua.length>0) sh2+='<div class="alert alert-info">📌 '+ua.length+' area(s) still <strong>Unscored</strong> — click any chip to assign an instructor score.</div>';
   }
   addPage('scorecard', sh2);
 
@@ -2654,15 +2676,15 @@ function openScorePopup(areaKey, dayIdx, originalScore, ev) {
   const popup = document.createElement('div');
   popup.className = 'score-popup';
   const opts = ['Pass','Moderate','Fail'];
-  let btns = '<div class="override-btn none-btn' + (!ov || !ov.overrideScore ? ' selected' : '') + '" data-val="" onclick="pickScoreOverride(this,' + JSON.stringify(areaKey) + ',' + dayIdx + ',\'\')">No Override</div>';
+  let btns = '<div class="override-btn none-btn' + (!ov || !ov.overrideScore ? ' selected' : '') + '" data-val="" onclick="pickScoreOverride(this,' + JSON.stringify(areaKey) + ',' + dayIdx + ',\'\')">No Score</div>';
   opts.forEach(o => {
     const isSel = ov && ov.overrideScore === o;
     btns += '<div class="override-btn' + (isSel ? ' selected' : '') + '" data-val="' + o + '" onclick="pickScoreOverride(this,' + JSON.stringify(areaKey) + ',' + dayIdx + ',\'' + o + '\')" style="' + (isSel ? 'background:' + (SCORE_COLORS[o]||'#888') + ';color:#fff' : '') + '">' + o + '</div>';
   });
   popup.innerHTML =
-    '<div class="popup-header"><h4>🎯 Score Override</h4><button class="popup-close" onclick="closeScorePopup()">✕</button></div>' +
-    '<div class="popup-original">Original: <strong style="color:' + (SCORE_COLORS[originalScore]||'#888') + '">' + originalScore + '</strong> · Day ' + (dayIdx + 1) + (ov && ov.overrideScore ? ' <span style="color:var(--accent)">(override active)</span>' : '') + '</div>' +
-    '<label style="font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600">Instructor Override</label>' +
+    '<div class="popup-header"><h4>🎯 Assign Instructor Score</h4><button class="popup-close" onclick="closeScorePopup()">✕</button></div>' +
+    '<div class="popup-original">Day ' + (dayIdx + 1) + (ov && ov.overrideScore ? ' — <strong style="color:' + (SCORE_COLORS[ov.overrideScore]||'#888') + '">' + ov.overrideScore + '</strong> (instructor-assigned)' : ' — <span style="color:#888">Unscored</span>') + '</div>' +
+    '<label style="font-size:11px;color:var(--text-muted);margin-bottom:4px;display:block;font-weight:600">Instructor Score</label>' +
     '<div class="override-group" id="ovBtns_' + areaKey + '_' + dayIdx + '">' + btns + '</div>' +
     '<textarea id="ovComment_' + areaKey + '_' + dayIdx + '" placeholder="Instructor comment (optional)...">' + (ov ? (ov.comment || '') : '') + '</textarea>' +
     '<div class="popup-actions">' +
@@ -2716,17 +2738,17 @@ function saveScoreOvPopup(areaKey, dayIdx) {
   const reviewerName = getReviewerName();
   if (overrideScore || comment) {
     saveScoreOverride(areaKey, dayIdx, { overrideScore, comment, reviewerName });
-    showToast('Score override saved for Day ' + (dayIdx + 1), 'success', 'Override Saved');
+    showToast('Score assigned for Day ' + (dayIdx + 1), 'success', 'Score Saved');
   } else {
     saveScoreOverride(areaKey, dayIdx, null);
-    showToast('Override cleared for Day ' + (dayIdx + 1), 'info', 'Override Removed');
+    showToast('Score cleared for Day ' + (dayIdx + 1), 'info', 'Score Cleared');
   }
   closeScorePopup();
   refreshScorecardChips();
 }
 function removeScoreOv(areaKey, dayIdx) {
   saveScoreOverride(areaKey, dayIdx, null);
-  showToast('Override cleared for Day ' + (dayIdx + 1), 'info', 'Override Removed');
+  showToast('Score cleared for Day ' + (dayIdx + 1), 'info', 'Score Cleared');
   closeScorePopup();
   refreshScorecardChips();
 }
@@ -2740,12 +2762,12 @@ function refreshScorecardChips() {
       chip.classList.add('overridden');
       chip.style.background = SCORE_COLORS[ov.overrideScore] || '#888';
       chip.textContent = ov.overrideScore[0];
-      chip.title = 'Original: ' + orig + ' → Override: ' + ov.overrideScore + (ov.comment ? ' — ' + ov.comment : '');
+      chip.title = 'Instructor score: ' + ov.overrideScore + (ov.comment ? ' — ' + ov.comment : '') + ' (click to change)';
     } else {
       chip.classList.remove('overridden');
       chip.style.background = SCORE_COLORS[orig] || '#888';
-      chip.textContent = orig ? orig[0] : '?';
-      chip.title = orig + ' — Click to override';
+      chip.textContent = orig === 'Unscored' ? '—' : (orig ? orig[0] : '?');
+      chip.title = (orig === 'Unscored' ? 'No instructor score' : orig) + ' — Click to assign score';
     }
   });
 }

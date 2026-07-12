@@ -373,10 +373,12 @@ class DummyLearner(LearnerProxy):
 
         for area, scores in all_scores.items():
             pass_count = scores.count('Pass')
+            unscored_count = scores.count('Unscored')
+            pass_count = scores.count('Pass')
             moderate_count = scores.count('Moderate')
             fail_count = scores.count('Fail')
-            trend = '↑' if pass_count > fail_count else '↓' if fail_count > pass_count else '→'
-            lines.append(f'- **{area}:** {pass_count} Pass / {moderate_count} Moderate / {fail_count} Fail {trend}')
+            trend = '\u2191' if pass_count > fail_count else '\u2193' if fail_count > pass_count else '\u2192'
+            lines.append(f'- **{area}:** {pass_count} Pass / {moderate_count} Moderate / {fail_count} Fail / {unscored_count} Unscored {trend}')
 
         # Codex gates
         lines.append('\n## Codex Gate Status\n')
