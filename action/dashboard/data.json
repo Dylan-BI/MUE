@@ -1,8 +1,8 @@
 {
-  "generated": "2026-07-13T13:10:50.846301",
+  "generated": "2026-07-13T13:30:33.643820",
   "version": {
-    "commit": "7d1b48e",
-    "timestamp": "2026-07-13T12:58:26"
+    "commit": "e6e6ba0",
+    "timestamp": "2026-07-13T13:29:26"
   },
   "notes": [
     {
@@ -2603,15 +2603,15 @@
         "path": "dashboard\\dashboard.html",
         "filename": "dashboard.html",
         "folder": "dashboard",
-        "size": 363411,
-        "modified": "2026-07-13T13:08:57.075593",
+        "size": 363742,
+        "modified": "2026-07-13T13:25:59.294001",
         "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>MUE Dashboard Review Tool</title>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n\n  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n     CSS CUSTOM PROPERTIES \u2014 Light & Dark Theme\n     Color system uses tint/tone/shade terminology per Linearity guide:\n",
         "content": null,
         "is_markdown": false,
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.url",
@@ -2631,9 +2631,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 797377,
-        "modified": "2026-07-13T12:58:18.481742",
-        "preview": "{\n<<<<<<< Updated upstream\n  \"generated\": \"2026-07-13T08:45:35.762917\",\n  \"version\": {\n    \"commit\": \"987c65a\",\n    \"timestamp\": \"2026-07-13T05:19:02\"\n=======\n  \"generated\": \"2026-07-13T12:56:53.398111\",\n  \"version\": {\n    \"commit\": \"582ef34\",\n    \"timestamp\": \"2026-07-13T07:18:18\"\n>>>>>>> Stashed changes\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates/contributor",
+        "size": 1248172,
+        "modified": "2026-07-13T13:10:51.503202",
+        "preview": "{\n  \"generated\": \"2026-07-13T13:10:50.846301\",\n  \"version\": {\n    \"commit\": \"7d1b48e\",\n    \"timestamp\": \"2026-07-13T12:58:26\"\n  },\n  \"notes\": [\n    {\n      \"id\": \"2026-07-13\",\n      \"filename\": \"2026-07-13.md\",\n      \"date\": \"2026-07-13\",\n      \"day_number\": 1,\n      \"classification\": \"Foundational\",\n      \"primary_track\": \"Pyramid operations\",\n      \"required_artifact\": \"pyramid_overview_screenshot.png\",\n      \"what_learned\": \"Set up the development environment and explored the admin console. L",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -4550,15 +4550,15 @@
         "path": "dashboard\\dashboard.html",
         "filename": "dashboard.html",
         "folder": "dashboard",
-        "size": 363411,
-        "modified": "2026-07-13T13:08:57.075593",
+        "size": 363742,
+        "modified": "2026-07-13T13:25:59.294001",
         "preview": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>MUE Dashboard Review Tool</title>\n<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4\"></script>\n<style>\n  * { margin: 0; padding: 0; box-sizing: border-box; }\n\n  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n     CSS CUSTOM PROPERTIES \u2014 Light & Dark Theme\n     Color system uses tint/tone/shade terminology per Linearity guide:\n",
         "content": null,
         "is_markdown": false,
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.url",
@@ -4578,9 +4578,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 797377,
-        "modified": "2026-07-13T12:58:18.481742",
-        "preview": "{\n<<<<<<< Updated upstream\n  \"generated\": \"2026-07-13T08:45:35.762917\",\n  \"version\": {\n    \"commit\": \"987c65a\",\n    \"timestamp\": \"2026-07-13T05:19:02\"\n=======\n  \"generated\": \"2026-07-13T12:56:53.398111\",\n  \"version\": {\n    \"commit\": \"582ef34\",\n    \"timestamp\": \"2026-07-13T07:18:18\"\n>>>>>>> Stashed changes\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates/contributor",
+        "size": 1248172,
+        "modified": "2026-07-13T13:10:51.503202",
+        "preview": "{\n  \"generated\": \"2026-07-13T13:10:50.846301\",\n  \"version\": {\n    \"commit\": \"7d1b48e\",\n    \"timestamp\": \"2026-07-13T12:58:26\"\n  },\n  \"notes\": [\n    {\n      \"id\": \"2026-07-13\",\n      \"filename\": \"2026-07-13.md\",\n      \"date\": \"2026-07-13\",\n      \"day_number\": 1,\n      \"classification\": \"Foundational\",\n      \"primary_track\": \"Pyramid operations\",\n      \"required_artifact\": \"pyramid_overview_screenshot.png\",\n      \"what_learned\": \"Set up the development environment and explored the admin console. L",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -4774,36 +4774,9 @@
       }
     ]
   },
-  "changed_files": [
-    "action/dashboard/dashboard.html"
-  ],
-  "changes_by_page": {
-    "dashboard": {
-      "count": 1,
-      "files": [
-        {
-          "path": "action/dashboard/dashboard.html",
-          "page": "dashboard",
-          "version": "7d1b48e",
-          "commit": "7d1b48e",
-          "timestamp": "2026-07-13T13:10:48.327302",
-          "diff_stat": "+46/-2 lines",
-          "has_diff": true
-        }
-      ]
-    }
-  },
-  "all_file_changes": [
-    {
-      "path": "action/dashboard/dashboard.html",
-      "page": "dashboard",
-      "version": "7d1b48e",
-      "commit": "7d1b48e",
-      "timestamp": "2026-07-13T13:10:48.327302",
-      "diff_stat": "+46/-2 lines",
-      "has_diff": true
-    }
-  ],
+  "changed_files": [],
+  "changes_by_page": {},
+  "all_file_changes": [],
   "change_counts": {
     "overview": 0,
     "daily": 0,
@@ -4816,7 +4789,7 @@
     "third-party": 0,
     "templates": 0,
     "scripts": 0,
-    "dashboard": 1,
+    "dashboard": 0,
     "source": 0
   },
   "source_criteria": [
@@ -8211,7 +8184,7 @@
     }
   },
   "environment_status": {
-    "checked_at": "2026-07-13T13:10:48.847011",
+    "checked_at": "2026-07-13T13:30:32.381132",
     "overall_status": "adequate",
     "requirements": {
       "vscode": {
