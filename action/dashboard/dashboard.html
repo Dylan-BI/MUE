@@ -551,6 +551,12 @@
   .profile-box .pm-field input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 14px; background: var(--bg-card); color: var(--text-primary); transition: border-color .15s; }
   .profile-box .pm-field input:focus { outline: none; border-color: var(--accent); }
   .profile-box .pm-field .pm-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .profile-box .pm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 12px; background: var(--bg-muted); border: 1px solid var(--border-light); border-radius: 8px; cursor: pointer; transition: border-color .15s; }
+  .profile-box .pm-toggle:hover { border-color: var(--accent); }
+  .profile-box .pm-toggle input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .profile-box .pm-toggle-text { flex: 1; }
+  .profile-box .pm-toggle-text .pm-toggle-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .profile-box .pm-toggle-text .pm-toggle-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
   .profile-box .pm-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 8px; }
   .profile-box .pm-actions button { padding: 8px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
   .profile-box .pm-actions .pm-save { background: var(--accent); color: #fff; }
@@ -1022,6 +1028,18 @@
         <input id="pm_displayname" placeholder="e.g. Dylan BI" autocomplete="off" oninput="_previewProfileAvatar()" />
         <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
       </div>
+      <div class="pm-field">
+        <label>Email <span style="color:var(--text-muted)">(optional)</span></label>
+        <input id="pm_email" type="email" placeholder="e.g. dylan@bicyclebi.com" autocomplete="email" />
+        <div class="pm-hint">Receive daily summaries of review activity and generative data exchange</div>
+      </div>
+      <label class="pm-toggle" for="pm_dailySummary">
+        <input type="checkbox" id="pm_dailySummary" />
+        <div class="pm-toggle-text">
+          <div class="pm-toggle-label">📬 Daily Summary Email</div>
+          <div class="pm-toggle-desc">Get a daily email with who reviewed what, ratings, and progress across all reviewers</div>
+        </div>
+      </label>
       <div class="pm-actions">
         <button class="pm-skip" onclick="closeProfileModal()">Skip</button>
         <button class="pm-save" onclick="saveProfile()">✅ Activate Profile</button>
@@ -3132,6 +3150,20 @@ async function serverSaveProfile(profile) {
   return false;
 }
 
+/* ── Daily Summary Email ── */
+async function requestDailySummary() {
+  if (!REVIEW_SERVER) { showToast('Server not connected — cannot send summary', 'warning', 'Offline'); return; }
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/daily-summary', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: getReviewerUsername() })
+    });
+    const data = await resp.json();
+    if (resp.ok && data.sent) { showToast('Daily summary sent to ' + data.sent + ' reviewer(s)', 'success', '📬 Summary Sent'); }
+    else if (data.error) { showToast(data.error, 'warning', 'Summary'); }
+  } catch (e) { showToast('Failed to send summary', 'warning', 'Error'); }
+}
+
 function getReviewerName() {
   const p = getProfile();
   return p ? (p.displayName || p.username || '') : '';
@@ -3155,6 +3187,8 @@ function openProfileModal(edit) {
   const existing = getProfile();
   const uInput = document.getElementById('pm_username');
   const dInput = document.getElementById('pm_displayname');
+  const eInput = document.getElementById('pm_email');
+  const dsInput = document.getElementById('pm_dailySummary');
   const pickerEl = document.getElementById('pm_picker');
   const mandatory = isProfileMandatory();
   const notice = document.getElementById('pmMandatoryNotice');
@@ -3168,8 +3202,8 @@ function openProfileModal(edit) {
     adminEl.style.display = (mandatory && ADMIN_USERS.includes(uname)) ? 'block' : 'none';
   }
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
-  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; }
-  else { uInput.value = ''; dInput.value = ''; }
+  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = existing.email || ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
+  else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; }
   _previewProfileAvatar();  // update avatar gradient on open
   // Show profile picker — restricted: owner sees own profile, admin sees all
   if (pickerEl) {
@@ -3211,13 +3245,13 @@ function _quickLogin(username) {
     showToast('Access denied — you can only sign in as yourself', 'warning', 'Restricted');
     return;
   }
-  const profile = { username: p.username, displayName: p.displayName, createdAt: p.createdAt };
+  const profile = { username: p.username, displayName: p.displayName, email: p.email || '', dailySummary: !!p.dailySummary, createdAt: p.createdAt };
   setProfile(profile);
   closeProfileModal();
   renderSidebarProfile();
   renderPresencePanel();
   sendPresenceHeartbeat();
-  showToast('Signed in as ' + p.displayName + ' (@' + p.username + ')', 'success', 'Welcome Back');
+  showToast('Signed in as ' + p.displayName + ' (@' + p.username + ')' + (p.email ? ' — daily summary: ' + (p.dailySummary ? 'ON' : 'OFF') : ''), 'success', 'Welcome Back');
 }
 
 function closeProfileModal() {
@@ -3232,7 +3266,13 @@ async function saveProfile() {
   const displayName = dInput.value.trim();
   if (!username) { uInput.style.borderColor = 'var(--danger-hue)'; showToast('Username is required', 'warning', 'Required'); return; }
   if (!displayName) { dInput.style.borderColor = 'var(--danger-hue)'; showToast('Display name is required', 'warning', 'Required'); return; }
-  const profile = { username, displayName, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
+  const emailInput = document.getElementById('pm_email');
+  const dsInput = document.getElementById('pm_dailySummary');
+  const email = emailInput ? emailInput.value.trim() : '';
+  const dailySummary = dsInput ? dsInput.checked : false;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
+  if (dailySummary && !email) { showToast('Enter an email address to receive daily summaries', 'warning', 'Email Required'); if (emailInput) emailInput.focus(); return; }
+  const profile = { username, displayName, email, dailySummary, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
   setProfile(profile);
   // Sync to server so profile is accessible from any device
   const synced = await serverSaveProfile(profile);
@@ -3260,9 +3300,10 @@ function renderSidebarProfile() {
   const admin = isAdminUser();
   const editBtn = admin ? '<div class="sp-edit">✏️</div>' : '';
   const badge = admin ? '<span style="font-size:9px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">Admin</span>' : '';
+  const emailBadge = p.email ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="' + escHtml(p.email) + (p.dailySummary ? ' — Daily summary ON' : '') + '">' + (p.dailySummary ? '📬' : '✉️') + '</span>' : '';
   container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="' + (admin ? 'Admin — click to edit any profile' : 'Click to edit your profile') + '">' +
     '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
-    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + '</div>' +
+    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div></div>' +
     editBtn + '</div></div>';
 }
