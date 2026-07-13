@@ -1,8 +1,8 @@
 {
-  "generated": "2026-07-13T14:14:09.419335",
+  "generated": "2026-07-13T14:25:07.416822",
   "version": {
-    "commit": "e9acc1a",
-    "timestamp": "2026-07-13T13:57:16"
+    "commit": "14b88d1",
+    "timestamp": "2026-07-13T14:23:41"
   },
   "notes": [
     {
@@ -2611,7 +2611,7 @@
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.url",
@@ -2631,9 +2631,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 793121,
-        "modified": "2026-07-13T13:57:16.803581",
-        "preview": "{\n  \"generated\": \"2026-07-13T11:32:38.596072\",\n  \"version\": {\n    \"commit\": \"35c8093\",\n    \"timestamp\": \"2026-07-13T11:31:58\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates/contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4401,\n        \"modified\": \"2026-07-13T11:32:38.176354\",\n  ",
+        "size": 1242077,
+        "modified": "2026-07-13T14:24:59.648106",
+        "preview": "{\n  \"generated\": \"2026-07-13T14:14:09.419335\",\n  \"version\": {\n    \"commit\": \"e9acc1a\",\n    \"timestamp\": \"2026-07-13T13:57:16\"\n  },\n  \"notes\": [\n    {\n      \"id\": \"2026-07-13\",\n      \"filename\": \"2026-07-13.md\",\n      \"date\": \"2026-07-13\",\n      \"day_number\": 1,\n      \"classification\": \"Foundational\",\n      \"primary_track\": \"Pyramid operations\",\n      \"required_artifact\": \"pyramid_overview_screenshot.png\",\n      \"what_learned\": \"Set up the development environment and explored the admin console. L",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -2667,7 +2667,7 @@
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\watch_and_build.py",
@@ -4558,7 +4558,7 @@
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\dashboard.url",
@@ -4578,9 +4578,9 @@
         "path": "dashboard\\data.json",
         "filename": "data.json",
         "folder": "dashboard",
-        "size": 793121,
-        "modified": "2026-07-13T13:57:16.803581",
-        "preview": "{\n  \"generated\": \"2026-07-13T11:32:38.596072\",\n  \"version\": {\n    \"commit\": \"35c8093\",\n    \"timestamp\": \"2026-07-13T11:31:58\"\n  },\n  \"notes\": [],\n  \"evidence\": [],\n  \"reports\": [],\n  \"artifacts\": {\n    \"notes\": [],\n    \"evidence\": [],\n    \"reports\": [],\n    \"templates\": [\n      {\n        \"path\": \"templates/contributor-readiness-check.md\",\n        \"filename\": \"contributor-readiness-check.md\",\n        \"folder\": \"templates\",\n        \"size\": 4401,\n        \"modified\": \"2026-07-13T11:32:38.176354\",\n  ",
+        "size": 1242077,
+        "modified": "2026-07-13T14:24:59.648106",
+        "preview": "{\n  \"generated\": \"2026-07-13T14:14:09.419335\",\n  \"version\": {\n    \"commit\": \"e9acc1a\",\n    \"timestamp\": \"2026-07-13T13:57:16\"\n  },\n  \"notes\": [\n    {\n      \"id\": \"2026-07-13\",\n      \"filename\": \"2026-07-13.md\",\n      \"date\": \"2026-07-13\",\n      \"day_number\": 1,\n      \"classification\": \"Foundational\",\n      \"primary_track\": \"Pyramid operations\",\n      \"required_artifact\": \"pyramid_overview_screenshot.png\",\n      \"what_learned\": \"Set up the development environment and explored the admin console. L",
         "content": null,
         "is_markdown": false,
         "is_text": true,
@@ -4614,7 +4614,7 @@
         "is_text": true,
         "page_category": "dashboard",
         "action_cat": "dashboard",
-        "was_changed": true
+        "was_changed": false
       },
       {
         "path": "dashboard\\watch_and_build.py",
@@ -4774,55 +4774,9 @@
       }
     ]
   },
-  "changed_files": [
-    "action/dashboard/dashboard.html",
-    "action/dashboard/review_server.py"
-  ],
-  "changes_by_page": {
-    "dashboard": {
-      "count": 2,
-      "files": [
-        {
-          "path": "action/dashboard/dashboard.html",
-          "page": "dashboard",
-          "version": "e9acc1a",
-          "commit": "e9acc1a",
-          "timestamp": "2026-07-13T14:14:04.144476",
-          "diff_stat": "+27/-10 lines",
-          "has_diff": true
-        },
-        {
-          "path": "action/dashboard/review_server.py",
-          "page": "dashboard",
-          "version": "e9acc1a",
-          "commit": "e9acc1a",
-          "timestamp": "2026-07-13T14:14:06.927930",
-          "diff_stat": "+18/-2 lines",
-          "has_diff": true
-        }
-      ]
-    }
-  },
-  "all_file_changes": [
-    {
-      "path": "action/dashboard/dashboard.html",
-      "page": "dashboard",
-      "version": "e9acc1a",
-      "commit": "e9acc1a",
-      "timestamp": "2026-07-13T14:14:04.144476",
-      "diff_stat": "+27/-10 lines",
-      "has_diff": true
-    },
-    {
-      "path": "action/dashboard/review_server.py",
-      "page": "dashboard",
-      "version": "e9acc1a",
-      "commit": "e9acc1a",
-      "timestamp": "2026-07-13T14:14:06.927930",
-      "diff_stat": "+18/-2 lines",
-      "has_diff": true
-    }
-  ],
+  "changed_files": [],
+  "changes_by_page": {},
+  "all_file_changes": [],
   "change_counts": {
     "overview": 0,
     "daily": 0,
@@ -4835,7 +4789,7 @@
     "third-party": 0,
     "templates": 0,
     "scripts": 0,
-    "dashboard": 2,
+    "dashboard": 0,
     "source": 0
   },
   "source_criteria": [
@@ -8230,7 +8184,7 @@
     }
   },
   "environment_status": {
-    "checked_at": "2026-07-13T14:14:07.684521",
+    "checked_at": "2026-07-13T14:25:06.918100",
     "overall_status": "adequate",
     "requirements": {
       "vscode": {
