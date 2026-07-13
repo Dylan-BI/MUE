@@ -466,7 +466,8 @@
   .review-list { margin-top: 6px; }
   .review-item { padding: 6px 8px; margin-bottom: 4px; background: var(--bg-review-item); border-radius: 6px; border: 1px solid var(--border-light); font-size: 12px; }
   .review-item .r-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-  .review-item .r-name { font-weight: 600; color: var(--text-secondary); }
+  .review-item .r-name { font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+  .review-item .r-avatar { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0; }
   .review-item .r-rating { font-size: 11px; padding: 1px 8px; border-radius: 8px; color: #fff; }
   .review-item .r-date { font-size: 10px; color: var(--text-light); }
   .review-item .r-text { color: var(--text-secondary); font-size: 12px; }
@@ -3464,6 +3465,8 @@ function renderReviewList(aid) {
   let h = '<div style="margin-top:6px"><strong style="font-size:11px;color:var(--text-muted)">Reviews</strong>';
   items.forEach((r,ri)=>{
     const d=new Date(r.timestamp), rc=r.rating.includes('Pass')?'#198754':(r.rating.includes('Rework')?'#dc3545':'#ffc107');
+    const rMix = _reviewerColorMix(r.name.toLowerCase().replace(/\s+/g, '_'));
+    const rInitials = (r.name || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const isCancelled = !!r.cancelled;
     const cancelClass = isCancelled ? ' cancelled' : '';
     const sourceBadge = r._source === 'synced'
@@ -3486,13 +3489,15 @@ function renderReviewList(aid) {
     const editedTag = r.editedAt ? ' <span style="font-size:9px;color:var(--text-muted)">(edited)</span>' : '';
     const roleBadge = r.role ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">'+escHtml(r.role)+'</span>' : '';
     const typeBadge = r.type ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:2px">'+escHtml(r.type)+'</span>' : '';
-    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name">'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
+    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name"><span class="r-avatar" style="background:'+rMix.gradient+'">'+escHtml(rInitials)+'</span>'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
   const totalSynced = Object.keys(syncedAll).reduce((a,k)=>a+syncedAll[k].length,0);
   if (totalSynced > 0) {
-    h += '<div style="margin-top:4px;font-size:10px;color:var(--text-muted);border-top:1px solid var(--border-light);padding-top:4px">📥 ' + totalSynced + ' synced review(s) from review/reviews.json</div>';
+    h += '<div style="margin-top:4px;font-size:10px;color:var(--text-muted);border-top:1px solid var(--border-light);padding-top:4px">📥 ' + totalSynced + ' synced review(s) · Shared across all reviewers in real-time</div>';
+  } else if (items.length > 0) {
+    h += '<div style="margin-top:4px;font-size:10px;color:var(--text-muted);border-top:1px solid var(--border-light);padding-top:4px">🌐 Shared across all reviewers in real-time</div>';
   }
   h += '</div>';
   return h;
@@ -3614,10 +3619,11 @@ function renderReviewerActivity() {
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
   reviewers.forEach(s => {
     const initials = s.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const mix = _reviewerColorMix(s.name.toLowerCase().replace(/\s+/g, '_'));
     const ratingBreakdown = Object.entries(s.ratings).map(([r,c]) => '<span style="display:inline-block;margin-right:6px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+ratingColor(r)+';margin-right:2px;vertical-align:middle"></span>'+r+': <strong>'+c+'</strong></span>').join('');
     h += '<div style="flex:1;min-width:220px;background:var(--bg-muted);border:1px solid var(--border-light);border-radius:8px;padding:12px">' +
       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
-      '<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+initials+'</div>' +
+      '<div style="width:32px;height:32px;border-radius:50%;background:'+mix.gradient+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.15)">'+initials+'</div>' +
       '<div><strong style="font-size:13px">'+escHtml(s.name)+'</strong><br><span style="font-size:10px;color:var(--text-muted)">'+s.active+' review'+(s.active!==1?'s':'')+' · '+s.artifactCount+' artifact'+(s.artifactCount!==1?'s':'')+(s.cancelled?' · <span style="color:var(--warning-hue)">'+s.cancelled+' cancelled</span>':'')+'</span></div>' +
       '</div>' +
       '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px">'+ratingBreakdown+'</div>' +

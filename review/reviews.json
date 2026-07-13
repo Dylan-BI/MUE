@@ -1,1 +1,22 @@
-{}
+{
+  "overview_review": [
+    {
+      "name": "Dylan BI",
+      "text": "Test review to verify gradient avatars render correctly in the review exchange system.",
+      "rating": "👍 Pass",
+      "id": "17839511514884298",
+      "timestamp": "2026-07-13T15:59:11.488724",
+      "version": 1,
+      "_source": "synced"
+    },
+    {
+      "name": "Alice W",
+      "text": "Needs more evidence links in the onboarding section. Reviewed through the shared review exchange.",
+      "rating": "⚡ Needs Work",
+      "id": "17839511931072419",
+      "timestamp": "2026-07-13T15:59:53.107710",
+      "version": 1,
+      "_source": "synced"
+    }
+  ]
+}
