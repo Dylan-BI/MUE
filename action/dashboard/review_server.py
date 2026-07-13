@@ -70,6 +70,9 @@ _presence = {}
 _presence_lock = threading.Lock()
 PRESENCE_TTL = 30  # 30s — offline if no heartbeat in 30s
 
+# Profile access control: only these usernames can edit any profile
+ADMIN_USERS = ['dylan_bi']
+
 
 def load_reviews():
     """Load reviews from review/reviews.json."""
@@ -317,16 +320,29 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         self._send_json(200, profiles)
 
     def _handle_save_profile(self):
-        """POST /api/profiles — save or update a reviewer profile."""
+        """POST /api/profiles — save or update a reviewer profile.
+
+        Authorization: only the profile owner or an admin can save.
+        Client sends 'requester' (their username) for auth check.
+        """
         body = self._read_body()
         if not body:
             return
         username = body.get('username', '').strip()
         display_name = body.get('displayName', '').strip()
+        requester = body.get('requester', '').strip()
         if not username:
             self._send_json(400, {'error': 'username required'})
             return
+        # Access control: only owner or admin can save
         profiles = load_profiles()
+        is_new = username not in profiles
+        is_owner = requester == username
+        is_admin = requester in ADMIN_USERS
+        if not is_new and not is_owner and not is_admin:
+            self._send_json(403, {'error': 'access denied — only the profile owner or an admin can edit this profile'})
+            print(f'  🚫 Profile save denied: @{requester} tried to edit @{username}')
+            return
         profiles[username] = {
             'username': username,
             'displayName': display_name or username,
@@ -334,7 +350,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             'updatedAt': datetime.now().isoformat()
         }
         save_profiles(profiles)
-        print(f'  👤 Profile saved: {display_name} (@{username})')
+        print(f'  👤 Profile saved: {display_name} (@{username}) by @{requester}')
         self._send_json(200, {'ok': True, 'profile': profiles[username]})
 
     def _handle_get_reviews(self):

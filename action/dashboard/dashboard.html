@@ -3120,11 +3120,13 @@ async function serverFetchProfiles() {
 async function serverSaveProfile(profile) {
   if (!REVIEW_SERVER) return false;
   try {
+    const body = Object.assign({}, profile, { requester: getReviewerUsername() || profile.username });
     const resp = await fetch(REVIEW_SERVER + '/api/profiles', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(profile)
+      body: JSON.stringify(body)
     });
     if (resp.ok) { await serverFetchProfiles(); return true; }
+    if (resp.status === 403) { showToast('Access denied — only the profile owner or an admin can edit this profile', 'warning', 'Restricted'); return false; }
   } catch (e) {}
   return false;
 }
@@ -3168,18 +3170,24 @@ function openProfileModal(edit) {
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; }
   else { uInput.value = ''; dInput.value = ''; }
   _previewProfileAvatar();  // update avatar gradient on open
-  // Show profile picker if server has profiles and user has none
+  // Show profile picker — restricted: owner sees own profile, admin sees all
   if (pickerEl) {
-    const profiles = Object.values(SERVER_PROFILES);
-    if (!existing && profiles.length > 0) {
-      let ph = '<div class="pm-picker-header">Existing reviewer profiles — click to sign in:</div>';
-      profiles.forEach(p => {
+    const allProfiles = Object.values(SERVER_PROFILES);
+    const currentUsername = existing ? existing.username : (getReviewerUsername() || '');
+    const admin = isAdminUser();
+    const visible = admin ? allProfiles : allProfiles.filter(p => p.username === currentUsername);
+    if (!existing && visible.length > 0) {
+      const headerText = admin ? 'All reviewer profiles — click to sign in:' : 'Your profile — click to sign in:';
+      let ph = '<div class="pm-picker-header">' + headerText + '</div>';
+      visible.forEach(p => {
         const mix = _reviewerColorMix(p.username);
         const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
         ph += '<div class="pm-picker-item" onclick="_quickLogin(\'' + escHtml(p.username) + '\')">' +
           '<div class="pm-picker-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
           '<div class="pm-picker-info"><div class="pm-picker-name">' + escHtml(p.displayName) + '</div>' +
-          '<div class="pm-picker-uname">@' + escHtml(p.username) + '</div></div></div>';
+          '<div class="pm-picker-uname">@' + escHtml(p.username) + '</div></div>' +
+          (admin && p.username !== currentUsername ? '<span style="font-size:10px;color:var(--accent);margin-left:auto">admin</span>' : '') +
+          '</div>';
       });
       ph += '<div class="pm-picker-divider">or create a new profile below</div>';
       pickerEl.innerHTML = ph;
@@ -3196,6 +3204,12 @@ function openProfileModal(edit) {
 function _quickLogin(username) {
   const p = SERVER_PROFILES[username];
   if (!p) return;
+  // Access control: only owner or admin can quick-login as this user
+  const current = getReviewerUsername();
+  if (current && current !== username && !isAdminUser()) {
+    showToast('Access denied — you can only sign in as yourself', 'warning', 'Restricted');
+    return;
+  }
   const profile = { username: p.username, displayName: p.displayName, createdAt: p.createdAt };
   setProfile(profile);
   closeProfileModal();
@@ -3242,11 +3256,14 @@ function renderSidebarProfile() {
   }
   const mix = _reviewerColorMix(p.username || p.displayName);
   const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="Click to edit profile">' +
+  const admin = isAdminUser();
+  const editBtn = admin ? '<div class="sp-edit">✏️</div>' : '';
+  const badge = admin ? '<span style="font-size:9px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">Admin</span>' : '';
+  container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="' + (admin ? 'Admin — click to edit any profile' : 'Click to edit your profile') + '">' +
     '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
-    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + '</div>' +
+    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div></div>' +
-    '<div class="sp-edit">✏️</div></div></div>';
+    editBtn + '</div></div>';
 }
 
 /* ── Look up version/changes context for the reviewed artifact ── */
