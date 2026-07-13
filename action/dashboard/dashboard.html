@@ -557,6 +557,18 @@
   .profile-box .pm-actions .pm-skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
   .profile-box .pm-actions .pm-skip:hover { color: var(--text-primary); border-color: var(--border-input); }
   @keyframes profileIn { from { opacity: 0; transform: scale(.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  /* ── Profile Picker (returning reviewers) ── */
+  .pm-picker-header { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+  .pm-picker-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 6px; cursor: pointer; transition: all .15s; background: var(--bg-muted); }
+  .pm-picker-item:hover { border-color: var(--accent); background: var(--bg-accent-subtle); }
+  .pm-picker-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .pm-picker-info { flex: 1; min-width: 0; }
+  .pm-picker-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .pm-picker-uname { font-size: 11px; color: var(--text-muted); }
+  .pm-picker-divider { text-align: center; font-size: 11px; color: var(--text-muted); margin: 10px 0 14px; position: relative; }
+  .pm-picker-divider::before, .pm-picker-divider::after { content: ''; position: absolute; top: 50%; width: 30%; height: 1px; background: var(--border-light); }
+  .pm-picker-divider::before { left: 0; }
+  .pm-picker-divider::after { right: 0; }
   /* ── Sidebar Profile Card ── */
   .sidebar-profile { padding: 8px 12px; margin-bottom: 4px; background: var(--sidebar-hover-bg); border-radius: 8px; border: 1px solid var(--sidebar-level-btn-border); cursor: pointer; transition: background .15s; }
   .sidebar-profile:hover { background: rgba(124,115,255,.12); }
@@ -989,9 +1001,10 @@
     <div class="pm-header">
       <div class="pm-avatar" id="pm_avatar" style="background:var(--accent)">?</div>
       <h2>👤 Reviewer Profile</h2>
-      <p>Set up your identity so other reviewers can see who's reviewing.</p>
+      <p>Set up your identity so other reviewers can see who's reviewing. Profiles are stored on the server and accessible from any device.</p>
     </div>
     <div class="pm-body">
+      <div id="pm_picker" style="display:none"></div>
       <div class="pm-field">
         <label>Username <span>*</span></label>
         <input id="pm_username" placeholder="e.g. dylan_bi" autocomplete="off" oninput="_previewProfileAvatar()" />
@@ -1624,8 +1637,14 @@ function renderPresencePanel() {
 }
 
 // Start presence tracking (called on page load)
-function startPresenceTracking() {
+async function startPresenceTracking() {
   renderSidebarProfile();
+  // Fetch server profiles for picker
+  await serverFetchProfiles();
+  // If no local profile but server has profiles, show picker
+  if (!getProfile() && Object.keys(SERVER_PROFILES).length > 0) {
+    setTimeout(() => openProfileModal(), 800);
+  }
   // Send heartbeat immediately, then every 15s
   sendPresenceHeartbeat();
   if (_presenceHeartbeatInterval) clearInterval(_presenceHeartbeatInterval);
@@ -3009,6 +3028,7 @@ function selectRating(aid, idx) {
 
 /* ── Reviewer Profile System ── */
 const PROFILE_KEY = 'mue_reviewer_profile';
+let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
 
 function getProfile() {
   try {
@@ -3029,6 +3049,28 @@ function getProfile() {
 
 function setProfile(profile) {
   try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+}
+
+/* ── Server Profile Sync ── */
+async function serverFetchProfiles() {
+  if (!REVIEW_SERVER) return {};
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/profiles?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    if (resp.ok) { SERVER_PROFILES = await resp.json(); return SERVER_PROFILES; }
+  } catch (e) {}
+  return {};
+}
+
+async function serverSaveProfile(profile) {
+  if (!REVIEW_SERVER) return false;
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/profiles', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(profile)
+    });
+    if (resp.ok) { await serverFetchProfiles(); return true; }
+  } catch (e) {}
+  return false;
 }
 
 function getReviewerName() {
@@ -3054,18 +3096,52 @@ function openProfileModal(edit) {
   const existing = getProfile();
   const uInput = document.getElementById('pm_username');
   const dInput = document.getElementById('pm_displayname');
+  const pickerEl = document.getElementById('pm_picker');
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; }
   else { uInput.value = ''; dInput.value = ''; }
+  // Show profile picker if server has profiles and user has none
+  if (pickerEl) {
+    const profiles = Object.values(SERVER_PROFILES);
+    if (!existing && profiles.length > 0) {
+      let ph = '<div class="pm-picker-header">Existing reviewer profiles — click to sign in:</div>';
+      profiles.forEach(p => {
+        const color = _reviewerColor(p.username);
+        const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+        ph += '<div class="pm-picker-item" onclick="_quickLogin(\'' + escHtml(p.username) + '\')">' +
+          '<div class="pm-picker-avatar" style="background:' + color + '">' + escHtml(initials) + '</div>' +
+          '<div class="pm-picker-info"><div class="pm-picker-name">' + escHtml(p.displayName) + '</div>' +
+          '<div class="pm-picker-uname">@' + escHtml(p.username) + '</div></div></div>';
+      });
+      ph += '<div class="pm-picker-divider">or create a new profile below</div>';
+      pickerEl.innerHTML = ph;
+      pickerEl.style.display = 'block';
+    } else {
+      pickerEl.innerHTML = '';
+      pickerEl.style.display = 'none';
+    }
+  }
   modal.classList.add('open');
   uInput.focus();
+}
+
+function _quickLogin(username) {
+  const p = SERVER_PROFILES[username];
+  if (!p) return;
+  const profile = { username: p.username, displayName: p.displayName, createdAt: p.createdAt };
+  setProfile(profile);
+  closeProfileModal();
+  renderSidebarProfile();
+  renderPresencePanel();
+  sendPresenceHeartbeat();
+  showToast('Signed in as ' + p.displayName + ' (@' + p.username + ')', 'success', 'Welcome Back');
 }
 
 function closeProfileModal() {
   document.getElementById('profileModal').classList.remove('open');
 }
 
-function saveProfile() {
+async function saveProfile() {
   const uInput = document.getElementById('pm_username');
   const dInput = document.getElementById('pm_displayname');
   const username = uInput.value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -3074,10 +3150,17 @@ function saveProfile() {
   if (!displayName) { dInput.style.borderColor = 'var(--danger-hue)'; showToast('Display name is required', 'warning', 'Required'); return; }
   const profile = { username, displayName, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
   setProfile(profile);
+  // Sync to server so profile is accessible from any device
+  const synced = await serverSaveProfile(profile);
   closeProfileModal();
   renderSidebarProfile();
   renderPresencePanel();
-  showToast('Profile activated: ' + displayName + ' (@' + username + ')', 'success', 'Profile Saved');
+  sendPresenceHeartbeat();
+  if (synced) {
+    showToast('Profile activated: ' + displayName + ' (@' + username + ') — synced to server', 'success', 'Profile Saved');
+  } else {
+    showToast('Profile activated: ' + displayName + ' (@' + username + ') — saved locally', 'info', 'Profile Saved');
+  }
 }
 
 function renderSidebarProfile() {

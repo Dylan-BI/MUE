@@ -52,6 +52,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 DASHBOARD_DIR = SCRIPT_DIR
 REVIEWS_PATH = REPO_ROOT / 'review' / 'reviews.json'
+PROFILES_PATH = REPO_ROOT / 'review' / 'reviewer_profiles.json'
 BUILD_SCRIPT = DASHBOARD_DIR / 'build_data.py'
 
 # ── State ──────────────────────────────────────────────────────────────
@@ -79,6 +80,25 @@ def load_reviews():
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return {}
+
+
+def load_profiles():
+    """Load reviewer profiles from review/reviewer_profiles.json."""
+    if not PROFILES_PATH.exists():
+        return {}
+    try:
+        with open(PROFILES_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_profiles(data):
+    """Save reviewer profiles (thread-safe)."""
+    PROFILES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with _reviews_lock:
+        with open(PROFILES_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def save_reviews(data):
@@ -254,6 +274,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_status()
         elif path == '/api/presence':
             self._handle_get_presence()
+        elif path == '/api/profiles':
+            self._handle_get_profiles()
         else:
             # Serve static files (dashboard.html, data.json, etc.)
             super().do_GET()
@@ -268,6 +290,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_heartbeat()
         elif parsed.path == '/api/presence/leave':
             self._handle_leave()
+        elif parsed.path == '/api/profiles':
+            self._handle_save_profile()
         else:
             self._send_json(404, {'error': 'Not found'})
 
@@ -286,6 +310,32 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(404, {'error': 'Not found'})
 
     # ── API Handlers ───────────────────────────────────────────────────
+
+    def _handle_get_profiles(self):
+        """GET /api/profiles — return all reviewer profiles."""
+        profiles = load_profiles()
+        self._send_json(200, profiles)
+
+    def _handle_save_profile(self):
+        """POST /api/profiles — save or update a reviewer profile."""
+        body = self._read_body()
+        if not body:
+            return
+        username = body.get('username', '').strip()
+        display_name = body.get('displayName', '').strip()
+        if not username:
+            self._send_json(400, {'error': 'username required'})
+            return
+        profiles = load_profiles()
+        profiles[username] = {
+            'username': username,
+            'displayName': display_name or username,
+            'createdAt': body.get('createdAt', datetime.now().isoformat()),
+            'updatedAt': datetime.now().isoformat()
+        }
+        save_profiles(profiles)
+        print(f'  👤 Profile saved: {display_name} (@{username})')
+        self._send_json(200, {'ok': True, 'profile': profiles[username]})
 
     def _handle_get_reviews(self):
         """GET /api/reviews — return all reviews."""
