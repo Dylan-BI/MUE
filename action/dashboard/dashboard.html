@@ -540,7 +540,7 @@
   .profile-modal.open { display: flex; }
   .profile-box { background: var(--bg-card); border-radius: 16px; max-width: 440px; width: 92%; padding: 0; overflow: hidden; box-shadow: 0 16px 60px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.08); color: var(--text-primary); animation: profileIn .25s ease; }
   .profile-box .pm-header { padding: 24px 24px 0 24px; text-align: center; }
-  .profile-box .pm-header .pm-avatar { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #fff; }
+  .profile-box .pm-header .pm-avatar { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
   .profile-box .pm-header h2 { font-size: 18px; margin: 0 0 4px 0; }
   .profile-box .pm-header p { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px 0; line-height: 1.5; }
   .profile-box .pm-body { padding: 0 24px 24px 24px; }
@@ -566,7 +566,7 @@
   .pm-picker-header { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
   .pm-picker-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 6px; cursor: pointer; transition: all .15s; background: var(--bg-muted); }
   .pm-picker-item:hover { border-color: var(--accent); background: var(--bg-accent-subtle); }
-  .pm-picker-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .pm-picker-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
   .pm-picker-info { flex: 1; min-width: 0; }
   .pm-picker-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
   .pm-picker-uname { font-size: 11px; color: var(--text-muted); }
@@ -578,7 +578,7 @@
   .sidebar-profile { padding: 8px 12px; margin-bottom: 4px; background: var(--sidebar-hover-bg); border-radius: 8px; border: 1px solid var(--sidebar-level-btn-border); cursor: pointer; transition: background .15s; }
   .sidebar-profile:hover { background: rgba(124,115,255,.12); }
   .sidebar-profile .sp-row { display: flex; align-items: center; gap: 8px; }
-  .sidebar-profile .sp-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .sidebar-profile .sp-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 0 0 2px var(--bg-sidebar), 0 0 0 3px var(--sidebar-footer-text, rgba(255,255,255,.15)); }
   .sidebar-profile .sp-info { flex: 1; min-width: 0; }
   .sidebar-profile .sp-name { font-size: 13px; font-weight: 600; color: var(--sidebar-header-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sidebar-profile .sp-username { font-size: 10px; color: var(--sidebar-footer-text); }
@@ -1250,9 +1250,9 @@ function _previewProfileAvatar() {
   const u = (document.getElementById('pm_username') || {}).value || '';
   const d = (document.getElementById('pm_displayname') || {}).value || '';
   const label = (d || u || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const color = _reviewerColor(u || d || 'x');
+  const mix = _reviewerColorMix(u || d || 'x');
   const av = document.getElementById('pm_avatar');
-  if (av) { av.textContent = label; av.style.background = color; }
+  if (av) { av.textContent = label; av.style.background = mix.gradient; }
   // Toggle admin access button visibility
   const adminEl = document.getElementById('pmAdminAccess');
   if (adminEl && isProfileMandatory()) {
@@ -1558,12 +1558,33 @@ let REVIEWER_PRESENCE = [];  // [{name, color, avatar, last_seen, online}]
 let _presenceInterval = null;
 let _presenceHeartbeatInterval = null;
 
-// Generate a consistent color from a reviewer name
+// Generate a unique two-color gradient mix from a reviewer name
 function _reviewerColor(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  const hue = Math.abs(hash) % 360;
-  return 'hsl(' + hue + ', 65%, 55%)';
+  // Primary color — used for legacy single-color contexts
+  return _reviewerColorMix(name).primary;
+}
+function _reviewerColorMix(name) {
+  // Deterministic hash from name
+  let h1 = 0, h2 = 0, h3 = 0;
+  for (let i = 0; i < name.length; i++) {
+    const c = name.charCodeAt(i);
+    h1 = c + ((h1 << 5) - h1);
+    h2 = c * 31 + h2;
+    h3 = c + ((h3 << 7) + (h3 << 3)) - h3;
+  }
+  // Primary: unique hue with rich saturation
+  const hue1 = Math.abs(h1) % 360;
+  const sat1 = 60 + (Math.abs(h2) % 18);   // 60-77%
+  const lit1 = 48 + (Math.abs(h3) % 12);   // 48-59%
+  // Secondary: offset 100-140° for visual contrast
+  const offset = 100 + (Math.abs(h2) % 41); // 100-140°
+  const hue2 = (hue1 + offset) % 360;
+  const sat2 = 55 + (Math.abs(h1) % 20);   // 55-74%
+  const lit2 = 52 + (Math.abs(h2) % 14);   // 52-65%
+  const primary = 'hsl(' + hue1 + ', ' + sat1 + '%, ' + lit1 + '%)';
+  const secondary = 'hsl(' + hue2 + ', ' + sat2 + '%, ' + lit2 + '%)';
+  const gradient = 'linear-gradient(135deg, ' + primary + ', ' + secondary + ')';
+  return { primary, secondary, gradient };
 }
 
 // Send heartbeat to server so we appear online
@@ -3146,16 +3167,17 @@ function openProfileModal(edit) {
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; }
   else { uInput.value = ''; dInput.value = ''; }
+  _previewProfileAvatar();  // update avatar gradient on open
   // Show profile picker if server has profiles and user has none
   if (pickerEl) {
     const profiles = Object.values(SERVER_PROFILES);
     if (!existing && profiles.length > 0) {
       let ph = '<div class="pm-picker-header">Existing reviewer profiles — click to sign in:</div>';
       profiles.forEach(p => {
-        const color = _reviewerColor(p.username);
+        const mix = _reviewerColorMix(p.username);
         const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
         ph += '<div class="pm-picker-item" onclick="_quickLogin(\'' + escHtml(p.username) + '\')">' +
-          '<div class="pm-picker-avatar" style="background:' + color + '">' + escHtml(initials) + '</div>' +
+          '<div class="pm-picker-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
           '<div class="pm-picker-info"><div class="pm-picker-name">' + escHtml(p.displayName) + '</div>' +
           '<div class="pm-picker-uname">@' + escHtml(p.username) + '</div></div></div>';
       });
@@ -3218,10 +3240,10 @@ function renderSidebarProfile() {
     container.innerHTML = '<div class="sidebar-profile-empty"><button onclick="openProfileModal()">👤 Set Up Reviewer Profile</button></div>';
     return;
   }
-  const color = _reviewerColor(p.username || p.displayName);
+  const mix = _reviewerColorMix(p.username || p.displayName);
   const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
   container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="Click to edit profile">' +
-    '<div class="sp-row"><div class="sp-avatar" style="background:' + color + '">' + escHtml(initials) + '</div>' +
+    '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
     '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div></div>' +
     '<div class="sp-edit">✏️</div></div></div>';
