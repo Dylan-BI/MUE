@@ -556,6 +556,11 @@
   .profile-box .pm-actions .pm-save:hover { background: var(--accent-hover); }
   .profile-box .pm-actions .pm-skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
   .profile-box .pm-actions .pm-skip:hover { color: var(--text-primary); border-color: var(--border-input); }
+  .pm-mandatory-notice { background: linear-gradient(135deg, rgba(255,107,107,.1), rgba(255,107,107,.05)); border: 1px solid rgba(255,107,107,.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #ff6b6b; line-height: 1.5; }
+  .pm-mandatory-notice strong { font-size: 13px; }
+  .pm-admin-access { display: none; margin-top: 10px; text-align: center; }
+  .pm-admin-access button { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .pm-admin-access button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,92,231,.3); }
   @keyframes profileIn { from { opacity: 0; transform: scale(.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   /* ── Profile Picker (returning reviewers) ── */
   .pm-picker-header { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
@@ -1002,6 +1007,7 @@
       <div class="pm-avatar" id="pm_avatar" style="background:var(--accent)">?</div>
       <h2>👤 Reviewer Profile</h2>
       <p>Set up your identity so other reviewers can see who's reviewing. Profiles are stored on the server and accessible from any device.</p>
+      <div id="pmMandatoryNotice" class="pm-mandatory-notice" style="display:none"><strong>⚠️ Profile Required</strong><br>You must create a reviewer profile before accessing the dashboard.</div>
     </div>
     <div class="pm-body">
       <div id="pm_picker" style="display:none"></div>
@@ -1019,6 +1025,7 @@
         <button class="pm-skip" onclick="closeProfileModal()">Skip</button>
         <button class="pm-save" onclick="saveProfile()">✅ Activate Profile</button>
       </div>
+      <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (dylan_bi)</button></div>
     </div>
   </div>
 </div>
@@ -1246,14 +1253,19 @@ function _previewProfileAvatar() {
   const color = _reviewerColor(u || d || 'x');
   const av = document.getElementById('pm_avatar');
   if (av) { av.textContent = label; av.style.background = color; }
+  // Toggle admin access button visibility
+  const adminEl = document.getElementById('pmAdminAccess');
+  if (adminEl && isProfileMandatory()) {
+    adminEl.style.display = ADMIN_USERS.includes(u.trim().toLowerCase()) ? 'block' : 'none';
+  }
 }
 
 function confirmEnvironmentAdequate() {
   try { localStorage.setItem(ENV_CONFIRMED_KEY, 'true'); } catch {}
   document.getElementById('envOverlay').classList.remove('open');
   showToast('Environment confirmed — you\'re all set to review', 'success', 'Ready');
-  // Prompt profile setup after environment check
-  if (!getProfile()) { setTimeout(() => openProfileModal(), 400); }
+  // Prompt profile setup after environment check (mandatory or first-time)
+  if (isProfileMandatory() || !getProfile()) { setTimeout(() => openProfileModal(), 400); }
 }
 
 function showEnvironmentUpdateOptions() {
@@ -1641,9 +1653,14 @@ async function startPresenceTracking() {
   renderSidebarProfile();
   // Fetch server profiles for picker
   await serverFetchProfiles();
-  // If no local profile but server has profiles, show picker
-  if (!getProfile() && Object.keys(SERVER_PROFILES).length > 0) {
-    setTimeout(() => openProfileModal(), 800);
+  // Mandatory profile: force modal after environment check (or immediately if env already confirmed)
+  const envOverlay = document.getElementById('envOverlay');
+  const envOpen = envOverlay && envOverlay.classList.contains('open');
+  if (isProfileMandatory()) {
+    if (envOpen) { /* profile modal will be opened by confirmEnvironmentAdequate() */ }
+    else { setTimeout(() => openProfileModal(), 400); }
+  } else if (!getProfile() && Object.keys(SERVER_PROFILES).length > 0) {
+    if (!envOpen) { setTimeout(() => openProfileModal(), 800); }
   }
   // Send heartbeat immediately, then every 15s
   sendPresenceHeartbeat();
@@ -3028,7 +3045,25 @@ function selectRating(aid, idx) {
 
 /* ── Reviewer Profile System ── */
 const PROFILE_KEY = 'mue_reviewer_profile';
+const ADMIN_USERS = ['dylan_bi'];  // exempt from mandatory profile
+const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
+
+function isAdminUser() {
+  const p = getProfile();
+  if (p && ADMIN_USERS.includes(p.username)) return true;
+  try { const b = localStorage.getItem(ADMIN_BYPASS_KEY); if (b && ADMIN_USERS.includes(b)) return true; } catch {}
+  return false;
+}
+function isProfileMandatory() {
+  return !isAdminUser() && !getProfile();
+}
+function _adminBypass() {
+  try { localStorage.setItem(ADMIN_BYPASS_KEY, 'dylan_bi'); } catch {}
+  document.getElementById('profileModal').classList.remove('open');
+  renderSidebarProfile();
+  showToast('Admin access granted — profile optional', 'success', 'Admin');
+}
 
 function getProfile() {
   try {
@@ -3097,6 +3132,17 @@ function openProfileModal(edit) {
   const uInput = document.getElementById('pm_username');
   const dInput = document.getElementById('pm_displayname');
   const pickerEl = document.getElementById('pm_picker');
+  const mandatory = isProfileMandatory();
+  const notice = document.getElementById('pmMandatoryNotice');
+  const skipBtn = modal.querySelector('.pm-skip');
+  if (notice) notice.style.display = mandatory ? 'block' : 'none';
+  if (skipBtn) skipBtn.style.display = mandatory ? 'none' : '';
+  // Show admin access button if username field matches an admin user
+  const adminEl = document.getElementById('pmAdminAccess');
+  if (adminEl) {
+    const uname = (uInput.value || '').trim().toLowerCase();
+    adminEl.style.display = (mandatory && ADMIN_USERS.includes(uname)) ? 'block' : 'none';
+  }
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; }
   else { uInput.value = ''; dInput.value = ''; }
@@ -3138,6 +3184,7 @@ function _quickLogin(username) {
 }
 
 function closeProfileModal() {
+  if (isProfileMandatory()) return;  // block closing — profile is required
   document.getElementById('profileModal').classList.remove('open');
 }
 
