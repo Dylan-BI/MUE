@@ -64,6 +64,11 @@ _edit_locks = {}
 _edit_locks_lock = threading.Lock()
 LOCK_TTL = 600  # 10 minutes — auto-release if editor disconnects
 
+# Presence tracking: {name: {last_seen, color, avatar}}
+_presence = {}
+_presence_lock = threading.Lock()
+PRESENCE_TTL = 30  # 30s — offline if no heartbeat in 30s
+
 
 def load_reviews():
     """Load reviews from review/reviews.json."""
@@ -161,6 +166,58 @@ def _check_lock(artifact_id, review_id):
         return _edit_locks.get(key)
 
 
+# ── Presence helpers ─────────────────────────────────────────────────
+
+def _cleanup_stale_presence():
+    """Remove reviewers who haven't sent a heartbeat in PRESENCE_TTL seconds."""
+    now = time.time()
+    with _presence_lock:
+        stale = [name for name, info in _presence.items() if now - info['last_seen'] > PRESENCE_TTL]
+        for name in stale:
+            del _presence[name]
+
+
+def _heartbeat_presence(name, color=None, avatar=None):
+    """Update reviewer's last-seen timestamp."""
+    now = time.time()
+    with _presence_lock:
+        if name in _presence:
+            _presence[name]['last_seen'] = now
+            if color:
+                _presence[name]['color'] = color
+            if avatar:
+                _presence[name]['avatar'] = avatar
+        else:
+            _presence[name] = {
+                'last_seen': now,
+                'color': color or '#7c73ff',
+                'avatar': avatar or ''
+            }
+
+
+def _leave_presence(name):
+    """Remove a reviewer from presence list."""
+    with _presence_lock:
+        _presence.pop(name, None)
+
+
+def _get_all_presence():
+    """Return all reviewers with online/offline status."""
+    _cleanup_stale_presence()
+    now = time.time()
+    with _presence_lock:
+        result = []
+        for name, info in _presence.items():
+            result.append({
+                'name': name,
+                'color': info.get('color', '#7c73ff'),
+                'avatar': info.get('avatar', ''),
+                'last_seen': info['last_seen'],
+                'online': (now - info['last_seen']) <= PRESENCE_TTL
+            })
+        return result
+
+
 class ReviewHandler(SimpleHTTPRequestHandler):
     """HTTP handler: REST API for reviews + static file serving."""
 
@@ -191,6 +248,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_locks()
         elif path == '/api/status':
             self._handle_get_status()
+        elif path == '/api/presence':
+            self._handle_get_presence()
         else:
             # Serve static files (dashboard.html, data.json, etc.)
             super().do_GET()
@@ -201,6 +260,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_add_review()
         elif parsed.path == '/api/locks':
             self._handle_lock_action()
+        elif parsed.path == '/api/presence':
+            self._handle_heartbeat()
+        elif parsed.path == '/api/presence/leave':
+            self._handle_leave()
         else:
             self._send_json(404, {'error': 'Not found'})
 
@@ -265,6 +328,35 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(200, {'locked': lock is not None, 'lock': lock})
         else:
             self._send_json(400, {'error': f'Unknown action: {action}'})
+
+    def _handle_get_presence(self):
+        """GET /api/presence — return all reviewers with online/offline status."""
+        reviewers = _get_all_presence()
+        self._send_json(200, reviewers)
+
+    def _handle_heartbeat(self):
+        """POST /api/presence — reviewer heartbeat to signal they're online."""
+        body = self._read_body()
+        if not body:
+            return
+        name = body.get('name', '').strip()
+        if not name:
+            self._send_json(400, {'error': 'name required'})
+            return
+        color = body.get('color', '#7c73ff')
+        avatar = body.get('avatar', '')
+        _heartbeat_presence(name, color, avatar)
+        self._send_json(200, {'ok': True})
+
+    def _handle_leave(self):
+        """POST /api/presence/leave — reviewer going offline."""
+        body = self._read_body()
+        if not body:
+            return
+        name = body.get('name', '').strip()
+        if name:
+            _leave_presence(name)
+        self._send_json(200, {'ok': True})
 
     def _handle_get_status(self):
         """GET /api/status — server status."""

@@ -580,6 +580,20 @@
   .card h3[onclick]:hover { color: var(--accent); }
   .theme-btn { background: transparent; border: 1px solid var(--sidebar-level-btn-border); color: var(--sidebar-footer-text); cursor: pointer; padding: 4px 8px; border-radius: 6px; font-size: 13px; line-height: 1; transition: all .15s; display: flex; align-items: center; gap: 4px; }
   .theme-btn:hover { background: var(--sidebar-hover-bg); color: var(--sidebar-active-text); }
+  /* ── Presence Panel (reviewer online/offline status) ── */
+  .presence-panel { padding: 6px 12px 10px; }
+  .presence-header { font-size: 10px; color: var(--text-sidebar-heading); text-transform: uppercase; letter-spacing: 1px; padding: 6px 8px 4px; font-weight: 600; }
+  .presence-list { list-style: none; padding: 0; margin: 0; }
+  .presence-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 12px; color: var(--sidebar-text); transition: background .15s; }
+  .presence-item:hover { background: var(--sidebar-hover-bg); }
+  .presence-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: background .3s; }
+  .presence-dot.online { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+  .presence-dot.offline { background: #6b7280; }
+  .presence-name { flex: 1; font-weight: 500; }
+  .presence-status { font-size: 10px; color: var(--text-sidebar-muted); }
+  .presence-status.online { color: #22c55e; font-weight: 600; }
+  .presence-status.offline { color: #6b7280; }
+  .presence-empty { font-size: 11px; color: var(--text-sidebar-muted); padding: 4px 8px; font-style: italic; }
   @media (max-width: 768px) {
     body { flex-direction: column; }
     .sidebar { width: 100%; height: auto; position: static; max-height: 260px; }
@@ -887,6 +901,9 @@
     <div class="nav-divider"></div>
     <div class="nav-label">Help</div>
     <a data-page="reviewers-guide" onclick="showPage('reviewers-guide')">📖 Instructor's Guide</a>
+    <div class="nav-divider"></div>
+    <div class="nav-label">Live Reviewers</div>
+    <div id="presencePanel" class="presence-panel"><div class="presence-empty">Connecting…</div></div>
   </div>
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
@@ -1437,6 +1454,109 @@ function updateServerStatus() {
   }
 }
 
+/* ── Presence API (reviewer online/offline tracking) ── */
+let REVIEWER_PRESENCE = [];  // [{name, color, avatar, last_seen, online}]
+let _presenceInterval = null;
+let _presenceHeartbeatInterval = null;
+
+// Generate a consistent color from a reviewer name
+function _reviewerColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  const hue = Math.abs(hash) % 360;
+  return 'hsl(' + hue + ', 65%, 55%)';
+}
+
+// Send heartbeat to server so we appear online
+async function sendPresenceHeartbeat() {
+  if (!REVIEW_SERVER) return;
+  const name = getReviewerName();
+  if (!name) return;
+  try {
+    await fetch(REVIEW_SERVER + '/api/presence', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, color: _reviewerColor(name)})
+    });
+  } catch (e) {}
+}
+
+// Notify server we're going offline
+async function sendPresenceLeave() {
+  if (!REVIEW_SERVER) return;
+  const name = getReviewerName();
+  if (!name) return;
+  try {
+    await fetch(REVIEW_SERVER + '/api/presence/leave', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name})
+    });
+  } catch (e) {}
+}
+
+// Fetch presence list from server
+async function fetchPresence() {
+  if (!REVIEW_SERVER) { REVIEWER_PRESENCE = []; renderPresencePanel(); return; }
+  try {
+    const resp = await fetch(REVIEW_SERVER + '/api/presence?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    if (resp.ok) { REVIEWER_PRESENCE = await resp.json(); renderPresencePanel(); }
+  } catch (e) {}
+}
+
+// Render the presence panel in the sidebar
+function renderPresencePanel() {
+  const panel = document.getElementById('presencePanel');
+  if (!panel) return;
+  if (!SERVER_CONNECTED) {
+    panel.innerHTML = '<div class="presence-empty">Server offline</div>';
+    return;
+  }
+  if (!REVIEWER_PRESENCE.length) {
+    const name = getReviewerName();
+    if (name) {
+      panel.innerHTML = '<ul class="presence-list"><li class="presence-item"><span class="presence-dot online"></span><span class="presence-name" style="color:var(--sidebar-active-text)">' + escHtml(name) + '</span><span class="presence-status online">You</span></li></ul>';
+    } else {
+      panel.innerHTML = '<div class="presence-empty">Set your name to appear</div>';
+    }
+    return;
+  }
+  // Sort: online first, then by name
+  const sorted = [...REVIEWER_PRESENCE].sort((a, b) => {
+    if (a.online !== b.online) return b.online - a.online;
+    return a.name.localeCompare(b.name);
+  });
+  const myName = getReviewerName();
+  let h = '<ul class="presence-list">';
+  sorted.forEach(r => {
+    const isMe = r.name === myName;
+    const dotClass = r.online ? 'online' : 'offline';
+    const statusText = r.online ? 'Online' : 'Offline';
+    const nameStyle = isMe ? 'color:var(--sidebar-active-text)' : '';
+    const label = isMe ? 'You' : statusText;
+    h += '<li class="presence-item"><span class="presence-dot ' + dotClass + '"></span>' +
+         '<span class="presence-name" style="' + nameStyle + '">' + escHtml(r.name) + '</span>' +
+         '<span class="presence-status ' + dotClass + '">' + label + '</span></li>';
+  });
+  h += '</ul>';
+  panel.innerHTML = h;
+}
+
+// Start presence tracking (called on page load)
+function startPresenceTracking() {
+  // Send heartbeat immediately, then every 15s
+  sendPresenceHeartbeat();
+  if (_presenceHeartbeatInterval) clearInterval(_presenceHeartbeatInterval);
+  _presenceHeartbeatInterval = setInterval(sendPresenceHeartbeat, 15000);
+  // Fetch presence list every 8s (same as review poll)
+  if (_presenceInterval) clearInterval(_presenceInterval);
+  _presenceInterval = setInterval(fetchPresence, 8000);
+  // Initial fetch
+  fetchPresence();
+  // Send leave on page unload
+  window.addEventListener('beforeunload', sendPresenceLeave);
+}
+
 const CLS_COLORS = {
   'foundational': getComputedStyle(document.documentElement).getPropertyValue('--cls-foundational').trim() || '#8e90a6',
   'developing': getComputedStyle(document.documentElement).getPropertyValue('--cls-developing').trim() || '#f5a623',
@@ -1586,6 +1706,7 @@ async function loadData() {
   startAutoRefresh();
   checkEnvironment();
   detectReviewServer();
+  startPresenceTracking();
   // Show a brief welcome toast on first load
   var noteCount = (DATA.summary && DATA.summary.total_days) || 0;
   if (noteCount > 0) {
@@ -1716,6 +1837,7 @@ function startAutoRefresh() {
     const prevLocks = JSON.stringify(ACTIVE_LOCKS);
     await serverFetchReviews();
     await serverFetchLocks();
+    await fetchPresence();
     const nextReviews = JSON.stringify(SERVER_REVIEWS);
     const nextLocks = JSON.stringify(ACTIVE_LOCKS);
     if (prevReviews !== nextReviews && Object.keys(SERVER_REVIEWS).length) {
