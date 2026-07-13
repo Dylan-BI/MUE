@@ -535,6 +535,40 @@
   .env-box .env-actions button.secondary { background: transparent; color: var(--text-secondary); border-color: transparent; justify-content: center; font-size: 12px; }
   .env-box .env-actions button.secondary:hover { color: var(--text-primary); background: transparent; }
   .env-box .env-actions button .env-icon { font-size: 18px; }
+  /* ── Reviewer Profile Modal ── */
+  .profile-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 300; justify-content: center; align-items: center; }
+  .profile-modal.open { display: flex; }
+  .profile-box { background: var(--bg-card); border-radius: 16px; max-width: 440px; width: 92%; padding: 0; overflow: hidden; box-shadow: 0 16px 60px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.08); color: var(--text-primary); animation: profileIn .25s ease; }
+  .profile-box .pm-header { padding: 24px 24px 0 24px; text-align: center; }
+  .profile-box .pm-header .pm-avatar { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #fff; }
+  .profile-box .pm-header h2 { font-size: 18px; margin: 0 0 4px 0; }
+  .profile-box .pm-header p { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px 0; line-height: 1.5; }
+  .profile-box .pm-body { padding: 0 24px 24px 24px; }
+  .profile-box .pm-field { margin-bottom: 14px; }
+  .profile-box .pm-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .profile-box .pm-field label span { color: var(--danger-hue); }
+  .profile-box .pm-field input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 14px; background: var(--bg-card); color: var(--text-primary); transition: border-color .15s; }
+  .profile-box .pm-field input:focus { outline: none; border-color: var(--accent); }
+  .profile-box .pm-field .pm-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .profile-box .pm-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 8px; }
+  .profile-box .pm-actions button { padding: 8px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .profile-box .pm-actions .pm-save { background: var(--accent); color: #fff; }
+  .profile-box .pm-actions .pm-save:hover { background: var(--accent-hover); }
+  .profile-box .pm-actions .pm-skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
+  .profile-box .pm-actions .pm-skip:hover { color: var(--text-primary); border-color: var(--border-input); }
+  @keyframes profileIn { from { opacity: 0; transform: scale(.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  /* ── Sidebar Profile Card ── */
+  .sidebar-profile { padding: 8px 12px; margin-bottom: 4px; background: var(--sidebar-hover-bg); border-radius: 8px; border: 1px solid var(--sidebar-level-btn-border); cursor: pointer; transition: background .15s; }
+  .sidebar-profile:hover { background: rgba(124,115,255,.12); }
+  .sidebar-profile .sp-row { display: flex; align-items: center; gap: 8px; }
+  .sidebar-profile .sp-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .sidebar-profile .sp-info { flex: 1; min-width: 0; }
+  .sidebar-profile .sp-name { font-size: 13px; font-weight: 600; color: var(--sidebar-header-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-profile .sp-username { font-size: 10px; color: var(--sidebar-footer-text); }
+  .sidebar-profile .sp-edit { font-size: 11px; color: var(--sidebar-footer-text); flex-shrink: 0; }
+  .sidebar-profile-empty { padding: 8px 12px; text-align: center; }
+  .sidebar-profile-empty button { background: var(--accent); color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; transition: background .15s; }
+  .sidebar-profile-empty button:hover { background: var(--accent-hover); }
   .preview-box .preview-error { padding:24px; text-align:center; color:var(--danger-hue); }
   .preview-box .preview-body pre { background: var(--bg-preview); padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-code); }
 
@@ -905,6 +939,8 @@
     <div class="nav-label">Live Reviewers</div>
     <div id="presencePanel" class="presence-panel"><div class="presence-empty">Connecting…</div></div>
   </div>
+  <!-- Profile card (above footer) -->
+  <div id="sidebarProfile" style="padding:0 8px 4px"></div>
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
       <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙 <span class="theme-icon">Dark</span></button>
@@ -945,6 +981,32 @@
   <div class="preview-box">
     <button class="close-btn" onclick="closePreview()">&times;</button>
     <div id="previewContent"></div>
+  </div>
+</div>
+
+<div class="profile-modal" id="profileModal">
+  <div class="profile-box">
+    <div class="pm-header">
+      <div class="pm-avatar" id="pm_avatar" style="background:var(--accent)">?</div>
+      <h2>👤 Reviewer Profile</h2>
+      <p>Set up your identity so other reviewers can see who's reviewing.</p>
+    </div>
+    <div class="pm-body">
+      <div class="pm-field">
+        <label>Username <span>*</span></label>
+        <input id="pm_username" placeholder="e.g. dylan_bi" autocomplete="off" oninput="_previewProfileAvatar()" />
+        <div class="pm-hint">Unique identifier — lowercase letters, numbers, dots, dashes</div>
+      </div>
+      <div class="pm-field">
+        <label>Display Name <span>*</span></label>
+        <input id="pm_displayname" placeholder="e.g. Dylan BI" autocomplete="off" oninput="_previewProfileAvatar()" />
+        <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
+      </div>
+      <div class="pm-actions">
+        <button class="pm-skip" onclick="closeProfileModal()">Skip</button>
+        <button class="pm-save" onclick="saveProfile()">✅ Activate Profile</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1164,10 +1226,21 @@ function checkEnvironment() {
   if (overlay) overlay.classList.add('open');
 }
 
+function _previewProfileAvatar() {
+  const u = (document.getElementById('pm_username') || {}).value || '';
+  const d = (document.getElementById('pm_displayname') || {}).value || '';
+  const label = (d || u || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const color = _reviewerColor(u || d || 'x');
+  const av = document.getElementById('pm_avatar');
+  if (av) { av.textContent = label; av.style.background = color; }
+}
+
 function confirmEnvironmentAdequate() {
   try { localStorage.setItem(ENV_CONFIRMED_KEY, 'true'); } catch {}
   document.getElementById('envOverlay').classList.remove('open');
   showToast('Environment confirmed — you\'re all set to review', 'success', 'Ready');
+  // Prompt profile setup after environment check
+  if (!getProfile()) { setTimeout(() => openProfileModal(), 400); }
 }
 
 function showEnvironmentUpdateOptions() {
@@ -1437,7 +1510,8 @@ function isReviewLocked(aid, reviewId) {
   if (!lock) return null;
   const elapsed = (Date.now() / 1000) - lock.timestamp;
   if (elapsed > (lock.ttl || 600)) { delete ACTIVE_LOCKS[key]; return null; }
-  if (lock.name === getReviewerName()) return null; // own lock
+  const currentName = getReviewerName();
+  if (lock.name === currentName) return null; // own lock
   return lock;
 }
 
@@ -1470,13 +1544,15 @@ function _reviewerColor(name) {
 // Send heartbeat to server so we appear online
 async function sendPresenceHeartbeat() {
   if (!REVIEW_SERVER) return;
-  const name = getReviewerName();
+  const p = getProfile();
+  if (!p) return;
+  const name = p.username;
   if (!name) return;
   try {
     await fetch(REVIEW_SERVER + '/api/presence', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name, color: _reviewerColor(name)})
+      body: JSON.stringify({name, displayName: p.displayName, color: _reviewerColor(name)})
     });
   } catch (e) {}
 }
@@ -1484,7 +1560,8 @@ async function sendPresenceHeartbeat() {
 // Notify server we're going offline
 async function sendPresenceLeave() {
   if (!REVIEW_SERVER) return;
-  const name = getReviewerName();
+  const p = getProfile();
+  const name = p ? p.username : '';
   if (!name) return;
   try {
     await fetch(REVIEW_SERVER + '/api/presence/leave', {
@@ -1515,9 +1592,11 @@ function renderPresencePanel() {
   if (!REVIEWER_PRESENCE.length) {
     const name = getReviewerName();
     if (name) {
-      panel.innerHTML = '<ul class="presence-list"><li class="presence-item"><span class="presence-dot online"></span><span class="presence-name" style="color:var(--sidebar-active-text)">' + escHtml(name) + '</span><span class="presence-status online">You</span></li></ul>';
+      const p = getProfile();
+      const label = p ? escHtml(p.displayName) + ' <span style="font-size:10px;color:var(--text-sidebar-muted)">@' + escHtml(p.username) + '</span>' : escHtml(name);
+      panel.innerHTML = '<ul class="presence-list"><li class="presence-item"><span class="presence-dot online"></span><span class="presence-name" style="color:var(--sidebar-active-text)">' + label + '</span><span class="presence-status online">You</span></li></ul>';
     } else {
-      panel.innerHTML = '<div class="presence-empty">Set your name to appear</div>';
+      panel.innerHTML = '<div class="presence-empty">Set up your profile to appear</div>';
     }
     return;
   }
@@ -1529,13 +1608,15 @@ function renderPresencePanel() {
   const myName = getReviewerName();
   let h = '<ul class="presence-list">';
   sorted.forEach(r => {
-    const isMe = r.name === myName;
+    const isMe = r.name === getReviewerUsername();
     const dotClass = r.online ? 'online' : 'offline';
     const statusText = r.online ? 'Online' : 'Offline';
     const nameStyle = isMe ? 'color:var(--sidebar-active-text)' : '';
     const label = isMe ? 'You' : statusText;
+    const displayName = r.display_name || r.name;
+    const uname = isMe ? '' : '';
     h += '<li class="presence-item"><span class="presence-dot ' + dotClass + '"></span>' +
-         '<span class="presence-name" style="' + nameStyle + '">' + escHtml(r.name) + '</span>' +
+         '<span class="presence-name" style="' + nameStyle + '">' + escHtml(displayName) + '</span>' +
          '<span class="presence-status ' + dotClass + '">' + label + '</span></li>';
   });
   h += '</ul>';
@@ -1544,6 +1625,7 @@ function renderPresencePanel() {
 
 // Start presence tracking (called on page load)
 function startPresenceTracking() {
+  renderSidebarProfile();
   // Send heartbeat immediately, then every 15s
   sendPresenceHeartbeat();
   if (_presenceHeartbeatInterval) clearInterval(_presenceHeartbeatInterval);
@@ -2925,8 +3007,95 @@ function selectRating(aid, idx) {
   if (btns[idx]) btns[idx].classList.add('selected');
 }
 
-function getReviewerName() { try { return localStorage.getItem(REVIEWER_NAME_KEY)||''; } catch { return ''; } }
-function setReviewerName(n) { try { localStorage.setItem(REVIEWER_NAME_KEY, n); } catch {} }
+/* ── Reviewer Profile System ── */
+const PROFILE_KEY = 'mue_reviewer_profile';
+
+function getProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  // Migrate from legacy single-name storage
+  try {
+    const legacy = localStorage.getItem(REVIEWER_NAME_KEY);
+    if (legacy) {
+      const p = { username: legacy.toLowerCase().replace(/\s+/g, '_'), displayName: legacy, createdAt: new Date().toISOString() };
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
+      return p;
+    }
+  } catch {}
+  return null;
+}
+
+function setProfile(profile) {
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
+}
+
+function getReviewerName() {
+  const p = getProfile();
+  return p ? (p.displayName || p.username || '') : '';
+}
+
+function setReviewerName(n) {
+  // Legacy compat: update display name in profile
+  const p = getProfile();
+  if (p) { p.displayName = n; setProfile(p); }
+  else { setProfile({ username: n.toLowerCase().replace(/\s+/g, '_'), displayName: n, createdAt: new Date().toISOString() }); }
+}
+
+function getReviewerUsername() { const p = getProfile(); return p ? p.username || '' : ''; }
+
+function getReviewerDisplayName() { const p = getProfile(); return p ? p.displayName || '' : ''; }
+
+/* ── Profile Modal ── */
+function openProfileModal(edit) {
+  const modal = document.getElementById('profileModal');
+  if (!modal) return;
+  const existing = getProfile();
+  const uInput = document.getElementById('pm_username');
+  const dInput = document.getElementById('pm_displayname');
+  if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
+  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; }
+  else { uInput.value = ''; dInput.value = ''; }
+  modal.classList.add('open');
+  uInput.focus();
+}
+
+function closeProfileModal() {
+  document.getElementById('profileModal').classList.remove('open');
+}
+
+function saveProfile() {
+  const uInput = document.getElementById('pm_username');
+  const dInput = document.getElementById('pm_displayname');
+  const username = uInput.value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  const displayName = dInput.value.trim();
+  if (!username) { uInput.style.borderColor = 'var(--danger-hue)'; showToast('Username is required', 'warning', 'Required'); return; }
+  if (!displayName) { dInput.style.borderColor = 'var(--danger-hue)'; showToast('Display name is required', 'warning', 'Required'); return; }
+  const profile = { username, displayName, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
+  setProfile(profile);
+  closeProfileModal();
+  renderSidebarProfile();
+  renderPresencePanel();
+  showToast('Profile activated: ' + displayName + ' (@' + username + ')', 'success', 'Profile Saved');
+}
+
+function renderSidebarProfile() {
+  const container = document.getElementById('sidebarProfile');
+  if (!container) return;
+  const p = getProfile();
+  if (!p) {
+    container.innerHTML = '<div class="sidebar-profile-empty"><button onclick="openProfileModal()">👤 Set Up Reviewer Profile</button></div>';
+    return;
+  }
+  const color = _reviewerColor(p.username || p.displayName);
+  const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="Click to edit profile">' +
+    '<div class="sp-row"><div class="sp-avatar" style="background:' + color + '">' + escHtml(initials) + '</div>' +
+    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + '</div>' +
+    '<div class="sp-username">@' + escHtml(p.username) + '</div></div>' +
+    '<div class="sp-edit">✏️</div></div></div>';
+}
 
 /* ── Look up version/changes context for the reviewed artifact ── */
 function getReviewContext(filename, type) {

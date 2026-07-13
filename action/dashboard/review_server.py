@@ -177,12 +177,14 @@ def _cleanup_stale_presence():
             del _presence[name]
 
 
-def _heartbeat_presence(name, color=None, avatar=None):
+def _heartbeat_presence(name, display_name=None, color=None, avatar=None):
     """Update reviewer's last-seen timestamp."""
     now = time.time()
     with _presence_lock:
         if name in _presence:
             _presence[name]['last_seen'] = now
+            if display_name:
+                _presence[name]['display_name'] = display_name
             if color:
                 _presence[name]['color'] = color
             if avatar:
@@ -190,6 +192,7 @@ def _heartbeat_presence(name, color=None, avatar=None):
         else:
             _presence[name] = {
                 'last_seen': now,
+                'display_name': display_name or name,
                 'color': color or '#7c73ff',
                 'avatar': avatar or ''
             }
@@ -210,6 +213,7 @@ def _get_all_presence():
         for name, info in _presence.items():
             result.append({
                 'name': name,
+                'display_name': info.get('display_name', name),
                 'color': info.get('color', '#7c73ff'),
                 'avatar': info.get('avatar', ''),
                 'last_seen': info['last_seen'],
@@ -343,9 +347,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         if not name:
             self._send_json(400, {'error': 'name required'})
             return
+        display_name = body.get('displayName', '').strip() or name
         color = body.get('color', '#7c73ff')
         avatar = body.get('avatar', '')
-        _heartbeat_presence(name, color, avatar)
+        _heartbeat_presence(name, display_name, color, avatar)
         self._send_json(200, {'ok': True})
 
     def _handle_leave(self):
