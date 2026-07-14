@@ -146,7 +146,7 @@ _presence_lock = threading.Lock()
 PRESENCE_TTL = 30  # 30s — offline if no heartbeat in 30s
 
 # Profile access control: only these usernames can edit any profile
-ADMIN_USERS = ['dylan_bi']
+ADMIN_USERS = ['jane_doe']
 
 
 def load_reviews():
@@ -520,7 +520,7 @@ def _start_tunnel(port, tool_path, tool_name):
     import subprocess
     import re
 
-    TUNNEL_NOTIFY_EMAIL = 'monteretroion@gmail.com'
+    TUNNEL_NOTIFY_EMAIL = 'jane@example.com'
 
     if tool_name == 'cloudflared':
         cmd = [tool_path, 'tunnel', '--url', f'http://localhost:{port}', '--no-autoupdate']

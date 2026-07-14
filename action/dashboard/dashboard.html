@@ -1036,17 +1036,17 @@
       <div class="pm-tab-panel" id="pmPanelSignup">
         <div class="pm-field">
           <label>Username <span>*</span></label>
-          <input id="pm_username" placeholder="e.g. dylan_bi" autocomplete="off" oninput="_previewProfileAvatar()" />
+          <input id="pm_username" placeholder="e.g. jane_doe" autocomplete="off" oninput="_previewProfileAvatar()" />
           <div class="pm-hint">Unique identifier — lowercase letters, numbers, dots, dashes</div>
         </div>
         <div class="pm-field">
           <label>Display Name <span>*</span></label>
-          <input id="pm_displayname" placeholder="e.g. Dylan BI" autocomplete="off" oninput="_previewProfileAvatar()" />
+          <input id="pm_displayname" placeholder="e.g. Jane Doe" autocomplete="off" oninput="_previewProfileAvatar()" />
           <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
         </div>
         <div class="pm-field">
           <label>Email <span style="color:rgba(255,255,255,.35)">(optional)</span></label>
-          <input id="pm_email" type="email" placeholder="e.g. dylan@bicyclebi.com" autocomplete="email" />
+          <input id="pm_email" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
           <div class="pm-hint">Receive daily summaries of review activity</div>
         </div>
         <label class="pm-toggle" for="pm_dailySummary">
@@ -1060,7 +1060,7 @@
           <button class="pm-save" onclick="saveProfile()">✅ Create & Sign In</button>
         </div>
       </div>
-      <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (dylan_bi)</button></div>
+      <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (jane_doe)</button></div>
     </div>
   </div>
 </div>
@@ -1444,7 +1444,7 @@ function renderLevelProgressionSidebar() {
    ═══════════════════════════════════════════════════════════════════════════ */
 let DATA = null;
 let LAST_GENERATED = null;
-const REVIEW_EMAIL = 'dylan@bicyclebi.com';
+const REVIEW_EMAIL = 'jane@example.com';
 
 /* ── Review Server API (multi-reviewer collaboration) ── */
 let REVIEW_SERVER = null;  // URL of review server when available, null otherwise
@@ -3174,7 +3174,7 @@ function selectRating(aid, idx) {
 
 /* ── Reviewer Profile System ── */
 const PROFILE_KEY = 'mue_reviewer_profile';
-const ADMIN_USERS = ['dylan_bi'];  // exempt from mandatory profile
+const ADMIN_USERS = ['jane_doe'];  // exempt from mandatory profile
 const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
 
@@ -3188,7 +3188,7 @@ function isProfileMandatory() {
   return !isAdminUser() && !getProfile();
 }
 function _adminBypass() {
-  try { localStorage.setItem(ADMIN_BYPASS_KEY, 'dylan_bi'); } catch {}
+  try { localStorage.setItem(ADMIN_BYPASS_KEY, 'jane_doe'); } catch {}
   document.getElementById('profileModal').classList.remove('open');
   renderSidebarProfile();
   showToast('Admin access granted — profile optional', 'success', 'Admin');
