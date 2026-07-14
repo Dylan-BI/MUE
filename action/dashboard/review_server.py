@@ -516,6 +516,8 @@ def _start_tunnel(port, tool_path, tool_name):
     import subprocess
     import re
 
+    TUNNEL_NOTIFY_EMAIL = 'dylan@bicyclebi.com'
+
     if tool_name == 'cloudflared':
         cmd = [tool_path, 'tunnel', '--url', f'http://localhost:{port}', '--no-autoupdate']
     elif tool_name == 'ngrok':
@@ -553,12 +555,73 @@ def _start_tunnel(port, tool_path, tool_name):
                 print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
                 print(f'  Share the Dashboard URL with reviewers on any network.')
                 print(f'  The tunnel stays open while the server is running.\n')
+                # Email notification
+                _tunnel_notify_url(TUNNEL_NOTIFY_EMAIL, public_url, tool_name)
         if not url_found:
             print(f'  ⚠️  {tool_name} started but URL not captured. Check the terminal.')
+        # Monitor tunnel process — notify if it dies
+        proc.wait()
+        if _scheduler_running:
+            print(f'  ⚠️  {tool_name} tunnel disconnected.')
+            _tunnel_notify_down(TUNNEL_NOTIFY_EMAIL, tool_name)
     except FileNotFoundError:
         print(f'  ❌ {tool_name} not found — install it from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
     except Exception as e:
         print(f'  ❌ Tunnel error: {e}')
+
+
+def _tunnel_notify_url(to_addr, public_url, tool_name):
+    """Send email when a new tunnel URL is available."""
+    subject = f'🌐 MUE Tunnel Active — {tool_name}'
+    body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+    <div style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:24px;color:#fff">
+      <h1 style="margin:0;font-size:18px">🌐 MUE Tunnel Active</h1>
+      <p style="margin:6px 0 0;opacity:.85;font-size:13px">{tool_name} · {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
+    </div>
+    <div style="padding:20px 24px">
+      <p style="font-size:14px;color:#333;margin:0 0 16px">A new tunnel URL has been generated. Share this with reviewers:</p>
+      <div style="background:#f8f9fa;border-radius:8px;padding:16px;text-align:center;margin-bottom:16px">
+        <a href="{public_url}/dashboard.html" style="font-size:16px;font-weight:600;color:#6c5ce7;text-decoration:none;word-break:break-all">{public_url}/dashboard.html</a>
+      </div>
+      <table style="width:100%;font-size:13px;color:#555;margin-bottom:16px">
+        <tr><td style="padding:4px 0">📡 API:</td><td style="padding:4px 0"><a href="{public_url}/api/reviews" style="color:#6c5ce7">{public_url}/api/reviews</a></td></tr>
+        <tr><td style="padding:4px 0">📊 Status:</td><td style="padding:4px 0"><a href="{public_url}/api/status" style="color:#6c5ce7">{public_url}/api/status</a></td></tr>
+      </table>
+      <p style="font-size:11px;color:#aaa;margin:0;text-align:center">This URL will change if the tunnel is restarted.<br>Sent by MUE Review Server</p>
+    </div>
+  </div></body></html>'''
+    ok, err = _send_email(to_addr, subject, body)
+    if ok:
+        print(f'  📧 Tunnel notification sent to {to_addr}')
+    else:
+        print(f'  ⚠️  Could not send tunnel email: {err}')
+
+
+def _tunnel_notify_down(to_addr, tool_name):
+    """Send email when the tunnel disconnects."""
+    subject = f'⚠️ MUE Tunnel Disconnected — {tool_name}'
+    body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+    <div style="background:linear-gradient(135deg,#dc3545,#e57373);padding:24px;color:#fff">
+      <h1 style="margin:0;font-size:18px">⚠️ Tunnel Disconnected</h1>
+      <p style="margin:6px 0 0;opacity:.85;font-size:13px">{tool_name} · {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
+    </div>
+    <div style="padding:20px 24px">
+      <p style="font-size:14px;color:#333;margin:0 0 16px">The {tool_name} tunnel has stopped. Remote reviewers can no longer access the dashboard.</p>
+      <p style="font-size:13px;color:#555;margin:0 0 8px"><strong>To restore access:</strong></p>
+      <ol style="font-size:13px;color:#555;margin:0;padding:0 0 0 20px;line-height:1.8">
+        <li>Restart the review server with <code>--tunnel</code></li>
+        <li>A new URL will be emailed automatically</li>
+      </ol>
+      <p style="font-size:11px;color:#aaa;margin:16px 0 0;text-align:center">Sent by MUE Review Server</p>
+    </div>
+  </div></body></html>'''
+    ok, err = _send_email(to_addr, subject, body)
+    if ok:
+        print(f'  📧 Tunnel-down notification sent to {to_addr}')
+    else:
+        print(f'  ⚠️  Could not send tunnel-down email: {err}')
 
 
 # ── Daily Scheduler ──────────────────────────────────────────────────
