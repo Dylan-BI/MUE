@@ -520,7 +520,7 @@ def _start_tunnel(port, tool_path, tool_name):
     import subprocess
     import re
 
-    TUNNEL_NOTIFY_EMAIL = 'dylan@bicyclebi.com'
+    TUNNEL_NOTIFY_EMAIL = 'monteretroion@gmail.com'
 
     if tool_name == 'cloudflared':
         cmd = [tool_path, 'tunnel', '--url', f'http://localhost:{port}', '--no-autoupdate']
@@ -695,8 +695,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         qs = parse_qs(parsed.query)
 
-        # Token check — skip for token-check endpoint, /go redirect, root redirect, data.json, and CORS preflight
-        if path not in ('/api/check-token', '/go', '/', '/data.json') and not self._check_token(qs):
+        # Token check — skip for token-check endpoint, /go redirect, data.json, and CORS preflight
+        if path not in ('/api/check-token', '/go', '/data.json') and not self._check_token(qs):
             return
 
         if path == '/go':
@@ -707,10 +707,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             return
         elif path == '/':
-            # Root redirect — /?t=<token> → /dashboard.html?t=<token>
-            token_qs = f'?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else ''
+            # Root redirect — always go through /go so only one entry point exists
             self.send_response(302)
-            self.send_header('Location', f'/dashboard.html{token_qs}')
+            self.send_header('Location', '/go')
             self.end_headers()
             return
         elif path == '/api/reviews':
@@ -801,10 +800,29 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         is_new = username not in profiles
         is_owner = requester == username
         is_admin = requester in ADMIN_USERS
+
+        # Uniqueness: username can only be claimed by one person
+        if is_new and not is_admin:
+            existing_owner = None
+            for uname, prof in profiles.items():
+                if prof.get('username') == username:
+                    existing_owner = uname
+                    break
+            if existing_owner:
+                self._send_json(409, {'error': f'username @{username} is already claimed by another reviewer'})
+                print(f'  🚫 Profile create denied: @{requester} tried to claim @{username} (taken by @{existing_owner})')
+                return
+            # Check if requester already has a different profile
+            if requester and requester != username and requester in profiles:
+                self._send_json(409, {'error': f'@{requester} already has a profile — edit your existing profile or contact an admin'})
+                print(f'  🚫 Profile create denied: @{requester} already has profile @{requester}')
+                return
+
         if not is_new and not is_owner and not is_admin:
             self._send_json(403, {'error': 'access denied — only the profile owner or an admin can edit this profile'})
             print(f'  🚫 Profile save denied: @{requester} tried to edit @{username}')
             return
+
         profiles[username] = {
             'username': username,
             'displayName': display_name or username,

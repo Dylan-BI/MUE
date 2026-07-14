@@ -3218,6 +3218,11 @@ async function serverSaveProfile(profile) {
     });
     if (resp.ok) { await serverFetchProfiles(); return true; }
     if (resp.status === 403) { showToast('Access denied — only the profile owner or an admin can edit this profile', 'warning', 'Restricted'); return false; }
+    if (resp.status === 409) {
+      const err = await resp.json().catch(() => ({}));
+      showToast(err.error || 'Username already claimed by another reviewer', 'warning', 'Username Taken');
+      return false;
+    }
   } catch (e) {}
   return false;
 }
@@ -3344,6 +3349,17 @@ async function saveProfile() {
   const dailySummary = dsInput ? dsInput.checked : false;
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
   if (dailySummary && !email) { showToast('Enter an email address to receive daily summaries', 'warning', 'Email Required'); if (emailInput) emailInput.focus(); return; }
+  // Client-side uniqueness: check if username is already claimed by another reviewer
+  const existingProfile = getProfile();
+  const isEditing = existingProfile && existingProfile.username === username;
+  if (!isEditing && !isAdminUser()) {
+    for (const [uname, prof] of Object.entries(SERVER_PROFILES)) {
+      if (uname !== username && (prof.displayName || '').toLowerCase() === displayName.toLowerCase()) {
+        showToast('Display name "' + displayName + '" is already used by @' + uname + ' — choose a different name', 'warning', 'Name Taken');
+        return;
+      }
+    }
+  }
   const profile = { username, displayName, email, dailySummary, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
   setProfile(profile);
   // Sync to server so profile is accessible from any device
