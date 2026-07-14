@@ -696,11 +696,25 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         qs = parse_qs(parsed.query)
 
-        # Token check — skip for token-check endpoint itself and CORS preflight
-        if path != '/api/check-token' and not self._check_token(qs):
+        # Token check — skip for token-check endpoint, /go redirect, and CORS preflight
+        if path not in ('/api/check-token', '/go', '/') and not self._check_token(qs):
             return
 
-        if path == '/api/reviews':
+        if path == '/go':
+            # Short redirect — /go → /dashboard.html?t=<token>
+            token_qs = f'?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else ''
+            self.send_response(302)
+            self.send_header('Location', f'/dashboard.html{token_qs}')
+            self.end_headers()
+            return
+        elif path == '/':
+            # Root redirect — /?t=<token> → /dashboard.html?t=<token>
+            token_qs = f'?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else ''
+            self.send_response(302)
+            self.send_header('Location', f'/dashboard.html{token_qs}')
+            self.end_headers()
+            return
+        elif path == '/api/reviews':
             self._handle_get_reviews()
         elif path == '/api/locks':
             self._handle_get_locks()
@@ -1230,9 +1244,12 @@ def main():
         if not args.tunnel:
             print(f'   Reviewers connect from any device on this network.')
             if lan_ips:
-                secure_url = f'http://{lan_ips[0]}:{args.port}/?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else f'http://{lan_ips[0]}:{args.port}/dashboard.html'
-                print(f'   🔒 Share this URL:  {secure_url}')
-                print(f'   (Access token required — paste the full URL to grant access)')
+                if SERVER_ACCESS_TOKEN:
+                    go_url = f'http://{lan_ips[0]}:{args.port}/go'
+                    print(f'   🔒 Share this URL:  {go_url}')
+                    print(f'   (Auto-redirects to dashboard — token passed server-side)')
+                else:
+                    print(f'   🔒 Share this URL:  http://{lan_ips[0]}:{args.port}/dashboard.html')
         print(f'   Press Ctrl+C to stop.\n')
         server.serve_forever()
     except KeyboardInterrupt:
