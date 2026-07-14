@@ -57,13 +57,37 @@ DASHBOARD_DIR = SCRIPT_DIR
 REVIEWS_PATH = REPO_ROOT / 'review' / 'reviews.json'
 PROFILES_PATH = REPO_ROOT / 'review' / 'reviewer_profiles.json'
 BUILD_SCRIPT = DASHBOARD_DIR / 'build_data.py'
+ENV_FILE = DASHBOARD_DIR / '.env'
+
+
+def _load_env_file(path):
+    """Load a .env file into os.environ (does not overwrite existing vars)."""
+    if not path.exists():
+        return
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+# Load .env file before reading config (env vars take precedence over .env)
+_load_env_file(ENV_FILE)
 
 # ── SMTP / Email Configuration ──────────────────────────────────────
-# Configure via environment variables or CLI args.
+# Priority: CLI args > env vars > .env file > defaults
+# To configure permanently, edit action/dashboard/.env (see .env.example)
 # Examples:
-#   Gmail:    SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=you@gmail.com SMTP_PASS=app-password
-#   Outlook:  SMTP_HOST=smtp.office365.com SMTP_PORT=587 SMTP_USER=you@outlook.com SMTP_PASS=yourpass
-#   Local:    SMTP_HOST=localhost SMTP_PORT=25 (no auth)
+#   Gmail:    MUE_SMTP_HOST=smtp.gmail.com MUE_SMTP_PORT=587 MUE_SMTP_USER=you@gmail.com MUE_SMTP_PASS=app-password
+#   Outlook:  MUE_SMTP_HOST=smtp.office365.com MUE_SMTP_PORT=587 MUE_SMTP_USER=you@outlook.com MUE_SMTP_PASS=yourpass
+#   Local:    MUE_SMTP_HOST=localhost MUE_SMTP_PORT=25 (no auth)
 SMTP_HOST = os.environ.get('MUE_SMTP_HOST', '')
 SMTP_PORT = int(os.environ.get('MUE_SMTP_PORT', '587'))
 SMTP_USER = os.environ.get('MUE_SMTP_USER', '')
@@ -916,7 +940,8 @@ def main():
 
     # Print SMTP status
     if SMTP_HOST:
-        print(f'   📧 SMTP: {SMTP_HOST}:{SMTP_PORT} (from: {SMTP_FROM})')
+        env_tag = ' (.env)' if ENV_FILE.exists() and not os.environ.get('MUE_SMTP_HOST') else ''
+        print(f'   📧 SMTP: {SMTP_HOST}:{SMTP_PORT} (from: {SMTP_FROM}){env_tag}')
         print(f'   📬 Daily summary at {DAILY_SUMMARY_HOUR:02d}:{DAILY_SUMMARY_MINUTE:02d}')
     else:
         print('   📧 SMTP: not configured (set MUE_SMTP_HOST or --smtp-host)')
