@@ -111,15 +111,15 @@ jobs:
         run: |
           python3 action/dashboard/build_data.py
 
-      - name: Commit updated review data and dashboard (if changed)
+      - name: Commit updated review data (if changed)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add action/dashboard/data.json review/ || true
+          git add review/ || true
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: sync dashboard data and review feedback [skip ci]"
+            git commit -m "chore: sync review feedback [skip ci]"
             git push
           fi
 
