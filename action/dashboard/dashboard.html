@@ -1437,7 +1437,36 @@ let REVIEW_SERVER = null;  // URL of review server when available, null otherwis
 let SERVER_REVIEWS = {};   // Reviews fetched from server (artifactId → [reviews])
 let SERVER_CONNECTED = false;
 
+// Support cross-network connections via ?server= query param or localStorage
+function _getCustomServerUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('server')) return params.get('server');
+  try { return localStorage.getItem('mue_review_server'); } catch (e) { return null; }
+}
+function setReviewServerUrl(url) {
+  url = (url || '').trim().replace(/\/+$/, '');
+  if (url && !url.startsWith('http')) url = 'http://' + url;
+  try { localStorage.setItem('mue_review_server', url || ''); } catch (e) {}
+  if (url) { window.location.href = url.replace(/\/+$/, '') + '/dashboard.html'; }
+  else { window.location.href = 'dashboard.html'; }
+}
+
 async function detectReviewServer() {
+  const customUrl = _getCustomServerUrl();
+  // 1) Try custom server URL first
+  if (customUrl) {
+    try {
+      const resp = await fetch(customUrl + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
+      if (resp.ok) {
+        REVIEW_SERVER = customUrl;
+        SERVER_REVIEWS = await resp.json();
+        SERVER_CONNECTED = true;
+        updateServerStatus();
+        return true;
+      }
+    } catch (e) {}
+  }
+  // 2) Try same-origin (served by the review server)
   try {
     const resp = await fetch('/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
     if (resp.ok) {
@@ -1563,13 +1592,29 @@ function updateServerStatus() {
   const el = document.getElementById('serverStatus');
   if (el) {
     if (SERVER_CONNECTED) {
-      el.innerHTML = '<span style="color:var(--success)">🟢</span> Server connected — reviews shared across all reviewers';
+      const isRemote = _getCustomServerUrl() && !window.location.origin.startsWith('file:');
+      const label = isRemote ? 'Remote server' : 'Server connected';
+      el.innerHTML = '<span style="color:var(--success)">🟢</span> ' + label + ' — reviews shared across all reviewers' +
+        '<br><span style="font-size:10px;opacity:.7">' + REVIEW_SERVER + '</span>';
       el.title = 'Review server active: ' + REVIEW_SERVER;
     } else {
-      el.innerHTML = '<span style="color:var(--text-muted)">⚪</span> Offline mode — reviews stored locally only';
+      const customUrl = _getCustomServerUrl();
+      let hint = '';
+      if (customUrl) {
+        hint = '<br><span style="font-size:10px;color:#dc3545">⚠ Cannot reach ' + customUrl + '</span>';
+      } else {
+        hint = '<br><a href="#" onclick="promptServerUrl();return false" style="font-size:10px;color:var(--accent);text-decoration:underline">Connect to review server</a>';
+      }
+      el.innerHTML = '<span style="color:var(--text-muted)">⚪</span> Offline mode — reviews stored locally only' + hint;
       el.title = 'No review server detected. Reviews saved to this browser only.';
     }
   }
+}
+
+function promptServerUrl() {
+  const current = _getCustomServerUrl() || '';
+  const url = prompt('Enter the review server URL (e.g. http://192.168.1.42:8080):', current);
+  if (url !== null) setReviewServerUrl(url);
 }
 
 /* ── Presence API (reviewer online/offline tracking) ── */
@@ -1840,36 +1885,41 @@ function saveReviewsToReview() {
    ═══════════════════════════════════════════════════════════════════════════ */
 async function loadData() {
   document.getElementById('sidebarInfo').textContent = 'Loading…';
-  let url = 'data.json';
-  try {
-    const resp = await fetch(url + '?t=' + Date.now());
-    if (!resp.ok) throw new Error('Not found');
-    DATA = await resp.json();
-  } catch (e1) {
+  const customUrl = _getCustomServerUrl();
+  const baseUrl = customUrl ? customUrl.replace(/\/+$/, '') : '';
+
+  // Build a list of data.json URLs to try in order
+  const candidates = [];
+  if (baseUrl) candidates.push(baseUrl + '/data.json');           // Custom remote server
+  if (!customUrl) candidates.push('data.json');                    // Same-origin (served by review server)
+  if (REVIEW_SERVER && REVIEW_SERVER !== baseUrl) candidates.push(REVIEW_SERVER + '/data.json'); // Detected review server
+  candidates.push('https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json'); // GitHub raw fallback
+
+  for (const url of candidates) {
     try {
-      const resp2 = await fetch('https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json?t=' + Date.now());
-      if (!resp2.ok) throw new Error('GitHub raw failed');
-      DATA = await resp2.json();
-    } catch (e2) {
-      document.getElementById('sidebarInfo').innerHTML = '❌ No data. Run build_data.py.';
-      document.getElementById('main').innerHTML = '<div class="alert alert-warning"><strong>No data found.</strong> Run <code>python action/dashboard/build_data.py</code>.</div>';
+      const resp = await fetch(url + '?t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
+      if (!resp.ok) throw new Error('Not found');
+      DATA = await resp.json();
+      LAST_GENERATED = DATA.generated;
+      updateSidebar();
+      renderAll();
+      updateSidebarLevelButtons();
+      startAutoRefresh();
+      checkEnvironment();
+      detectReviewServer();
+      startPresenceTracking();
+      var noteCount = (DATA.summary && DATA.summary.total_days) || 0;
+      if (noteCount > 0) {
+        setTimeout(function() { showToast(noteCount + ' notes loaded across ' + (DATA.summary.curr_level || 1) + ' level(s)', 'info', 'Dashboard Ready'); }, 600);
+      }
       return;
-    }
+    } catch (e) {}
   }
-  LAST_GENERATED = DATA.generated;
-  
-  updateSidebar();
-  renderAll();
-  updateSidebarLevelButtons();
-  startAutoRefresh();
-  checkEnvironment();
-  detectReviewServer();
-  startPresenceTracking();
-  // Show a brief welcome toast on first load
-  var noteCount = (DATA.summary && DATA.summary.total_days) || 0;
-  if (noteCount > 0) {
-    setTimeout(function() { showToast(noteCount + ' notes loaded across ' + (DATA.summary.curr_level || 1) + ' level(s)', 'info', 'Dashboard Ready'); }, 600);
-  }
+  // All sources failed
+  document.getElementById('sidebarInfo').innerHTML = '❌ No data available';
+  document.getElementById('main').innerHTML = '<div class="alert alert-warning"><strong>No data found.</strong> '
+    + (REVIEW_SERVER ? 'Connected to review server but data.json is missing. Ask the host to rebuild it.'
+    : 'Open the dashboard from the review server or <a href="#" onclick="promptServerUrl();return false">connect to a review server</a>.') + '</div>';
 }
 
 function updateSidebar() {
@@ -1972,9 +2022,12 @@ let serverPollInterval = null;
 function startAutoRefresh() {
   if (refreshInterval) clearInterval(refreshInterval);
   document.getElementById('autoRefreshStatus').textContent = '⏱ Auto-sync active (2 min)';
+  const _autoRefreshBaseUrl = _getCustomServerUrl();
+  const _autoRefreshPrefix = _autoRefreshBaseUrl ? _autoRefreshBaseUrl.replace(/\/+$/, '') : '';
   refreshInterval = setInterval(async () => {
     try {
-      const resp = await fetch('data.json?t=' + Date.now());
+      const fetchUrl = _autoRefreshPrefix ? _autoRefreshPrefix + '/data.json' : 'data.json';
+      const resp = await fetch(fetchUrl + '?t=' + Date.now());
       if (!resp.ok) return;
       const fresh = await resp.json();
       if (fresh.generated && fresh.generated !== LAST_GENERATED) {
@@ -2458,7 +2511,7 @@ function renderAll() {
       '</div>' +
       '<div style="margin-top:24px;font-size:12px;color:var(--text-muted)">' +
       '🔄 Auto-syncs every 2 minutes &middot; ' +
-      'Run <code>python action/dashboard/build_data.py</code> to force refresh</div></div>';
+      (REVIEW_SERVER ? 'Connected to review server' : '<a href="#" onclick="promptServerUrl();return false" style="color:var(--accent)">Connect to review server</a>') + '</div></div>';
 
     document.getElementById('main').innerHTML = '';
     // Data-dependent pages → show empty state message
@@ -4070,12 +4123,12 @@ function navigatePreview(newIdx) {
   });
 }
 
-/* ── Load full file content from GitHub raw URL ── */
+/* ── Load full file content from review server or GitHub raw ── */
 function loadFullContent(path, targetId, isMd) {
   const target = document.getElementById(targetId);
   if (!target) return;
-  target.innerHTML = '<div class="preview-loading">Fetching from GitHub…</div>';
-  
+  target.innerHTML = '<div class="preview-loading">Fetching file…</div>';
+
   // Normalize path — determine repo directory prefix from file path
   let cleanPath = path.replace(/\\/g,'/');
   let repoDir = 'action/'; // default
@@ -4099,14 +4152,26 @@ function loadFullContent(path, targetId, isMd) {
       break;
     }
   }
-  
-  const rawUrl = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/' + repoDir + cleanPath;
-  
-  fetch(rawUrl)
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text();
-    })
+
+  const fetchFile = async () => {
+    // 1) Try review server /api/file first (works from any network)
+    if (REVIEW_SERVER) {
+      try {
+        const resp = await fetch(REVIEW_SERVER + '/api/file?path=' + encodeURIComponent(repoDir + cleanPath) + '&t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.content) return data.content;
+        }
+      } catch (e) {}
+    }
+    // 2) Fallback to GitHub raw (for offline or GitHub Pages use)
+    const rawUrl = 'https://raw.githubusercontent.com/Dylan-BI/MUE/main/' + repoDir + cleanPath;
+    const resp = await fetch(rawUrl);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.text();
+  };
+
+  fetchFile()
     .then(text => {
       if (isMd) {
         target.innerHTML = renderMarkdown(text);

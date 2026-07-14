@@ -59,6 +59,34 @@ PROFILES_PATH = REPO_ROOT / 'review' / 'reviewer_profiles.json'
 BUILD_SCRIPT = DASHBOARD_DIR / 'build_data.py'
 ENV_FILE = DASHBOARD_DIR / '.env'
 
+# Set dynamically at startup so emails link to the correct address
+_SERVER_BASE_URL = 'http://localhost:8080'
+
+
+def _get_lan_ips():
+    """Return a list of non-loopback IPv4 addresses for this machine."""
+    import socket
+    ips = []
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            sockaddr = info[4]
+            if isinstance(sockaddr, tuple) and len(sockaddr) >= 1:
+                addr = sockaddr[0]
+                if isinstance(addr, str) and addr not in ips and not addr.startswith('127.'):
+                    ips.append(addr)
+    except Exception:
+        pass
+    # Fallback: connect a UDP socket to an external IP to discover the default route IP
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(('8.8.8.8', 80))
+            default_ip = s.getsockname()[0]
+            if default_ip not in ips and not default_ip.startswith('127.'):
+                ips.append(default_ip)
+    except Exception:
+        pass
+    return ips
+
 
 def _load_env_file(path):
     """Load a .env file into os.environ (does not overwrite existing vars)."""
@@ -405,7 +433,7 @@ def _build_summary_html(summary):
         {review_rows}
       </table>
 
-      <p style="font-size:11px;color:#aaa;margin:20px 0 0;text-align:center">Period: {when}<br>Sent by MUE Review Server · <a href="http://localhost:8080/dashboard.html" style="color:#6c5ce7">Open Dashboard</a></p>
+      <p style="font-size:11px;color:#aaa;margin:20px 0 0;text-align:center">Period: {when}<br>Sent by MUE Review Server · <a href="{_SERVER_BASE_URL}/dashboard.html" style="color:#6c5ce7">Open Dashboard</a></p>
     </div>
   </div></body></html>'''
 
@@ -590,6 +618,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_presence()
         elif path == '/api/profiles':
             self._handle_get_profiles()
+        elif path == '/api/file':
+            self._handle_get_file()
         else:
             # Serve static files (dashboard.html, data.json, etc.)
             super().do_GET()
@@ -923,6 +953,38 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {'error': f'Invalid JSON: {e}'})
             return None
 
+    def _handle_get_file(self):
+        """Serve a file from the repo root. ?path=<relative-path>&format=text|json"""
+        parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        rel_path = (qs.get('path', [''])[0]).strip().lstrip('/')
+        if not rel_path or '..' in rel_path:
+            self._send_json(400, {'error': 'Invalid path'})
+            return
+        # Map dashboard-relative paths to repo paths (same mapping as fetchRepoFile)
+        dir_map = {
+            'action/': '', 'source/': 'source/', 'review/': 'review/',
+            'templates/': 'templates/', 'notes/': 'action/notes/',
+            'evidence/': 'action/evidence/', 'reports/': 'action/reports/',
+            'scripts/': 'action/scripts/', 'dashboard/': 'action/dashboard/',
+            'archive/': 'review/archive/',
+        }
+        repo_path = rel_path
+        for prefix, repo_prefix in dir_map.items():
+            if rel_path.startswith(prefix):
+                rest = rel_path[len(prefix):]
+                repo_path = repo_prefix + rest
+                break
+        file_path = REPO_ROOT / repo_path
+        if not file_path.exists() or not file_path.is_file():
+            self._send_json(404, {'error': f'File not found: {rel_path}'})
+            return
+        try:
+            text = file_path.read_text(encoding='utf-8')
+            self._send_json(200, {'content': text, 'path': rel_path})
+        except Exception as e:
+            self._send_json(500, {'error': str(e)})
+
     def _send_json(self, status, data):
         """Send a JSON response."""
         body = json.dumps(data, ensure_ascii=False).encode('utf-8')
@@ -964,7 +1026,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='MUE Review Server')
     parser.add_argument('--port', type=int, default=8080, help='Port to listen on (default: 8080)')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0)')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (default: 0.0.0.0 — all interfaces, accessible from other devices)')
     parser.add_argument('--smtp-host', default='', help='SMTP server host (or set MUE_SMTP_HOST)')
     parser.add_argument('--smtp-port', type=int, default=587, help='SMTP server port (default: 587)')
     parser.add_argument('--smtp-user', default='', help='SMTP login username (or set MUE_SMTP_USER)')
@@ -985,14 +1047,27 @@ def main():
     DAILY_SUMMARY_HOUR = args.summary_hour
     DAILY_SUMMARY_MINUTE = args.summary_minute
 
+    # Set global base URL for email links (uses first LAN IP if available, else localhost)
+    global _SERVER_BASE_URL
+    lan_ips = _get_lan_ips()
+    base_ip = lan_ips[0] if lan_ips else 'localhost'
+    _SERVER_BASE_URL = f'http://{base_ip}:{args.port}'
+
     # Ensure review/reviews.json directory exists
     REVIEWS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     # Run initial build
+    lan_hint = ''
+    if lan_ips:
+        lan_hint = f'\n   🌐 LAN access:  http://{lan_ips[0]}:{args.port}/dashboard.html'
+        for extra_ip in lan_ips[1:]:
+            lan_hint += f'\n                   http://{extra_ip}:{args.port}/dashboard.html'
     print(f'\n🖥️  MUE Review Server')
     print(f'   Dashboard: http://localhost:{args.port}/dashboard.html')
     print(f'   API:       http://localhost:{args.port}/api/reviews')
     print(f'   Status:    http://localhost:{args.port}/api/status')
+    if lan_hint:
+        print(lan_hint)
     print(f'   Reviews:   {REVIEWS_PATH}')
     print()
 
@@ -1036,9 +1111,14 @@ def main():
             print()
 
     try:
-        print(f'🚀 Listening on http://{args.host}:{args.port}')
+        listen_addr = args.host if args.host != '0.0.0.0' else 'all interfaces'
+        print(f'🚀 Listening on http://{listen_addr}:{args.port}')
         if not args.tunnel:
             print(f'   Reviewers connect from any device on this network.')
+            if lan_ips:
+                print(f'   Share this URL:  http://{lan_ips[0]}:{args.port}/dashboard.html')
+                print(f'   Other devices can also open dashboard.html and enter this URL')
+                print(f'   in "Connect to review server" to join the session.')
         print(f'   Press Ctrl+C to stop.\n')
         server.serve_forever()
     except KeyboardInterrupt:
