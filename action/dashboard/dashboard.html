@@ -1058,10 +1058,9 @@
     <div class="env-body" id="envBody">
       <div class="env-checklist">
         <strong>You will need:</strong><br>
-        • The cloned <strong>MUE repository</strong> locally<br>
-        • <strong>Python 3.11+</strong> available on PATH<br>
         • A <strong>modern browser</strong> (Chrome, Edge, Firefox)<br>
-        • <strong>VS Code</strong> with GitHub Copilot (recommended)
+        • Access to the <strong>review server</strong> URL (ask your host for the LAN address)<br>
+        <span style="color:var(--text-muted);font-size:12px">No repo clone or Python needed — the dashboard is served remotely.</span>
       </div>
       <div class="env-actions" id="envActions">
         <button class="primary" onclick="confirmEnvironmentAdequate()">✅ Yes, Environment is Adequate</button>
@@ -1323,10 +1322,9 @@ function showEnvironmentPrompt() {
   body.innerHTML = `
     <div class="env-checklist">
       <strong>You will need:</strong><br>
-      • The cloned <strong>MUE repository</strong> locally<br>
-      • <strong>Python 3.11+</strong> available on PATH<br>
       • A <strong>modern browser</strong> (Chrome, Edge, Firefox)<br>
-      • <strong>VS Code</strong> with GitHub Copilot (recommended)
+      • Access to the <strong>review server</strong> URL (ask your host for the LAN address)<br>
+      <span style="color:var(--text-muted);font-size:12px">No repo clone or Python needed — the dashboard is served remotely.</span>
     </div>
     <div class="env-actions" id="envActions">
       <button class="primary" onclick="confirmEnvironmentAdequate()">✅ Yes, Environment is Adequate</button>
@@ -1438,6 +1436,10 @@ let SERVER_REVIEWS = {};   // Reviews fetched from server (artifactId → [revie
 let SERVER_CONNECTED = false;
 
 // Support cross-network connections via ?server= query param or localStorage
+function _maskUrl(url) {
+  /* Mask IP octets in a URL for safe display: 192.168.10.198 → 192.*.*.198 */
+  return url.replace(/(\d+)\.(\d+)\.(\d+)\.(\d+)/, '$1.*.*.$4');
+}
 function _getCustomServerUrl() {
   const params = new URLSearchParams(window.location.search);
   if (params.has('server')) return params.get('server');
@@ -1595,13 +1597,13 @@ function updateServerStatus() {
       const isRemote = _getCustomServerUrl() && !window.location.origin.startsWith('file:');
       const label = isRemote ? 'Remote server' : 'Server connected';
       el.innerHTML = '<span style="color:var(--success)">🟢</span> ' + label + ' — reviews shared across all reviewers' +
-        '<br><span style="font-size:10px;opacity:.7">' + REVIEW_SERVER + '</span>';
+        '<br><span style="font-size:10px;opacity:.7">' + _maskUrl(REVIEW_SERVER) + '</span>';
       el.title = 'Review server active: ' + REVIEW_SERVER;
     } else {
       const customUrl = _getCustomServerUrl();
       let hint = '';
       if (customUrl) {
-        hint = '<br><span style="font-size:10px;color:#dc3545">⚠ Cannot reach ' + customUrl + '</span>';
+        hint = '<br><span style="font-size:10px;color:#dc3545">⚠ Cannot reach ' + _maskUrl(customUrl) + '</span>';
       } else {
         hint = '<br><a href="#" onclick="promptServerUrl();return false" style="font-size:10px;color:var(--accent);text-decoration:underline">Connect to review server</a>';
       }
