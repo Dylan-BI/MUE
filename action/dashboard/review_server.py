@@ -466,6 +466,73 @@ def send_daily_summaries():
     return sent_count
 
 
+# ── Tunnel Support ───────────────────────────────────────────────────
+
+def _find_tunnel_tool():
+    """Detect available tunnel tool. Returns (tool_name, cmd_list) or None."""
+    import shutil
+    import subprocess
+    # Try cloudflared first (free, no account needed)
+    cf = shutil.which('cloudflared')
+    if cf:
+        return ('cloudflared', cf)
+    # Try ngrok
+    ng = shutil.which('ngrok')
+    if ng:
+        return ('ngrok', ng)
+    return None
+
+
+def _start_tunnel(port, tool_path, tool_name):
+    """Start a tunnel in a background thread, print public URL when ready."""
+    import subprocess
+    import re
+
+    if tool_name == 'cloudflared':
+        cmd = [tool_path, 'tunnel', '--url', f'http://localhost:{port}', '--no-autoupdate']
+    elif tool_name == 'ngrok':
+        cmd = [tool_path, 'http', str(port)]
+    else:
+        print(f'  ❌ Unknown tunnel tool: {tool_name}')
+        return
+
+    print(f'  🌐 Starting {tool_name} tunnel...')
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+        url_found = False
+        stdout = proc.stdout
+        if not stdout:
+            print(f'  ❌ {tool_name} failed to start')
+            return
+        for line in stdout:
+            line = line.strip()
+            # cloudflared prints URL to stderr/stdout with 'trycloudflare.com'
+            # ngrok prints URL with 'ngrok.io' or 'ngrok-free.app'
+            match = re.search(r'(https://[a-zA-Z0-9.-]+\.(?:trycloudflare\.com|ngrok(?:-free)?\.app)[^\s]*)', line)
+            if match and not url_found:
+                public_url = match.group(1)
+                url_found = True
+                print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+                print(f'  🌍 PUBLIC URL:  {public_url}')
+                print(f'  📋 Dashboard:   {public_url}/dashboard.html')
+                print(f'  🔌 API:         {public_url}/api/reviews')
+                print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+                print(f'  Share the Dashboard URL with reviewers on any network.')
+                print(f'  The tunnel stays open while the server is running.\n')
+        if not url_found:
+            print(f'  ⚠️  {tool_name} started but URL not captured. Check the terminal.')
+    except FileNotFoundError:
+        print(f'  ❌ {tool_name} not found — install it from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
+    except Exception as e:
+        print(f'  ❌ Tunnel error: {e}')
+
+
 # ── Daily Scheduler ──────────────────────────────────────────────────
 
 _scheduler_running = True
@@ -906,6 +973,7 @@ def main():
     parser.add_argument('--summary-hour', type=int, default=17, help='Hour to send daily summary (default: 17 = 5 PM)')
     parser.add_argument('--summary-minute', type=int, default=0, help='Minute to send daily summary (default: 0)')
     parser.add_argument('--test-summary', action='store_true', help='Send daily summary now and exit')
+    parser.add_argument('--tunnel', action='store_true', help='Expose server to the internet via cloudflared or ngrok tunnel')
     args = parser.parse_args()
 
     # Apply CLI overrides to SMTP config
@@ -955,9 +1023,22 @@ def main():
         scheduler_thread = threading.Thread(target=_daily_scheduler_loop, daemon=True)
         scheduler_thread.start()
 
+    # Start tunnel if requested
+    if args.tunnel:
+        tunnel_info = _find_tunnel_tool()
+        if tunnel_info:
+            tunnel_thread = threading.Thread(target=_start_tunnel, args=(args.port, tunnel_info[1], tunnel_info[0]), daemon=True)
+            tunnel_thread.start()
+        else:
+            print('   ⚠️  --tunnel requested but no tunnel tool found.')
+            print('   Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
+            print('   Or install ngrok:     https://ngrok.com/download')
+            print()
+
     try:
         print(f'🚀 Listening on http://{args.host}:{args.port}')
-        print(f'   Reviewers connect from any device on this network.')
+        if not args.tunnel:
+            print(f'   Reviewers connect from any device on this network.')
         print(f'   Press Ctrl+C to stop.\n')
         server.serve_forever()
     except KeyboardInterrupt:
