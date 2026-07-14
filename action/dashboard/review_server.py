@@ -437,7 +437,7 @@ def _build_summary_html(summary):
         {review_rows}
       </table>
 
-      <p style="font-size:11px;color:#aaa;margin:20px 0 0;text-align:center">Period: {when}<br>Sent by MUE Review Server · <a href="{_SERVER_BASE_URL}/dashboard.html" style="color:#6c5ce7">Open Dashboard</a></p>
+      <p style="font-size:11px;color:#aaa;margin:20px 0 0;text-align:center">Period: {when}<br>Sent by MUE Review Server · <a href="{_SERVER_BASE_URL}/go" style="color:#6c5ce7">Open Dashboard</a></p>
     </div>
   </div></body></html>'''
 
@@ -552,12 +552,11 @@ def _start_tunnel(port, tool_path, tool_name):
             if match and not url_found:
                 public_url = match.group(1)
                 url_found = True
+                go_url = f'{public_url}/go'
                 print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-                print(f'  🌍 PUBLIC URL:  {public_url}')
-                print(f'  📋 Dashboard:   {public_url}/dashboard.html')
-                print(f'  🔌 API:         {public_url}/api/reviews')
+                print(f'  🌍 PUBLIC URL:  {go_url}')
                 print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-                print(f'  Share the Dashboard URL with reviewers on any network.')
+                print(f'  Share this URL with reviewers on any network.')
                 print(f'  The tunnel stays open while the server is running.\n')
                 # Email notification
                 _tunnel_notify_url(TUNNEL_NOTIFY_EMAIL, public_url, tool_name)
@@ -576,8 +575,8 @@ def _start_tunnel(port, tool_path, tool_name):
 
 def _tunnel_notify_url(to_addr, public_url, tool_name):
     """Send email when a new tunnel URL is available."""
-    # Build secure URL with token
-    secure_url = f'{public_url}/?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else f'{public_url}/dashboard.html'
+    # Build shareable URL — /go handles token injection server-side
+    secure_url = f'{public_url}/go'
     subject = f'🌐 MUE Tunnel Active — {tool_name}'
     body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
@@ -696,8 +695,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         qs = parse_qs(parsed.query)
 
-        # Token check — skip for token-check endpoint, /go redirect, and CORS preflight
-        if path not in ('/api/check-token', '/go', '/') and not self._check_token(qs):
+        # Token check — skip for token-check endpoint, /go redirect, root redirect, data.json, and CORS preflight
+        if path not in ('/api/check-token', '/go', '/', '/data.json') and not self._check_token(qs):
             return
 
         if path == '/go':
@@ -1185,17 +1184,7 @@ def main():
     REVIEWS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     # Run initial build
-    lan_hint = ''
-    if lan_ips:
-        lan_hint = f'\n   🌐 LAN access:  http://{lan_ips[0]}:{args.port}/dashboard.html'
-        for extra_ip in lan_ips[1:]:
-            lan_hint += f'\n                   http://{extra_ip}:{args.port}/dashboard.html'
     print(f'\n🖥️  MUE Review Server')
-    print(f'   Dashboard: http://localhost:{args.port}/dashboard.html')
-    print(f'   API:       http://localhost:{args.port}/api/reviews')
-    print(f'   Status:    http://localhost:{args.port}/api/status')
-    if lan_hint:
-        print(lan_hint)
     print(f'   Reviews:   {REVIEWS_PATH}')
     print()
 
@@ -1242,14 +1231,13 @@ def main():
         listen_addr = args.host if args.host != '0.0.0.0' else 'all interfaces'
         print(f'🚀 Listening on http://{listen_addr}:{args.port}')
         if not args.tunnel:
-            print(f'   Reviewers connect from any device on this network.')
             if lan_ips:
+                go_url = f'http://{lan_ips[0]}:{args.port}/go'
+                print(f'   🔒 Share this URL:  {go_url}')
                 if SERVER_ACCESS_TOKEN:
-                    go_url = f'http://{lan_ips[0]}:{args.port}/go'
-                    print(f'   🔒 Share this URL:  {go_url}')
                     print(f'   (Auto-redirects to dashboard — token passed server-side)')
-                else:
-                    print(f'   🔒 Share this URL:  http://{lan_ips[0]}:{args.port}/dashboard.html')
+            else:
+                print(f'   ⚠️  No LAN IP detected — use localhost:{args.port}/go')
         print(f'   Press Ctrl+C to stop.\n')
         server.serve_forever()
     except KeyboardInterrupt:

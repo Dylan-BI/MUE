@@ -1470,7 +1470,7 @@ async function detectReviewServer() {
   // 1) Try custom server URL first
   if (customUrl) {
     try {
-      const resp = await _serverFetch(customUrl + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
+      const resp = await _serverFetch(customUrl + '/api/reviews?_cb=' + Date.now(), { signal: AbortSignal.timeout(3000) });
       if (resp.ok) {
         REVIEW_SERVER = customUrl;
         SERVER_REVIEWS = await resp.json();
@@ -1482,7 +1482,7 @@ async function detectReviewServer() {
   }
   // 2) Try same-origin (served by the review server)
   try {
-    const resp = await _serverFetch('/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
+    const resp = await _serverFetch('/api/reviews?_cb=' + Date.now(), { signal: AbortSignal.timeout(2000) });
     if (resp.ok) {
       REVIEW_SERVER = window.location.origin;
       SERVER_REVIEWS = await resp.json();
@@ -1505,7 +1505,7 @@ async function _serverFetch(url, opts) {
 async function serverFetchReviews() {
   if (!REVIEW_SERVER) return null;
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews?_cb=' + Date.now(), { signal: AbortSignal.timeout(3000) });
     if (resp.ok) { SERVER_REVIEWS = await resp.json(); updateServerStatus(); return SERVER_REVIEWS; }
   } catch (e) {}
   return null;
@@ -1555,7 +1555,7 @@ let _pendingLock = null; // {artifactId, reviewId, name} — lock we're about to
 async function serverFetchLocks() {
   if (!REVIEW_SERVER) return {};
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/locks?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/locks?_cb=' + Date.now(), { signal: AbortSignal.timeout(2000) });
     if (resp.ok) { ACTIVE_LOCKS = await resp.json(); return ACTIVE_LOCKS; }
   } catch (e) {}
   return {};
@@ -1705,7 +1705,7 @@ async function sendPresenceLeave() {
 async function fetchPresence() {
   if (!REVIEW_SERVER) { REVIEWER_PRESENCE = []; renderPresencePanel(); return; }
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/presence?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/presence?_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
     if (resp.ok) { REVIEWER_PRESENCE = await resp.json(); renderPresencePanel(); }
   } catch (e) {}
 }
@@ -1910,13 +1910,13 @@ async function loadData() {
   // Build a list of data.json URLs to try in order (token appended to server URLs)
   const candidates = [];
   if (baseUrl) candidates.push(_tokenAppend(baseUrl + '/data.json'));           // Custom remote server
-  if (!customUrl) candidates.push('data.json');                                  // Same-origin (served by review server)
+  if (!customUrl) candidates.push(_tokenAppend('data.json'));                   // Same-origin (served by review server)
   if (REVIEW_SERVER && REVIEW_SERVER !== baseUrl) candidates.push(_tokenAppend(REVIEW_SERVER + '/data.json')); // Detected review server
   candidates.push('https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json'); // GitHub raw fallback
 
   for (const url of candidates) {
     try {
-      const resp = await fetch(url + '?t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
+      const resp = await fetch(url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now(), { signal: AbortSignal.timeout(5000) });
       if (!resp.ok) throw new Error('Not found');
       DATA = await resp.json();
       LAST_GENERATED = DATA.generated;
@@ -2045,8 +2045,8 @@ function startAutoRefresh() {
   const _autoRefreshPrefix = _autoRefreshBaseUrl ? _autoRefreshBaseUrl.replace(/\/+$/, '') : '';
   refreshInterval = setInterval(async () => {
     try {
-      const fetchUrl = _autoRefreshPrefix ? _autoRefreshPrefix + '/data.json' : 'data.json';
-      const resp = await fetch(fetchUrl + '?t=' + Date.now());
+      const fetchUrl = _tokenAppend(_autoRefreshPrefix ? _autoRefreshPrefix + '/data.json' : 'data.json');
+      const resp = await fetch(fetchUrl + (fetchUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now());
       if (!resp.ok) return;
       const fresh = await resp.json();
       if (fresh.generated && fresh.generated !== LAST_GENERATED) {
@@ -3202,7 +3202,7 @@ function setProfile(profile) {
 async function serverFetchProfiles() {
   if (!REVIEW_SERVER) return {};
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
     if (resp.ok) { SERVER_PROFILES = await resp.json(); return SERVER_PROFILES; }
   } catch (e) {}
   return {};
@@ -4176,7 +4176,7 @@ function loadFullContent(path, targetId, isMd) {
     // 1) Try review server /api/file first (works from any network)
     if (REVIEW_SERVER) {
       try {
-        const resp = await _serverFetch(REVIEW_SERVER + '/api/file?path=' + encodeURIComponent(repoDir + cleanPath) + '&t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
+        const resp = await _serverFetch(REVIEW_SERVER + '/api/file?path=' + encodeURIComponent(repoDir + cleanPath) + '&_cb=' + Date.now(), { signal: AbortSignal.timeout(5000) });
         if (resp.ok) {
           const data = await resp.json();
           if (data.content) return data.content;
