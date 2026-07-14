@@ -536,51 +536,58 @@
   .env-box .env-actions button.secondary { background: transparent; color: var(--text-secondary); border-color: transparent; justify-content: center; font-size: 12px; }
   .env-box .env-actions button.secondary:hover { color: var(--text-primary); background: transparent; }
   .env-box .env-actions button .env-icon { font-size: 18px; }
-  /* ── Reviewer Profile Modal ── */
-  .profile-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 300; justify-content: center; align-items: center; }
+  /* ── Reviewer Sign-In Page ── */
+  .profile-modal { display: none; position: fixed; inset: 0; background: linear-gradient(135deg, #0f0c29 0%, #1a1640 40%, #24243e 100%); z-index: 300; justify-content: center; align-items: center; }
   .profile-modal.open { display: flex; }
-  .profile-box { background: var(--bg-card); border-radius: 16px; max-width: 440px; width: 92%; padding: 0; overflow: hidden; box-shadow: 0 16px 60px rgba(0,0,0,.3), 0 0 0 1px rgba(0,0,0,.08); color: var(--text-primary); animation: profileIn .25s ease; }
-  .profile-box .pm-header { padding: 24px 24px 0 24px; text-align: center; }
-  .profile-box .pm-header .pm-avatar { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
-  .profile-box .pm-header h2 { font-size: 18px; margin: 0 0 4px 0; }
-  .profile-box .pm-header p { font-size: 13px; color: var(--text-secondary); margin: 0 0 16px 0; line-height: 1.5; }
-  .profile-box .pm-body { padding: 0 24px 24px 24px; }
+  .profile-box { background: rgba(255,255,255,.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 480px; width: 92%; padding: 0; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.5); color: #fff; animation: profileIn .3s ease; }
+  .profile-box .pm-header { padding: 32px 32px 0 32px; text-align: center; }
+  .profile-box .pm-header .pm-avatar { width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: #fff; box-shadow: 0 4px 24px rgba(108,92,231,.4); background: linear-gradient(135deg, #6c5ce7, #a29bfe); }
+  .profile-box .pm-header h2 { font-size: 22px; margin: 0 0 6px 0; font-weight: 700; }
+  .profile-box .pm-header p { font-size: 13px; color: rgba(255,255,255,.6); margin: 0 0 20px 0; line-height: 1.5; }
+  .profile-box .pm-body { padding: 0 32px 32px 32px; }
+  /* ── Sign-In / Sign-Up Tabs ── */
+  .pm-tabs { display: flex; gap: 0; margin-bottom: 20px; background: rgba(255,255,255,.06); border-radius: 10px; padding: 3px; }
+  .pm-tabs button { flex: 1; padding: 10px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; background: transparent; color: rgba(255,255,255,.5); }
+  .pm-tabs button.active { background: rgba(108,92,231,.8); color: #fff; box-shadow: 0 2px 12px rgba(108,92,231,.3); }
+  .pm-tabs button:not(.active):hover { color: rgba(255,255,255,.8); background: rgba(255,255,255,.05); }
+  .pm-tab-panel { display: none; }
+  .pm-tab-panel.active { display: block; }
+  /* ── Sign-In Picker (existing profiles) ── */
+  .pm-signin-profiles { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .pm-signin-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); cursor: pointer; transition: all .2s; background: rgba(255,255,255,.04); }
+  .pm-signin-item:hover { border-color: rgba(108,92,231,.6); background: rgba(108,92,231,.1); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(108,92,231,.15); }
+  .pm-signin-avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+  .pm-signin-info { flex: 1; min-width: 0; }
+  .pm-signin-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .pm-signin-uname { font-size: 11px; color: rgba(255,255,255,.45); }
+  .pm-signin-arrow { font-size: 16px; color: rgba(255,255,255,.3); flex-shrink: 0; }
+  .pm-signin-empty { text-align: center; padding: 24px 16px; color: rgba(255,255,255,.4); font-size: 13px; }
+  .pm-signin-empty .pm-signin-empty-icon { font-size: 32px; margin-bottom: 8px; }
   .profile-box .pm-field { margin-bottom: 14px; }
-  .profile-box .pm-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
-  .profile-box .pm-field label span { color: var(--danger-hue); }
-  .profile-box .pm-field input { width: 100%; padding: 8px 12px; border: 1px solid var(--border-input); border-radius: 8px; font-size: 14px; background: var(--bg-card); color: var(--text-primary); transition: border-color .15s; }
-  .profile-box .pm-field input:focus { outline: none; border-color: var(--accent); }
-  .profile-box .pm-field .pm-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-  .profile-box .pm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 12px; background: var(--bg-muted); border: 1px solid var(--border-light); border-radius: 8px; cursor: pointer; transition: border-color .15s; }
-  .profile-box .pm-toggle:hover { border-color: var(--accent); }
-  .profile-box .pm-toggle input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .profile-box .pm-field label { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); margin-bottom: 5px; }
+  .profile-box .pm-field label span { color: #ff6b6b; }
+  .profile-box .pm-field input { width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; font-size: 14px; background: rgba(255,255,255,.06); color: #fff; transition: border-color .2s; }
+  .profile-box .pm-field input::placeholder { color: rgba(255,255,255,.25); }
+  .profile-box .pm-field input:focus { outline: none; border-color: rgba(108,92,231,.6); background: rgba(255,255,255,.08); }
+  .profile-box .pm-field .pm-hint { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 4px; }
+  .profile-box .pm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; cursor: pointer; transition: border-color .2s; }
+  .profile-box .pm-toggle:hover { border-color: rgba(108,92,231,.4); }
+  .profile-box .pm-toggle input[type=checkbox] { width: 18px; height: 18px; accent-color: #6c5ce7; cursor: pointer; flex-shrink: 0; }
   .profile-box .pm-toggle-text { flex: 1; }
-  .profile-box .pm-toggle-text .pm-toggle-label { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-  .profile-box .pm-toggle-text .pm-toggle-desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .profile-box .pm-toggle-text .pm-toggle-label { font-size: 13px; font-weight: 600; color: #fff; }
+  .profile-box .pm-toggle-text .pm-toggle-desc { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; }
   .profile-box .pm-actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 8px; }
-  .profile-box .pm-actions button { padding: 8px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
-  .profile-box .pm-actions .pm-save { background: var(--accent); color: #fff; }
-  .profile-box .pm-actions .pm-save:hover { background: var(--accent-hover); }
-  .profile-box .pm-actions .pm-skip { background: transparent; color: var(--text-muted); border: 1px solid var(--border-light); }
-  .profile-box .pm-actions .pm-skip:hover { color: var(--text-primary); border-color: var(--border-input); }
-  .pm-mandatory-notice { background: linear-gradient(135deg, rgba(255,107,107,.1), rgba(255,107,107,.05)); border: 1px solid rgba(255,107,107,.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #ff6b6b; line-height: 1.5; }
+  .profile-box .pm-actions button { padding: 10px 24px; border-radius: 10px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+  .profile-box .pm-actions .pm-save { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; box-shadow: 0 4px 16px rgba(108,92,231,.3); }
+  .profile-box .pm-actions .pm-save:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,92,231,.4); }
+  .profile-box .pm-actions .pm-skip { background: rgba(255,255,255,.06); color: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.1); }
+  .profile-box .pm-actions .pm-skip:hover { color: #fff; border-color: rgba(255,255,255,.2); }
+  .pm-mandatory-notice { background: linear-gradient(135deg, rgba(255,107,107,.15), rgba(255,107,107,.05)); border: 1px solid rgba(255,107,107,.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #ff6b6b; line-height: 1.5; }
   .pm-mandatory-notice strong { font-size: 13px; }
   .pm-admin-access { display: none; margin-top: 10px; text-align: center; }
   .pm-admin-access button { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
   .pm-admin-access button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,92,231,.3); }
-  @keyframes profileIn { from { opacity: 0; transform: scale(.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-  /* ── Profile Picker (returning reviewers) ── */
-  .pm-picker-header { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
-  .pm-picker-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 6px; cursor: pointer; transition: all .15s; background: var(--bg-muted); }
-  .pm-picker-item:hover { border-color: var(--accent); background: var(--bg-accent-subtle); }
-  .pm-picker-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
-  .pm-picker-info { flex: 1; min-width: 0; }
-  .pm-picker-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-  .pm-picker-uname { font-size: 11px; color: var(--text-muted); }
-  .pm-picker-divider { text-align: center; font-size: 11px; color: var(--text-muted); margin: 10px 0 14px; position: relative; }
-  .pm-picker-divider::before, .pm-picker-divider::after { content: ''; position: absolute; top: 50%; width: 30%; height: 1px; background: var(--border-light); }
-  .pm-picker-divider::before { left: 0; }
-  .pm-picker-divider::after { right: 0; }
+  @keyframes profileIn { from { opacity: 0; transform: scale(.96) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   /* ── Sidebar Profile Card ── */
   .sidebar-profile { padding: 8px 12px; margin-bottom: 4px; background: var(--sidebar-hover-bg); border-radius: 8px; border: 1px solid var(--sidebar-level-btn-border); cursor: pointer; transition: background .15s; }
   .sidebar-profile:hover { background: rgba(124,115,255,.12); }
@@ -1011,38 +1018,47 @@
 <div class="profile-modal" id="profileModal">
   <div class="profile-box">
     <div class="pm-header">
-      <div class="pm-avatar" id="pm_avatar" style="background:var(--accent)">?</div>
-      <h2>👤 Reviewer Profile</h2>
-      <p>Set up your identity so other reviewers can see who's reviewing. Profiles are stored on the server and accessible from any device.</p>
-      <div id="pmMandatoryNotice" class="pm-mandatory-notice" style="display:none"><strong>⚠️ Profile Required</strong><br>You must create a reviewer profile before accessing the dashboard.</div>
+      <div class="pm-avatar" id="pm_avatar" style="background:linear-gradient(135deg,#6c5ce7,#a29bfe)">?</div>
+      <h2>Welcome to MUE</h2>
+      <p>Sign in to your reviewer profile or create a new one to get started.</p>
+      <div id="pmMandatoryNotice" class="pm-mandatory-notice" style="display:none"><strong>⚠️ Profile Required</strong><br>You must sign in before accessing the dashboard.</div>
     </div>
     <div class="pm-body">
-      <div id="pm_picker" style="display:none"></div>
-      <div class="pm-field">
-        <label>Username <span>*</span></label>
-        <input id="pm_username" placeholder="e.g. dylan_bi" autocomplete="off" oninput="_previewProfileAvatar()" />
-        <div class="pm-hint">Unique identifier — lowercase letters, numbers, dots, dashes</div>
+      <div class="pm-tabs">
+        <button class="active" onclick="_switchProfileTab('signin')" id="pmTabSignin">🔑 Sign In</button>
+        <button onclick="_switchProfileTab('signup')" id="pmTabSignup">➕ New Account</button>
       </div>
-      <div class="pm-field">
-        <label>Display Name <span>*</span></label>
-        <input id="pm_displayname" placeholder="e.g. Dylan BI" autocomplete="off" oninput="_previewProfileAvatar()" />
-        <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
+      <!-- Sign In Tab: existing profiles from server -->
+      <div class="pm-tab-panel active" id="pmPanelSignin">
+        <div id="pm_signin_list" class="pm-signin-profiles"></div>
       </div>
-      <div class="pm-field">
-        <label>Email <span style="color:var(--text-muted)">(optional)</span></label>
-        <input id="pm_email" type="email" placeholder="e.g. dylan@bicyclebi.com" autocomplete="email" />
-        <div class="pm-hint">Receive daily summaries of review activity and generative data exchange</div>
-      </div>
-      <label class="pm-toggle" for="pm_dailySummary">
-        <input type="checkbox" id="pm_dailySummary" />
-        <div class="pm-toggle-text">
-          <div class="pm-toggle-label">📬 Daily Summary Email</div>
-          <div class="pm-toggle-desc">Get a daily email with who reviewed what, ratings, and progress across all reviewers</div>
+      <!-- Sign Up Tab: create new profile -->
+      <div class="pm-tab-panel" id="pmPanelSignup">
+        <div class="pm-field">
+          <label>Username <span>*</span></label>
+          <input id="pm_username" placeholder="e.g. dylan_bi" autocomplete="off" oninput="_previewProfileAvatar()" />
+          <div class="pm-hint">Unique identifier — lowercase letters, numbers, dots, dashes</div>
         </div>
-      </label>
-      <div class="pm-actions">
-        <button class="pm-skip" onclick="closeProfileModal()">Skip</button>
-        <button class="pm-save" onclick="saveProfile()">✅ Activate Profile</button>
+        <div class="pm-field">
+          <label>Display Name <span>*</span></label>
+          <input id="pm_displayname" placeholder="e.g. Dylan BI" autocomplete="off" oninput="_previewProfileAvatar()" />
+          <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
+        </div>
+        <div class="pm-field">
+          <label>Email <span style="color:rgba(255,255,255,.35)">(optional)</span></label>
+          <input id="pm_email" type="email" placeholder="e.g. dylan@bicyclebi.com" autocomplete="email" />
+          <div class="pm-hint">Receive daily summaries of review activity</div>
+        </div>
+        <label class="pm-toggle" for="pm_dailySummary">
+          <input type="checkbox" id="pm_dailySummary" />
+          <div class="pm-toggle-text">
+            <div class="pm-toggle-label">📬 Daily Summary Email</div>
+            <div class="pm-toggle-desc">Get a daily email with who reviewed what, ratings, and progress</div>
+          </div>
+        </label>
+        <div class="pm-actions">
+          <button class="pm-save" onclick="saveProfile()">✅ Create & Sign In</button>
+        </div>
       </div>
       <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (dylan_bi)</button></div>
     </div>
@@ -1757,6 +1773,8 @@ async function startPresenceTracking() {
   renderSidebarProfile();
   // Fetch server profiles for picker
   await serverFetchProfiles();
+  // Refresh sign-in list in case modal is already open
+  _renderSigninList();
   // Mandatory profile: force modal after environment check (or immediately if env already confirmed)
   const envOverlay = document.getElementById('envOverlay');
   const envOpen = envOverlay && envOverlay.classList.contains('open');
@@ -1925,8 +1943,7 @@ async function loadData() {
       updateSidebarLevelButtons();
       startAutoRefresh();
       checkEnvironment();
-      detectReviewServer();
-      startPresenceTracking();
+      detectReviewServer().then(() => startPresenceTracking());
       var noteCount = (DATA.summary && DATA.summary.total_days) || 0;
       if (noteCount > 0) {
         setTimeout(function() { showToast(noteCount + ' notes loaded across ' + (DATA.summary.curr_level || 1) + ' level(s)', 'info', 'Dashboard Ready'); }, 600);
@@ -3258,6 +3275,48 @@ function getReviewerUsername() { const p = getProfile(); return p ? p.username |
 function getReviewerDisplayName() { const p = getProfile(); return p ? p.displayName || '' : ''; }
 
 /* ── Profile Modal ── */
+function _switchProfileTab(tab) {
+  const signinTab = document.getElementById('pmTabSignin');
+  const signupTab = document.getElementById('pmTabSignup');
+  const signinPanel = document.getElementById('pmPanelSignin');
+  const signupPanel = document.getElementById('pmPanelSignup');
+  if (tab === 'signin') {
+    signinTab.classList.add('active'); signupTab.classList.remove('active');
+    signinPanel.classList.add('active'); signupPanel.classList.remove('active');
+  } else {
+    signupTab.classList.add('active'); signinTab.classList.remove('active');
+    signupPanel.classList.add('active'); signinPanel.classList.remove('active');
+    const u = document.getElementById('pm_username');
+    if (u) setTimeout(() => u.focus(), 100);
+  }
+}
+
+function _renderSigninList() {
+  const container = document.getElementById('pm_signin_list');
+  if (!container) return;
+  const profiles = Object.values(SERVER_PROFILES);
+  if (profiles.length === 0) {
+    container.innerHTML = '<div class="pm-signin-empty"><div class="pm-signin-empty-icon">👤</div>No reviewer profiles yet.<br>Create your profile in the <strong>New Account</strong> tab.</div>';
+    return;
+  }
+  let html = '';
+  profiles.forEach(p => {
+    const mix = _reviewerColorMix(p.username);
+    const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    html += '<div class="pm-signin-item" onclick="_quickLogin(\'' + escHtml(p.username) + '\')">' +
+      '<div class="pm-signin-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
+      '<div class="pm-signin-info"><div class="pm-signin-name">' + escHtml(p.displayName) + '</div>' +
+      '<div class="pm-signin-uname">@' + escHtml(p.username) + '</div></div>' +
+      '<div class="pm-signin-arrow">›</div></div>';
+  });
+  container.innerHTML = html;
+  // If modal is open and no profile yet, auto-switch to Sign In now that profiles exist
+  const modal = document.getElementById('profileModal');
+  if (modal && modal.classList.contains('open') && !getProfile()) {
+    _switchProfileTab('signin');
+  }
+}
+
 function openProfileModal(edit) {
   const modal = document.getElementById('profileModal');
   if (!modal) return;
@@ -3266,7 +3325,6 @@ function openProfileModal(edit) {
   const dInput = document.getElementById('pm_displayname');
   const eInput = document.getElementById('pm_email');
   const dsInput = document.getElementById('pm_dailySummary');
-  const pickerEl = document.getElementById('pm_picker');
   const mandatory = isProfileMandatory();
   const notice = document.getElementById('pmMandatoryNotice');
   const skipBtn = modal.querySelector('.pm-skip');
@@ -3281,36 +3339,14 @@ function openProfileModal(edit) {
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = existing.email || ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
   else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; }
-  _previewProfileAvatar();  // update avatar gradient on open
-  // Show profile picker — restricted: owner sees own profile, admin sees all
-  if (pickerEl) {
-    const allProfiles = Object.values(SERVER_PROFILES);
-    const currentUsername = existing ? existing.username : (getReviewerUsername() || '');
-    const admin = isAdminUser();
-    const visible = admin ? allProfiles : allProfiles.filter(p => p.username === currentUsername);
-    if (!existing && visible.length > 0) {
-      const headerText = admin ? 'All reviewer profiles — click to sign in:' : 'Your profile — click to sign in:';
-      let ph = '<div class="pm-picker-header">' + headerText + '</div>';
-      visible.forEach(p => {
-        const mix = _reviewerColorMix(p.username);
-        const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-        ph += '<div class="pm-picker-item" onclick="_quickLogin(\'' + escHtml(p.username) + '\')">' +
-          '<div class="pm-picker-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
-          '<div class="pm-picker-info"><div class="pm-picker-name">' + escHtml(p.displayName) + '</div>' +
-          '<div class="pm-picker-uname">@' + escHtml(p.username) + '</div></div>' +
-          (admin && p.username !== currentUsername ? '<span style="font-size:10px;color:var(--accent);margin-left:auto">admin</span>' : '') +
-          '</div>';
-      });
-      ph += '<div class="pm-picker-divider">or create a new profile below</div>';
-      pickerEl.innerHTML = ph;
-      pickerEl.style.display = 'block';
-    } else {
-      pickerEl.innerHTML = '';
-      pickerEl.style.display = 'none';
-    }
-  }
+  _previewProfileAvatar();
+  // Render sign-in list with server profiles
+  _renderSigninList();
+  // Default tab: Sign In if profiles exist, Sign Up if none
+  const hasProfiles = Object.keys(SERVER_PROFILES).length > 0;
+  _switchProfileTab(hasProfiles ? 'signin' : 'signup');
   modal.classList.add('open');
-  uInput.focus();
+  if (!hasProfiles) { if (uInput) uInput.focus(); }
 }
 
 function _quickLogin(username) {
