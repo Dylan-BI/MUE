@@ -62,6 +62,10 @@ ENV_FILE = DASHBOARD_DIR / '.env'
 # Set dynamically at startup so emails link to the correct address
 _SERVER_BASE_URL = 'http://localhost:8080'
 
+# Access token — set at startup for secure remote access
+# When set, all requests must include ?t=<token> to access the dashboard/API
+SERVER_ACCESS_TOKEN = None
+
 
 def _get_lan_ips():
     """Return a list of non-loopback IPv4 addresses for this machine."""
@@ -572,6 +576,8 @@ def _start_tunnel(port, tool_path, tool_name):
 
 def _tunnel_notify_url(to_addr, public_url, tool_name):
     """Send email when a new tunnel URL is available."""
+    # Build secure URL with token
+    secure_url = f'{public_url}/?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else f'{public_url}/dashboard.html'
     subject = f'🌐 MUE Tunnel Active — {tool_name}'
     body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
@@ -582,12 +588,8 @@ def _tunnel_notify_url(to_addr, public_url, tool_name):
     <div style="padding:20px 24px">
       <p style="font-size:14px;color:#333;margin:0 0 16px">A new tunnel URL has been generated. Share this with reviewers:</p>
       <div style="background:#f8f9fa;border-radius:8px;padding:16px;text-align:center;margin-bottom:16px">
-        <a href="{public_url}/dashboard.html" style="font-size:16px;font-weight:600;color:#6c5ce7;text-decoration:none;word-break:break-all">{public_url}/dashboard.html</a>
+        <a href="{secure_url}" style="font-size:16px;font-weight:600;color:#6c5ce7;text-decoration:none;word-break:break-all">{secure_url}</a>
       </div>
-      <table style="width:100%;font-size:13px;color:#555;margin-bottom:16px">
-        <tr><td style="padding:4px 0">📡 API:</td><td style="padding:4px 0"><a href="{public_url}/api/reviews" style="color:#6c5ce7">{public_url}/api/reviews</a></td></tr>
-        <tr><td style="padding:4px 0">📊 Status:</td><td style="padding:4px 0"><a href="{public_url}/api/status" style="color:#6c5ce7">{public_url}/api/status</a></td></tr>
-      </table>
       <p style="font-size:11px;color:#aaa;margin:0;text-align:center">This URL will change if the tunnel is restarted.<br>Sent by MUE Review Server</p>
     </div>
   </div></body></html>'''
@@ -667,9 +669,36 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def _check_token(self, qs):
+        """Verify access token. Returns True if allowed, False if denied (sends 403)."""
+        if not SERVER_ACCESS_TOKEN:
+            return True  # No token required
+        token = qs.get('t', [''])[0]
+        if token == SERVER_ACCESS_TOKEN:
+            return True
+        # Deny — send a generic 403 that reveals nothing about the server
+        body = b'<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body style="font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f5f5"><div style="text-align:center;padding:40px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08)"><h1 style="font-size:48px;margin:0;color:#dc3545">403</h1><p style="color:#666;margin:8px 0 0">Access denied</p><p style="color:#999;font-size:13px;margin:16px 0 0">Invalid or missing access token.</p></div></body></html>'
+        self.send_response(403)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return False
+
+    def _handle_check_token(self, qs):
+        """Check if a token is valid. Returns {valid: true/false}."""
+        token = qs.get('t', [''])[0]
+        valid = (not SERVER_ACCESS_TOKEN) or (token == SERVER_ACCESS_TOKEN)
+        self._send_json(200, {'valid': valid})
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        qs = parse_qs(parsed.query)
+
+        # Token check — skip for token-check endpoint itself and CORS preflight
+        if path != '/api/check-token' and not self._check_token(qs):
+            return
 
         if path == '/api/reviews':
             self._handle_get_reviews()
@@ -683,12 +712,20 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_profiles()
         elif path == '/api/file':
             self._handle_get_file()
+        elif path == '/api/check-token':
+            self._handle_check_token(qs)
         else:
             # Serve static files (dashboard.html, data.json, etc.)
             super().do_GET()
 
     def do_POST(self):
         parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+
+        # Token check
+        if not self._check_token(qs):
+            return
+
         if parsed.path == '/api/reviews':
             self._handle_add_review()
         elif parsed.path == '/api/locks':
@@ -706,6 +743,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        if not self._check_token(qs):
+            return
         if parsed.path == '/api/reviews':
             self._handle_update_review()
         else:
@@ -713,6 +753,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        if not self._check_token(qs):
+            return
         if parsed.path == '/api/reviews':
             self._handle_delete_review()
         else:
@@ -1099,6 +1142,8 @@ def main():
     parser.add_argument('--summary-minute', type=int, default=0, help='Minute to send daily summary (default: 0)')
     parser.add_argument('--test-summary', action='store_true', help='Send daily summary now and exit')
     parser.add_argument('--tunnel', action='store_true', help='Expose server to the internet via cloudflared or ngrok tunnel')
+    parser.add_argument('--token', default='', help='Access token for secure remote access (auto-generated if not set)')
+    parser.add_argument('--no-token', action='store_true', help='Disable access token (for local-only use)')
     args = parser.parse_args()
 
     # Apply CLI overrides to SMTP config
@@ -1109,6 +1154,12 @@ def main():
     if args.smtp_from: SMTP_FROM = args.smtp_from
     DAILY_SUMMARY_HOUR = args.summary_hour
     DAILY_SUMMARY_MINUTE = args.summary_minute
+
+    # Access token for secure remote access
+    global SERVER_ACCESS_TOKEN
+    if not args.no_token:
+        import secrets, string
+        SERVER_ACCESS_TOKEN = args.token if args.token else ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
 
     # Set global base URL for email links (uses first LAN IP if available, else localhost)
     global _SERVER_BASE_URL
@@ -1179,9 +1230,9 @@ def main():
         if not args.tunnel:
             print(f'   Reviewers connect from any device on this network.')
             if lan_ips:
-                print(f'   Share this URL:  http://{lan_ips[0]}:{args.port}/dashboard.html')
-                print(f'   Other devices can also open dashboard.html and enter this URL')
-                print(f'   in "Connect to review server" to join the session.')
+                secure_url = f'http://{lan_ips[0]}:{args.port}/?t={SERVER_ACCESS_TOKEN}' if SERVER_ACCESS_TOKEN else f'http://{lan_ips[0]}:{args.port}/dashboard.html'
+                print(f'   🔒 Share this URL:  {secure_url}')
+                print(f'   (Access token required — paste the full URL to grant access)')
         print(f'   Press Ctrl+C to stop.\n')
         server.serve_forever()
     except KeyboardInterrupt:

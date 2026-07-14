@@ -1435,6 +1435,22 @@ let REVIEW_SERVER = null;  // URL of review server when available, null otherwis
 let SERVER_REVIEWS = {};   // Reviews fetched from server (artifactId → [reviews])
 let SERVER_CONNECTED = false;
 
+/* ── Access Token (secure remote access) ── */
+const MUE_TOKEN_KEY = 'mue_access_token';
+(function _initToken() {
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('t');
+  if (urlToken) {
+    try { localStorage.setItem(MUE_TOKEN_KEY, urlToken); } catch (e) {}
+    // Clean the URL so the token isn't visible in the address bar
+    const clean = window.location.pathname;
+    window.history.replaceState({}, '', clean);
+  }
+})();
+function _getToken() { try { return localStorage.getItem(MUE_TOKEN_KEY) || ''; } catch (e) { return ''; } }
+function _tokenQS() { const t = _getToken(); return t ? '?t=' + encodeURIComponent(t) : ''; }
+function _tokenAppend(url) { const t = _getToken(); return t ? url + (url.includes('?') ? '&' : '?') + 't=' + encodeURIComponent(t) : url; }
+
 // Support cross-network connections via ?server= query param or localStorage
 function _getCustomServerUrl() {
   const params = new URLSearchParams(window.location.search);
@@ -1454,7 +1470,7 @@ async function detectReviewServer() {
   // 1) Try custom server URL first
   if (customUrl) {
     try {
-      const resp = await fetch(customUrl + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
+      const resp = await _serverFetch(customUrl + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
       if (resp.ok) {
         REVIEW_SERVER = customUrl;
         SERVER_REVIEWS = await resp.json();
@@ -1466,7 +1482,7 @@ async function detectReviewServer() {
   }
   // 2) Try same-origin (served by the review server)
   try {
-    const resp = await fetch('/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
+    const resp = await _serverFetch('/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
     if (resp.ok) {
       REVIEW_SERVER = window.location.origin;
       SERVER_REVIEWS = await resp.json();
@@ -1481,10 +1497,15 @@ async function detectReviewServer() {
   return false;
 }
 
+/* ── Server fetch wrapper — auto-appends access token ── */
+async function _serverFetch(url, opts) {
+  return fetch(_tokenAppend(url), opts);
+}
+
 async function serverFetchReviews() {
   if (!REVIEW_SERVER) return null;
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews?t=' + Date.now(), { signal: AbortSignal.timeout(3000) });
     if (resp.ok) { SERVER_REVIEWS = await resp.json(); updateServerStatus(); return SERVER_REVIEWS; }
   } catch (e) {}
   return null;
@@ -1493,7 +1514,7 @@ async function serverFetchReviews() {
 async function serverAddReview(artifactId, review) {
   if (!REVIEW_SERVER) return null;
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/reviews', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({artifactId, review})
     });
@@ -1505,7 +1526,7 @@ async function serverAddReview(artifactId, review) {
 async function serverUpdateReview(artifactId, reviewId, updates) {
   if (!REVIEW_SERVER) return false;
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/reviews', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews', {
       method: 'PUT', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({artifactId, reviewId, updates})
     });
@@ -1518,7 +1539,7 @@ async function serverUpdateReview(artifactId, reviewId, updates) {
 async function serverDeleteReview(artifactId, reviewId) {
   if (!REVIEW_SERVER) return false;
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/reviews', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews', {
       method: 'DELETE', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({artifactId, reviewId})
     });
@@ -1534,7 +1555,7 @@ let _pendingLock = null; // {artifactId, reviewId, name} — lock we're about to
 async function serverFetchLocks() {
   if (!REVIEW_SERVER) return {};
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/locks?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/locks?t=' + Date.now(), { signal: AbortSignal.timeout(2000) });
     if (resp.ok) { ACTIVE_LOCKS = await resp.json(); return ACTIVE_LOCKS; }
   } catch (e) {}
   return {};
@@ -1543,7 +1564,7 @@ async function serverFetchLocks() {
 async function serverClaimLock(artifactId, reviewId, name) {
   if (!REVIEW_SERVER) return {ok: true};
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/locks', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/locks', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({action: 'claim', artifactId, reviewId, name})
     });
@@ -1556,7 +1577,7 @@ async function serverClaimLock(artifactId, reviewId, name) {
 async function serverReleaseLock(artifactId, reviewId, name) {
   if (!REVIEW_SERVER) return;
   try {
-    await fetch(REVIEW_SERVER + '/api/locks', {
+    await _serverFetch(REVIEW_SERVER + '/api/locks', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({action: 'release', artifactId, reviewId, name})
     });
@@ -1566,7 +1587,7 @@ async function serverReleaseLock(artifactId, reviewId, name) {
 async function serverCheckLock(artifactId, reviewId) {
   if (!REVIEW_SERVER) return null;
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/locks', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/locks', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({action: 'check', artifactId, reviewId})
     });
@@ -1657,7 +1678,7 @@ async function sendPresenceHeartbeat() {
   const name = p.username;
   if (!name) return;
   try {
-    await fetch(REVIEW_SERVER + '/api/presence', {
+    await _serverFetch(REVIEW_SERVER + '/api/presence', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name, displayName: p.displayName, color: _reviewerColor(name)})
@@ -1672,7 +1693,7 @@ async function sendPresenceLeave() {
   const name = p ? p.username : '';
   if (!name) return;
   try {
-    await fetch(REVIEW_SERVER + '/api/presence/leave', {
+    await _serverFetch(REVIEW_SERVER + '/api/presence/leave', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name})
@@ -1684,7 +1705,7 @@ async function sendPresenceLeave() {
 async function fetchPresence() {
   if (!REVIEW_SERVER) { REVIEWER_PRESENCE = []; renderPresencePanel(); return; }
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/presence?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/presence?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
     if (resp.ok) { REVIEWER_PRESENCE = await resp.json(); renderPresencePanel(); }
   } catch (e) {}
 }
@@ -1886,11 +1907,11 @@ async function loadData() {
   const customUrl = _getCustomServerUrl();
   const baseUrl = customUrl ? customUrl.replace(/\/+$/, '') : '';
 
-  // Build a list of data.json URLs to try in order
+  // Build a list of data.json URLs to try in order (token appended to server URLs)
   const candidates = [];
-  if (baseUrl) candidates.push(baseUrl + '/data.json');           // Custom remote server
-  if (!customUrl) candidates.push('data.json');                    // Same-origin (served by review server)
-  if (REVIEW_SERVER && REVIEW_SERVER !== baseUrl) candidates.push(REVIEW_SERVER + '/data.json'); // Detected review server
+  if (baseUrl) candidates.push(_tokenAppend(baseUrl + '/data.json'));           // Custom remote server
+  if (!customUrl) candidates.push('data.json');                                  // Same-origin (served by review server)
+  if (REVIEW_SERVER && REVIEW_SERVER !== baseUrl) candidates.push(_tokenAppend(REVIEW_SERVER + '/data.json')); // Detected review server
   candidates.push('https://raw.githubusercontent.com/Dylan-BI/MUE/main/action/dashboard/data.json'); // GitHub raw fallback
 
   for (const url of candidates) {
@@ -3181,7 +3202,7 @@ function setProfile(profile) {
 async function serverFetchProfiles() {
   if (!REVIEW_SERVER) return {};
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/profiles?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?t=' + Date.now(), {signal: AbortSignal.timeout(2000)});
     if (resp.ok) { SERVER_PROFILES = await resp.json(); return SERVER_PROFILES; }
   } catch (e) {}
   return {};
@@ -3191,7 +3212,7 @@ async function serverSaveProfile(profile) {
   if (!REVIEW_SERVER) return false;
   try {
     const body = Object.assign({}, profile, { requester: getReviewerUsername() || profile.username });
-    const resp = await fetch(REVIEW_SERVER + '/api/profiles', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(body)
     });
@@ -3205,7 +3226,7 @@ async function serverSaveProfile(profile) {
 async function requestDailySummary() {
   if (!REVIEW_SERVER) { showToast('Server not connected — cannot send summary', 'warning', 'Offline'); return; }
   try {
-    const resp = await fetch(REVIEW_SERVER + '/api/daily-summary', {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/daily-summary', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ username: getReviewerUsername() })
     });
@@ -4155,7 +4176,7 @@ function loadFullContent(path, targetId, isMd) {
     // 1) Try review server /api/file first (works from any network)
     if (REVIEW_SERVER) {
       try {
-        const resp = await fetch(REVIEW_SERVER + '/api/file?path=' + encodeURIComponent(repoDir + cleanPath) + '&t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
+        const resp = await _serverFetch(REVIEW_SERVER + '/api/file?path=' + encodeURIComponent(repoDir + cleanPath) + '&t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
         if (resp.ok) {
           const data = await resp.json();
           if (data.content) return data.content;
