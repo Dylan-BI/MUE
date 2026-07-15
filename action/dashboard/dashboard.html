@@ -3430,6 +3430,7 @@ const PROFILE_KEY = 'mue_reviewer_profile';
 const ADMIN_USERS = ['jane_doe', 'dylan_bi'];  // exempt from mandatory profile
 const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
 const TPR_USERNAME = 'tpr_bot';    // Test Proxy Reviewer — invisible automated tester
+const TPL_USERNAME = 'tpl_bot';    // Test Proxy Learner — generates dummy learner data for data-flow testing
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
 
 function isAdminUser() {
@@ -3481,6 +3482,57 @@ async function deactivateTPR() {
   renderSidebarProfile();
   renderPresencePanel();
   showToast('TPR deactivated', 'info', '🧪 Test Proxy');
+}
+
+/* ── Test Proxy Learner (TPL) — generates temporary dummy learner data for data-flow testing ── */
+async function activateTPL() {
+  if (!isAdminUser()) { showToast('Only admins can activate TPL', 'warning', 'Restricted'); return; }
+  if (!REVIEW_SERVER) { showToast('Server not connected — TPL requires server', 'warning', 'Offline'); return; }
+  showToast('TPL generating dummy learner data…', 'info', '📚 Test Proxy Learner');
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/tpl/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({requester: getProfile()?.username || ''})
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      showToast('TPL data generated: ' + data.notes + ' notes, ' + data.evidence + ' evidence files — rebuilding data.json…', 'success', '📚 TPL');
+      // Refresh dashboard data
+      await loadData();
+      renderAll();
+      updateSidebar();
+      showToast('TPL complete — dashboard refreshed with generative data', 'success', '📚 TPL Ready');
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      showToast('TPL generation failed: ' + (err.error || resp.status), 'warning', '📚 TPL Error');
+    }
+  } catch (e) {
+    showToast('TPL generation failed: ' + e.message, 'warning', '📚 TPL Error');
+  }
+}
+
+async function deactivateTPL() {
+  if (!isAdminUser()) { showToast('Only admins can cleanup TPL', 'warning', 'Restricted'); return; }
+  if (!REVIEW_SERVER) { showToast('Server not connected', 'warning', 'Offline'); return; }
+  showToast('TPL cleaning up dummy data…', 'info', '📚 TPL');
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({requester: getProfile()?.username || ''})
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      showToast('TPL cleanup: ' + data.removed + ' files removed — rebuilding…', 'success', '📚 TPL');
+      await loadData();
+      renderAll();
+      updateSidebar();
+      showToast('TPL cleanup complete — dashboard restored', 'success', '📚 TPL');
+    }
+  } catch (e) {
+    showToast('TPL cleanup failed: ' + e.message, 'warning', '📚 TPL Error');
+  }
 }
 
 async function runTPRTest() {
@@ -3584,7 +3636,7 @@ async function runTPRTest() {
     tprLog('pass', 'Server reviews fetched: ' + total + ' total');
   } catch (e) { tprLog('fail', 'Review fetch failed: ' + e.message); }
 
-  // ── Test 12: Generative data flow ──
+  // ── Test 12: Generative data flow (with TPL integration) ──
   try {
     const dataChecks = [];
     // 12a: data.json loaded in memory
@@ -3646,8 +3698,69 @@ async function runTPRTest() {
     const catCount = Array.isArray(cats) ? cats.length : Object.keys(cats).length;
     dataChecks.push(levelCount + ' levels, ' + catCount + ' categories');
 
-    // 12i: trigger rebuild and verify data.json updates
-    const beforeGen = DATA.generated;
+    // 12i: TPL data flow — generate dummy learner data, verify pipeline, cleanup
+    try {
+      const requester = getProfile()?.username || '';
+      // Generate TPL data
+      const genResp = await _serverFetch(REVIEW_SERVER + '/api/tpl/generate', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({requester})
+      });
+      if (genResp.ok) {
+        const genData = await genResp.json();
+        dataChecks.push('TPL generated: ' + genData.notes + ' notes, ' + genData.evidence + ' evidence');
+        // Wait for data.json to be rebuilt
+        await new Promise(r => setTimeout(r, 1500));
+        // Re-fetch data.json and verify TPL data is present
+        const djResp = await _serverFetch(REVIEW_SERVER + '/data.json?_cb=' + Date.now(), {signal: AbortSignal.timeout(5000)});
+        if (djResp.ok) {
+          const freshData = await djResp.json();
+          const tplNotes = (freshData.notes || []).filter(n => n.id && n.id.startsWith('tpl_'));
+          const tplEvidence = (freshData.evidence || []).filter(e => e.filename && e.filename.startsWith('tpl_'));
+          dataChecks.push('TPL in data.json: ' + tplNotes.length + ' notes, ' + tplEvidence.length + ' evidence');
+          // Verify structural validity of TPL notes
+          let tplValid = 0;
+          tplNotes.forEach(n => { if (n.id && n.date && n.classification) tplValid++; });
+          dataChecks.push('TPL valid: ' + tplValid + '/' + tplNotes.length);
+          // Refresh dashboard with TPL data
+          DATA = freshData;
+          renderAll();
+          updateSidebar();
+          await new Promise(r => setTimeout(r, 500));
+          // Verify charts re-rendered with TPL data
+          const tplCanvases = document.querySelectorAll('canvas');
+          let tplChartsOk = 0;
+          tplCanvases.forEach(c => {
+            try {
+              const ctx = c.getContext('2d');
+              const px = ctx.getImageData(c.width / 2, c.height / 2, 1, 1).data;
+              if (px[3] > 0) tplChartsOk++;
+            } catch {}
+          });
+          dataChecks.push('TPL charts: ' + tplChartsOk + '/' + tplCanvases.length);
+        } else { dataChecks.push('TPL re-fetch: ' + djResp.status); }
+        // Cleanup TPL data
+        const cleanResp = await _serverFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({requester})
+        });
+        if (cleanResp.ok) {
+          const cleanData = await cleanResp.json();
+          dataChecks.push('TPL cleanup: ' + cleanData.removed + ' files removed');
+          // Rebuild and restore clean state
+          await new Promise(r => setTimeout(r, 1000));
+          const restoreResp = await _serverFetch(REVIEW_SERVER + '/data.json?_cb=' + Date.now(), {signal: AbortSignal.timeout(5000)});
+          if (restoreResp.ok) {
+            DATA = await restoreResp.json();
+            renderAll();
+            updateSidebar();
+            dataChecks.push('TPL restore OK');
+          }
+        } else { dataChecks.push('TPL cleanup failed: ' + cleanResp.status); }
+      } else { dataChecks.push('TPL generate: ' + genResp.status); }
+    } catch (e) { dataChecks.push('TPL flow error: ' + e.message); }
+
+    // 12j: trigger rebuild and verify data.json updates
     try {
       const rebuildResp = await _serverFetch(REVIEW_SERVER + '/api/reviews?_cb=' + Date.now(), {signal: AbortSignal.timeout(3000)});
       if (rebuildResp.ok) {
@@ -4124,6 +4237,7 @@ function renderSidebarProfile() {
   const editBtn = admin ? '<div class="sp-edit">✏️</div>' : '';
   const badge = admin ? '<span style="font-size:9px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">Admin</span>' : '';
   const tprBtn = admin ? '<button class="theme-btn" onclick="activateTPR()" title="Run automated dashboard tests" style="margin-top:6px;width:100%;font-size:11px;justify-content:center">🧪 Run TPR Tests</button>' : '';
+  const tplBtn = admin ? '<button class="theme-btn" onclick="activateTPL()" title="Generate dummy learner data for data-flow testing" style="margin-top:4px;width:100%;font-size:11px;justify-content:center">📚 Generate TPL Data</button><button class="theme-btn" onclick="deactivateTPL()" title="Remove TPL dummy data and restore clean state" style="margin-top:4px;width:100%;font-size:11px;justify-content:center;background:rgba(220,53,69,.15);color:#ff6b6b">🗑️ Cleanup TPL Data</button>' : '';
   const emailBadge = p.email ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="' + escHtml(p.email) + (p.dailySummary ? ' — Daily summary ON' : '') + '">' + (p.dailySummary ? '📬' : '✉️') + '</span>' : '';
   const emailLine = p.email
     ? '<div class="sp-email" onclick="event.stopPropagation();openProfileModal(true)" title="Click to edit email">✉️ ' + escHtml(p.email) + '</div>'
@@ -4133,7 +4247,7 @@ function renderSidebarProfile() {
     '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div>' +
     emailLine + '</div>' +
-    editBtn + '</div></div>' + tprBtn;
+    editBtn + '</div></div>' + tprBtn + tplBtn;
   // Fetch and render activity history for this profile
   fetchProfileActivity(p.username).then(items => {
     const actDiv = document.getElementById('sidebarActivity');

@@ -116,5 +116,33 @@
       "version": 1,
       "_source": "synced"
     }
+  ],
+  "tpr_test_1784118362021": [
+    {
+      "name": "🧪 TPR",
+      "rating": "👍 Pass",
+      "text": "Automated TPR test review — 2026-07-15T12:26:02.021Z",
+      "type": "Test",
+      "label": "TPR Validation",
+      "role": "Test Proxy",
+      "id": "17841183621123177",
+      "timestamp": "2026-07-15T14:26:02.112507",
+      "version": 1,
+      "_source": "synced"
+    }
+  ],
+  "tpr_test_1784118541379": [
+    {
+      "name": "🧪 TPR",
+      "rating": "👍 Pass",
+      "text": "Automated TPR test review — 2026-07-15T12:29:01.379Z",
+      "type": "Test",
+      "label": "TPR Validation",
+      "role": "Test Proxy",
+      "id": "17841185416971369",
+      "timestamp": "2026-07-15T14:29:01.697551",
+      "version": 1,
+      "_source": "synced"
+    }
   ]
 }

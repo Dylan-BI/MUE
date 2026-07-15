@@ -246,5 +246,55 @@
     "action": "tpr_test",
     "detail": "TPR automated test run",
     "timestamp": "2026-07-15T14:08:23.140580"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-15T14:26:01.214366",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784118362021 — 👍 Pass",
+    "timestamp": "2026-07-15T14:26:04.537258",
+    "metadata": {
+      "artifactId": "tpr_test_1784118362021",
+      "reviewId": "17841183621123177"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T14:26:05.109808"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-15T14:29:00.733229",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784118541379 — 👍 Pass",
+    "timestamp": "2026-07-15T14:29:03.311846",
+    "metadata": {
+      "artifactId": "tpr_test_1784118541379",
+      "reviewId": "17841185416971369"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T14:29:03.630901"
   }
 ]

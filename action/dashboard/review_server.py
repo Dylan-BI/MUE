@@ -152,6 +152,9 @@ ADMIN_USERS = ['jane_doe', 'dylan_bi']
 # Test Proxy Reviewer — invisible automated testing profile
 TPR_USERNAME = 'tpr_bot'
 
+# Test Proxy Learner — generates temporary dummy learner data for data-flow testing
+TPL_USERNAME = 'tpl_bot'
+
 
 def load_reviews():
     """Load reviews from review/reviews.json."""
@@ -703,6 +706,126 @@ def _daily_scheduler_loop():
             send_daily_summaries()
 
 
+# ── Test Proxy Learner (TPL) — dummy generative data for data-flow testing ──
+
+TPL_NOTES_DIR = REPO_ROOT / 'action' / 'notes'
+TPL_EVIDENCE_DIR = REPO_ROOT / 'action' / 'evidence'
+
+# Dummy note templates for TPL data generation
+TPL_NOTE_TEMPLATES = [
+    {
+        'day': 1, 'date_offset': 0, 'classification': 'Foundational',
+        'track': 'Pyramid operations', 'week': 1, 'artifact': 'pyramid_overview_screenshot.png',
+        'learned': 'Set up development environment. Explored admin console and chat modes.',
+        'evidence': 'Environment setup screenshots captured. Mode selection criteria documented.',
+        'remains': 'Practice prompt crafting with real repo analysis.',
+        'next_step': 'Build three reusable prompts and practice the Codex loop.',
+    },
+    {
+        'day': 2, 'date_offset': 1, 'classification': 'Foundational',
+        'track': 'Codex productivity', 'week': 1, 'artifact': 'codex_loop_diagram.png',
+        'learned': 'Learned the Codex Loop: Pull → Summarize → Identify → Execute → Record.',
+        'evidence': 'Codex loop diagram created. Handoff extraction template drafted.',
+        'remains': 'Need to practice handoff extraction with real examples.',
+        'next_step': 'Extract handoffs from three completed tasks.',
+    },
+    {
+        'day': 3, 'date_offset': 2, 'classification': 'Foundational',
+        'track': 'BI judgment', 'week': 1, 'artifact': 'business_question_list.md',
+        'learned': 'Identified five business questions from team standup notes.',
+        'evidence': 'Business question list created. Metric definitions drafted.',
+        'remains': 'Metric validation needs practice.',
+        'next_step': 'Validate two metrics against source data.',
+    },
+]
+
+TPL_EVIDENCE_TEMPLATES = [
+    {'filename': 'tpl_environment_setup.png', 'content': '# Environment Setup Evidence\n\nScreenshots of development environment configuration.\n'},
+    {'filename': 'tpl_codex_loop_ref.md', 'content': '# Codex Loop Reference\n\n## Pull → Summarize → Identify → Execute → Record\n\nThis is a reference document for the Codex workflow.\n'},
+]
+
+
+def _generate_tpl_notes():
+    """Generate dummy learner notes for TPL data-flow testing.
+    Returns list of generated file paths."""
+    TPL_NOTES_DIR.mkdir(parents=True, exist_ok=True)
+    generated = []
+    from datetime import date, timedelta
+    base_date = date.today()
+    for i, tmpl in enumerate(TPL_NOTE_TEMPLATES):
+        note_date = base_date - timedelta(days=tmpl['date_offset'])
+        filename = f"tpl_{note_date.isoformat()}.md"
+        filepath = TPL_NOTES_DIR / filename
+        content = f"""# Daily Note — Day {tmpl['day']}
+
+**Date:** {note_date.isoformat()}
+**Classification:** {tmpl['classification']}
+**Primary track:** {tmpl['track']}
+**Level:** 1
+**Week Number:** {tmpl['week']}
+**Day {tmpl['day']}**
+**Required Artifact:** {tmpl['artifact']}
+
+## What I learned today:
+{tmpl['learned']}
+
+## What evidence I produced:
+{tmpl['evidence']}
+
+## What remains open:
+{tmpl['remains']}
+
+## Next narrow step:
+{tmpl['next_step']}
+
+## Scorecard:
+Prompt discipline: Unscored
+Repo or workspace analysis: Unscored
+Change isolation: Unscored
+Validation order: Unscored
+Deployment awareness: Unscored
+Reviewer handoff: Unscored
+Reusability: Unscored
+
+## Codex gates:
+One end-to-end workflow completed: No
+Business-logic ownership understood: No
+Validation evidence produced without help: No
+Proof tasks completed: No
+One clean reviewable change slice: No
+One reusable team asset created: No
+"""
+        filepath.write_text(content, encoding='utf-8')
+        generated.append(str(filepath))
+    return generated
+
+
+def _generate_tpl_evidence():
+    """Generate dummy evidence files for TPL data-flow testing.
+    Returns list of generated file paths."""
+    TPL_EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
+    generated = []
+    for tmpl in TPL_EVIDENCE_TEMPLATES:
+        filepath = TPL_EVIDENCE_DIR / tmpl['filename']
+        filepath.write_text(tmpl['content'], encoding='utf-8')
+        generated.append(str(filepath))
+    return generated
+
+
+def _cleanup_tpl_data():
+    """Remove all TPL-generated dummy files (tpl_ prefix). Returns count removed."""
+    removed = 0
+    for d in [TPL_NOTES_DIR, TPL_EVIDENCE_DIR]:
+        if not d.exists():
+            continue
+        for f in d.iterdir():
+            if f.name.startswith('tpl_'):
+                f.unlink()
+                removed += 1
+    return removed
+
+
+
 class ReviewHandler(SimpleHTTPRequestHandler):
     """HTTP handler: REST API for reviews + static file serving."""
 
@@ -809,6 +932,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_log_activity()
         elif parsed.path == '/api/daily-summary':
             self._handle_daily_summary()
+        elif parsed.path == '/api/tpl/generate':
+            self._handle_tpl_generate()
+        elif parsed.path == '/api/tpl/cleanup':
+            self._handle_tpl_cleanup()
         else:
             self._send_json(404, {'error': 'Not found'})
 
@@ -961,6 +1088,41 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             else:
                 print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ Failed to send to {display} <{email}>: {err}')
         self._send_json(200, {'ok': True, 'sent': sent, 'reviews': summary['total_reviews'], 'reviewers': summary['total_reviewers']})
+
+    def _handle_tpl_generate(self):
+        """POST /api/tpl/generate — create dummy learner data, rebuild data.json."""
+        body = self._read_body() or {}
+        requester = body.get('requester', '').strip()
+        if requester not in ADMIN_USERS and requester != TPR_USERNAME:
+            self._send_json(403, {'error': 'only admins or TPR can generate TPL data'})
+            return
+        # Clean up any existing TPL data first
+        _cleanup_tpl_data()
+        # Generate dummy data
+        notes = _generate_tpl_notes()
+        evidence = _generate_tpl_evidence()
+        # Rebuild data.json
+        rebuild_data_json()
+        print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧪 TPL data generated: {len(notes)} notes, {len(evidence)} evidence files')
+        self._send_json(200, {
+            'ok': True,
+            'notes': len(notes),
+            'evidence': len(evidence),
+            'note_files': [os.path.basename(f) for f in notes],
+            'evidence_files': [os.path.basename(f) for f in evidence],
+        })
+
+    def _handle_tpl_cleanup(self):
+        """POST /api/tpl/cleanup — remove TPL dummy files, rebuild data.json."""
+        body = self._read_body() or {}
+        requester = body.get('requester', '').strip()
+        if requester not in ADMIN_USERS and requester != TPR_USERNAME:
+            self._send_json(403, {'error': 'only admins or TPR can cleanup TPL data'})
+            return
+        removed = _cleanup_tpl_data()
+        rebuild_data_json()
+        print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧪 TPL cleanup: {removed} files removed')
+        self._send_json(200, {'ok': True, 'removed': removed})
 
     def _handle_get_reviews(self):
         """GET /api/reviews — return all reviews."""
