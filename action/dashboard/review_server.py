@@ -359,6 +359,8 @@ def _get_all_presence():
     with _presence_lock:
         result = []
         for name, info in _presence.items():
+            if name == TPR_USERNAME:
+                continue
             result.append({
                 'name': name,
                 'display_name': info.get('display_name', name),
@@ -833,8 +835,12 @@ class ReviewHandler(SimpleHTTPRequestHandler):
     # ── API Handlers ───────────────────────────────────────────────────
 
     def _handle_get_profiles(self, qs=None):
-        """GET /api/profiles — return all reviewer profiles."""
+        """GET /api/profiles — return all reviewer profiles.
+        Test Proxy Learner (TPL) is hidden unless ?include_tpr=1."""
         profiles = load_profiles()
+        include_tpr = qs and any(v in ('1', 'true') for v in qs.get('include_tpr', []))
+        if not include_tpr:
+            profiles = {k: v for k, v in profiles.items() if v.get('username') != TPR_USERNAME}
         self._send_json(200, profiles)
 
     def _handle_save_profile(self):
