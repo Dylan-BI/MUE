@@ -353,18 +353,12 @@ def _leave_presence(name):
 
 
 def _get_all_presence():
-    """Return all reviewers with online/offline status and current location.
-    
-    Test proxy reviewer (TPR) presence is excluded — TPR is invisible to others.
-    """
+    """Return all reviewers with online/offline status and current location."""
     _cleanup_stale_presence()
     now = time.time()
     with _presence_lock:
         result = []
         for name, info in _presence.items():
-            # Skip TPR — it's invisible to other reviewers
-            if name == TPR_USERNAME:
-                continue
             result.append({
                 'name': name,
                 'display_name': info.get('display_name', name),
@@ -839,16 +833,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
     # ── API Handlers ───────────────────────────────────────────────────
 
     def _handle_get_profiles(self, qs=None):
-        """GET /api/profiles — return all reviewer profiles.
-        
-        Test proxy profiles (role='test_proxy') are hidden from non-admin users
-        unless ?include_tpr=1 is passed.
-        """
+        """GET /api/profiles — return all reviewer profiles."""
         profiles = load_profiles()
-        # Filter out TPR profiles for non-admin clients
-        include_tpr = qs and any(v in ('1', 'true') for v in qs.get('include_tpr', []))
-        if not include_tpr:
-            profiles = {k: v for k, v in profiles.items() if v.get('role') != 'test_proxy'}
         self._send_json(200, profiles)
 
     def _handle_save_profile(self):

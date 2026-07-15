@@ -1803,7 +1803,7 @@ function renderPresencePanel() {
     return;
   }
   // Sort: online first, then by name
-  const sorted = [...REVIEWER_PRESENCE].filter(r => r.name !== TPR_USERNAME).sort((a, b) => {
+  const sorted = [...REVIEWER_PRESENCE].sort((a, b) => {
     if (a.online !== b.online) return b.online - a.online;
     return a.name.localeCompare(b.name);
   });
@@ -3398,11 +3398,10 @@ async function activateTPR() {
   // Create or fetch TPR profile on server
   const tprProfile = {
     username: TPR_USERNAME,
-    displayName: '🧪 Test Proxy',
-    email: '',
+    displayName: 'Test Proxy',
+    email: 'tpr@mue.local',
     dailySummary: false,
-    role: 'test_proxy',
-    createdAt: new Date().toISOString()
+    createdAt: '2026-07-13T14:14:44.521139'
   };
   // Save via server (admin can create any profile)
   const oldProfile = getProfile();
@@ -3446,7 +3445,7 @@ async function runTPRTest() {
 
   // ── Test 2: Profile sync ──
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?include_tpr=1&_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
     if (resp.ok) {
       const profiles = await resp.json();
       if (profiles[TPR_USERNAME]) tprLog('pass', 'TPR profile synced to server');
@@ -3535,15 +3534,7 @@ async function runTPRTest() {
   // Render results
   renderTPRResults();
 
-  // Auto-deactivate TPR and restore admin profile
-  setTimeout(() => {
-    try { localStorage.removeItem(PROFILE_KEY); } catch {}
-    const adminProfile = { username: 'jane_doe', displayName: 'Jane Doe', email: 'jane@example.com', dailySummary: false, createdAt: '2026-07-13T14:14:44.521139' };
-    setProfile(adminProfile);
-    renderSidebarProfile();
-    renderPresencePanel();
-    sendPresenceHeartbeat();
-  }, 500);
+  // TPR is now a permanent profile — no auto-deactivation needed
 }
 
 function tprLog(status, message) {
@@ -3732,7 +3723,7 @@ function _switchProfileTab(tab) {
 function _renderSigninList() {
   const container = document.getElementById('pm_signin_list');
   if (!container) return;
-  const profiles = Object.values(SERVER_PROFILES).filter(p => p.role !== 'test_proxy');
+  const profiles = Object.values(SERVER_PROFILES);
   if (profiles.length === 0) {
     container.innerHTML = '<div class="pm-signin-empty"><div class="pm-signin-empty-icon">👤</div>No reviewer profiles yet.<br>Create your profile in the <strong>New Account</strong> tab.</div>';
     return;
