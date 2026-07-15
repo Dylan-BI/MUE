@@ -1092,10 +1092,10 @@
           <input id="pm_displayname" placeholder="e.g. Jane Doe" autocomplete="off" oninput="_previewProfileAvatar()" />
           <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
         </div>
-        <div class="pm-field" id="pmEmailGroup" style="display:none">
+        <div class="pm-field" id="pmEmailGroup">
           <label>Email <span style="color:rgba(255,255,255,.35)">(optional)</span></label>
           <div id="pmEmailStatus" class="pm-email-status" style="display:none"></div>
-          <input id="pm_email" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
+          <input id="pm_email" type="email" placeholder="e.g. jane.doe@gmail.com" autocomplete="email" />
           <div class="pm-hint" id="pmEmailHint">Receive daily summaries of review activity</div>
         </div>
         <label class="pm-toggle" for="pm_dailySummary">
@@ -3817,9 +3817,9 @@ function openProfileModal(edit) {
   const isEditing = !!existing;
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
   else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; }
-  // Show/hide email group — only visible when editing an existing profile
+  // Email group is always visible (create + edit)
   const emailGroup = document.getElementById('pmEmailGroup');
-  if (emailGroup) emailGroup.style.display = isEditing ? '' : 'none';
+  if (emailGroup) emailGroup.style.display = '';
   // Show/hide delete button — only when editing an existing profile
   const deleteActions = document.getElementById('pmDeleteActions');
   if (deleteActions) deleteActions.style.display = isEditing ? 'flex' : 'none';
