@@ -101,5 +101,20 @@
     "metadata": {
       "requester": "alice_w"
     }
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_updated",
+    "detail": "Updated profile as Alice Wilson",
+    "timestamp": "2026-07-15T13:11:50.056459",
+    "metadata": {
+      "requester": "alice_w"
+    }
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_updated",
+    "detail": "Updated profile as Alice Wilson (@alice_w)",
+    "timestamp": "2026-07-15T13:11:50.620213"
   }
 ]

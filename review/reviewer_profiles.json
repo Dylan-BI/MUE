@@ -18,10 +18,10 @@
   "alice_w": {
     "username": "alice_w",
     "displayName": "Alice Wilson",
-    "email": "",
+    "email": "alice@example.com",
     "dailySummary": false,
     "role": "",
-    "createdAt": "2026-07-15T13:02:39.295840",
-    "updatedAt": "2026-07-15T13:02:39.295851"
+    "createdAt": "2026-07-13T14:14:44.521139",
+    "updatedAt": "2026-07-15T13:11:50.054561"
   }
 }
