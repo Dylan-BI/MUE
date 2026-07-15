@@ -563,6 +563,26 @@
   .pm-signin-arrow { font-size: 16px; color: rgba(255,255,255,.3); flex-shrink: 0; }
   .pm-signin-empty { text-align: center; padding: 24px 16px; color: rgba(255,255,255,.4); font-size: 13px; }
   .pm-signin-empty .pm-signin-empty-icon { font-size: 32px; margin-bottom: 8px; }
+  .pm-recover-link { text-align: center; margin-top: 10px; }
+  .pm-recover-link a { font-size: 12px; color: rgba(255,255,255,.4); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; transition: color .2s; }
+  .pm-recover-link a:hover { color: rgba(255,255,255,.7); }
+  .pm-recover-panel { display: none; padding: 16px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); }
+  .pm-recover-panel .pm-recover-title { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.8); margin-bottom: 8px; }
+  .pm-recover-panel .pm-recover-desc { font-size: 11px; color: rgba(255,255,255,.4); margin-bottom: 12px; }
+  .pm-recover-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .pm-recover-row input { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: #fff; font-size: 13px; outline: none; }
+  .pm-recover-row input:focus { border-color: rgba(108,92,231,.6); }
+  .pm-recover-row input::placeholder { color: rgba(255,255,255,.25); }
+  .pm-recover-btn { padding: 8px 14px; border-radius: 8px; border: none; background: rgba(108,92,231,.6); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .2s; }
+  .pm-recover-btn:hover { background: rgba(108,92,231,.8); }
+  .pm-recover-results { display: none; }
+  .pm-recover-result-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); cursor: pointer; transition: all .2s; background: rgba(255,255,255,.04); margin-bottom: 6px; }
+  .pm-recover-result-item:hover { border-color: rgba(43,157,110,.6); background: rgba(43,157,110,.1); }
+  .pm-recover-result-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .pm-recover-result-info { flex: 1; min-width: 0; }
+  .pm-recover-result-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .pm-recover-result-uname { font-size: 11px; color: rgba(255,255,255,.45); }
+  .pm-recover-no-match { text-align: center; padding: 12px; font-size: 12px; color: rgba(255,165,0,.7); }
   .profile-box .pm-field { margin-bottom: 14px; }
   .profile-box .pm-field label { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); margin-bottom: 5px; }
   .profile-box .pm-field label span { color: #ff6b6b; }
@@ -1079,6 +1099,17 @@
       <!-- Sign In Tab: existing profiles from server -->
       <div class="pm-tab-panel active" id="pmPanelSignin">
         <div id="pm_signin_list" class="pm-signin-profiles"></div>
+        <div class="pm-recover-link" id="pmRecoverLink"><a onclick="showProfileRecovery()">🔑 Forgot username?</a></div>
+        <div class="pm-recover-panel" id="pmRecoverPanel">
+          <div class="pm-recover-title">🔑 Recover your profile</div>
+          <div class="pm-recover-desc">Enter the email address you used when creating your profile.</div>
+          <div class="pm-recover-row">
+            <input id="pmRecoverEmail" type="email" placeholder="e.g. jane.doe@gmail.com" onkeydown="if(event.key==='Enter')recoverProfile()" />
+            <button class="pm-recover-btn" onclick="recoverProfile()">Search</button>
+          </div>
+          <div class="pm-recover-results" id="pmRecoverResults"></div>
+          <div style="text-align:center;margin-top:8px"><a onclick="hideProfileRecovery()" style="font-size:11px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline">← Back to sign in</a></div>
+        </div>
       </div>
       <!-- Sign Up Tab: create new profile -->
       <div class="pm-tab-panel" id="pmPanelSignup">
@@ -3801,6 +3832,47 @@ function _renderSigninList() {
   if (modal && modal.classList.contains('open') && !getProfile()) {
     _switchProfileTab('signin');
   }
+}
+
+function showProfileRecovery() {
+  document.getElementById('pm_signin_list').style.display = 'none';
+  document.getElementById('pmRecoverLink').style.display = 'none';
+  document.getElementById('pmRecoverPanel').style.display = 'block';
+  document.getElementById('pmRecoverResults').style.display = 'none';
+  document.getElementById('pmRecoverEmail').value = '';
+  document.getElementById('pmRecoverEmail').focus();
+}
+
+function hideProfileRecovery() {
+  document.getElementById('pm_signin_list').style.display = '';
+  document.getElementById('pmRecoverLink').style.display = '';
+  document.getElementById('pmRecoverPanel').style.display = 'none';
+}
+
+function recoverProfile() {
+  const emailInput = document.getElementById('pmRecoverEmail');
+  const resultsDiv = document.getElementById('pmRecoverResults');
+  const email = (emailInput.value || '').trim().toLowerCase();
+  if (!email) { emailInput.style.borderColor = 'var(--danger-hue)'; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
+  emailInput.style.borderColor = '';
+  const matches = Object.values(SERVER_PROFILES).filter(p => (p.email || '').toLowerCase() === email && p.username !== TPR_USERNAME);
+  if (matches.length === 0) {
+    resultsDiv.innerHTML = '<div class="pm-recover-no-match">No profiles found with that email address.</div>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  let html = '';
+  matches.forEach(p => {
+    const mix = _reviewerColorMix(p.username);
+    const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    html += '<div class="pm-recover-result-item" onclick="_quickLogin(\'' + escHtml(p.username) + '\')">' +
+      '<div class="pm-recover-result-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
+      '<div class="pm-recover-result-info"><div class="pm-recover-result-name">' + escHtml(p.displayName) + '</div>' +
+      '<div class="pm-recover-result-uname">@' + escHtml(p.username) + '</div></div></div>';
+  });
+  resultsDiv.innerHTML = html;
+  resultsDiv.style.display = 'block';
 }
 
 function openProfileModal(edit) {
