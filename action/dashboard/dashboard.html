@@ -1003,6 +1003,7 @@
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
       <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙 <span class="theme-icon">Dark</span></button>
+      <button class="theme-btn" id="notifToggle" onclick="toggleBrowserNotifications()" title="Toggle browser notifications for data sync and new reviews">🔔 Notifications On</button>
     </div>
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
@@ -1163,6 +1164,12 @@ function toggleTheme() {
       setTheme(getPreferredTheme());
     }
   });
+})();
+
+// Initialize notification toggle button state on load
+(function initNotifToggle() {
+  const btn = document.getElementById('notifToggle');
+  if (btn) btn.innerHTML = _notifEnabled() ? '🔔 Notifications On' : '🔕 Notifications Off';
 })();
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1839,6 +1846,8 @@ async function startPresenceTracking() {
   window.addEventListener('beforeunload', sendPresenceLeave);
   // Initialize artifact intersection observer for presence tracking
   _initArtifactObserver();
+  // Request browser notification permission after a short delay
+  setTimeout(requestNotifPermission, 3000);
 }
 
 /* ── Artifact Intersection Observer — tracks which artifact the user is viewing ── */
@@ -1911,6 +1920,50 @@ function renderPresenceDots() {
     card.style.position = card.style.position || 'relative';
     card.appendChild(dot);
   });
+}
+
+/* ── Browser Notifications — desktop alerts for data sync & reviews ── */
+const NOTIF_PREF_KEY = 'mue_browser_notifications';
+function _notifEnabled() {
+  try { return localStorage.getItem(NOTIF_PREF_KEY) !== 'off'; } catch { return true; }
+}
+function toggleBrowserNotifications() {
+  const enabled = !_notifEnabled();
+  try { localStorage.setItem(NOTIF_PREF_KEY, enabled ? 'on' : 'off'); } catch {}
+  if (enabled) requestNotifPermission();
+  const btn = document.getElementById('notifToggle');
+  if (btn) btn.innerHTML = enabled ? '🔔 Notifications On' : '🔕 Notifications Off';
+  showToast(enabled ? 'Browser notifications enabled' : 'Browser notifications disabled', enabled ? 'success' : 'info', 'Notifications');
+}
+function requestNotifPermission() {
+  if (!_notifEnabled()) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') Notification.requestPermission();
+}
+function sendBrowserNotification(title, body) {
+  if (!_notifEnabled()) return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try { new Notification(title, { body: body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📊</text></svg>', tag: 'mue-' + title.slice(0, 20), renotify: true }); } catch {}
+}
+function _diffDataSummary(prev, next) {
+  const parts = [];
+  const prevNotes = (prev.notes || []).length;
+  const nextNotes = (next.notes || []).length;
+  if (nextNotes > prevNotes) parts.push((nextNotes - prevNotes) + ' new note(s)');
+  const prevEv = (prev.evidence || []).length;
+  const nextEv = (next.evidence || []).length;
+  if (nextEv > prevEv) parts.push((nextEv - prevEv) + ' new evidence file(s)');
+  const prevLearner = prev.learner_count || 0;
+  const nextLearner = next.learner_count || 0;
+  if (nextLearner > prevLearner) parts.push((nextLearner - prevLearner) + ' new learner change(s)');
+  const prevCls = (prev.summary || {}).latest_classification || '';
+  const nextCls = (next.summary || {}).latest_classification || '';
+  if (prevCls && nextCls && prevCls !== nextCls) parts.push('Classification changed: ' + prevCls + ' → ' + nextCls);
+  const prevDays = (prev.summary || {}).total_days || 0;
+  const nextDays = (next.summary || {}).total_days || 0;
+  if (nextDays > prevDays) parts.push('Day ' + nextDays + ' completed');
+  return parts.join(' · ');
 }
 
 const CLS_COLORS = {
@@ -2184,6 +2237,8 @@ function startAutoRefresh() {
       if (!resp.ok) return;
       const fresh = await resp.json();
       if (fresh.generated && fresh.generated !== LAST_GENERATED) {
+        // Snapshot previous data before overwriting for diff
+        const _prevData = { summary: Object.assign({}, DATA.summary), notes: (DATA.notes || []).slice(), evidence: (DATA.evidence || []).slice(), learner_count: DATA.learner_count || 0 };
         LAST_GENERATED = fresh.generated;
         DATA = fresh;
         updateSidebar();
@@ -2191,6 +2246,10 @@ function startAutoRefresh() {
         _observePresenceMarkers();
         updateSidebarLevelButtons();
         showToast('Dashboard updated with new learner data', 'success', 'Auto-synced');
+        // Browser notification with diff summary
+        const diffText = _diffDataSummary(_prevData, fresh);
+        if (diffText) { sendBrowserNotification('📊 MUE — Learner Data Synced', diffText); }
+        else { sendBrowserNotification('📊 MUE — Data Refreshed', 'Dashboard data has been updated'); }
       }
     } catch (e) {}
   }, 2 * 60 * 1000);
@@ -2209,6 +2268,12 @@ function startAutoRefresh() {
       renderAll();
       refreshReviewerActivity();
       showToast('New reviews from other reviewers', 'info', 'Reviews Updated');
+      // Count new reviews by comparing
+      try {
+        const prevCount = Object.values(JSON.parse(prevReviews)).reduce((a, b) => a + b.length, 0);
+        const nextCount = Object.values(SERVER_REVIEWS).reduce((a, b) => a + b.length, 0);
+        if (nextCount > prevCount) sendBrowserNotification('📝 MUE — New Review', (nextCount - prevCount) + ' new review(s) submitted by other instructors');
+      } catch {}
     } else if (prevLocks !== nextLocks) {
       // Locks changed — refresh review lists to show/hide editing indicators
       document.querySelectorAll('.review-list').forEach(el => {
@@ -3256,6 +3321,8 @@ function renderAll() {
 
   // Show overview with level banner
   showPage('overview');
+  // Request notification permission on first user gesture
+  document.addEventListener('click', function _notifClick() { requestNotifPermission(); document.removeEventListener('click', _notifClick); }, { once: true });
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
