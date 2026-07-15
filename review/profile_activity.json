@@ -1,0 +1,17 @@
+[
+  {
+    "username": "dylan_bi",
+    "action": "review_submitted",
+    "detail": "Reviewed PyTest (PT3) — Pass",
+    "timestamp": "2026-07-14T19:20:19.628849",
+    "metadata": {
+      "artifactId": "PT3"
+    }
+  },
+  {
+    "username": "alice_w",
+    "action": "session_started",
+    "detail": "Signed in as Alice Wilson",
+    "timestamp": "2026-07-15T11:46:31.802315"
+  }
+]

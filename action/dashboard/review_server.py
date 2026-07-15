@@ -56,6 +56,7 @@ REPO_ROOT = SCRIPT_DIR.parent.parent
 DASHBOARD_DIR = SCRIPT_DIR
 REVIEWS_PATH = REPO_ROOT / 'review' / 'reviews.json'
 PROFILES_PATH = REPO_ROOT / 'review' / 'reviewer_profiles.json'
+ACTIVITY_PATH = REPO_ROOT / 'review' / 'profile_activity.json'
 BUILD_SCRIPT = DASHBOARD_DIR / 'build_data.py'
 ENV_FILE = DASHBOARD_DIR / '.env'
 
@@ -187,6 +188,43 @@ def save_reviews(data):
             json.dump(data, f, indent=2, ensure_ascii=False)
 
 
+# ── Activity Log ─────────────────────────────────────────────────────
+def load_activity():
+    """Load activity log from review/profile_activity.json."""
+    if not ACTIVITY_PATH.exists():
+        return []
+    try:
+        with open(ACTIVITY_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def save_activity(data):
+    """Save activity log (thread-safe, last 500 entries)."""
+    ACTIVITY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # Keep only the last 500 entries to avoid unbounded growth
+    trimmed = data[-500:]
+    with _reviews_lock:
+        with open(ACTIVITY_PATH, 'w', encoding='utf-8') as f:
+            json.dump(trimmed, f, indent=2, ensure_ascii=False)
+
+
+def log_activity(username, action, detail, metadata=None):
+    """Append an activity entry for a profile."""
+    entry = {
+        'username': username,
+        'action': action,
+        'detail': detail,
+        'timestamp': datetime.now().isoformat(),
+    }
+    if metadata:
+        entry['metadata'] = metadata
+    activities = load_activity()
+    activities.append(entry)
+    save_activity(activities)
+
+
 def rebuild_data_json():
     """Run build_data.py to regenerate data.json."""
     try:
@@ -275,8 +313,8 @@ def _cleanup_stale_presence():
             del _presence[name]
 
 
-def _heartbeat_presence(name, display_name=None, color=None, avatar=None):
-    """Update reviewer's last-seen timestamp."""
+def _heartbeat_presence(name, display_name=None, color=None, avatar=None, active_page=None, active_artifact=None, active_label=None):
+    """Update reviewer's last-seen timestamp and current location."""
     now = time.time()
     with _presence_lock:
         if name in _presence:
@@ -287,12 +325,21 @@ def _heartbeat_presence(name, display_name=None, color=None, avatar=None):
                 _presence[name]['color'] = color
             if avatar:
                 _presence[name]['avatar'] = avatar
+            if active_page is not None:
+                _presence[name]['active_page'] = active_page
+            if active_artifact is not None:
+                _presence[name]['active_artifact'] = active_artifact
+            if active_label is not None:
+                _presence[name]['active_label'] = active_label
         else:
             _presence[name] = {
                 'last_seen': now,
                 'display_name': display_name or name,
                 'color': color or '#7c73ff',
-                'avatar': avatar or ''
+                'avatar': avatar or '',
+                'active_page': active_page or '',
+                'active_artifact': active_artifact or '',
+                'active_label': active_label or ''
             }
 
 
@@ -303,7 +350,7 @@ def _leave_presence(name):
 
 
 def _get_all_presence():
-    """Return all reviewers with online/offline status."""
+    """Return all reviewers with online/offline status and current location."""
     _cleanup_stale_presence()
     now = time.time()
     with _presence_lock:
@@ -315,7 +362,10 @@ def _get_all_presence():
                 'color': info.get('color', '#7c73ff'),
                 'avatar': info.get('avatar', ''),
                 'last_seen': info['last_seen'],
-                'online': (now - info['last_seen']) <= PRESENCE_TTL
+                'online': (now - info['last_seen']) <= PRESENCE_TTL,
+                'active_page': info.get('active_page', ''),
+                'active_artifact': info.get('active_artifact', ''),
+                'active_label': info.get('active_label', '')
             })
         return result
 
@@ -722,6 +772,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_presence()
         elif path == '/api/profiles':
             self._handle_get_profiles()
+        elif path == '/api/activity':
+            self._handle_get_activity(qs)
         elif path == '/api/file':
             self._handle_get_file()
         elif path == '/api/check-token':
@@ -748,6 +800,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_leave()
         elif parsed.path == '/api/profiles':
             self._handle_save_profile()
+        elif parsed.path == '/api/activity':
+            self._handle_log_activity()
         elif parsed.path == '/api/daily-summary':
             self._handle_daily_summary()
         else:
@@ -832,8 +886,38 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             'updatedAt': datetime.now().isoformat()
         }
         save_profiles(profiles)
+        action = 'profile_created' if is_new else 'profile_updated'
+        log_activity(username, action,
+                     f'{"Created" if is_new else "Updated"} profile as {display_name or username}',
+                     {'requester': requester})
         print(f'  👤 Profile saved: {display_name} (@{username}) by @{requester}')
         self._send_json(200, {'ok': True, 'profile': profiles[username]})
+
+    # ── Activity Log Handlers ────────────────────────────────────────
+
+    def _handle_get_activity(self, qs):
+        """GET /api/activity — return activity log, optionally filtered by ?username=xxx."""
+        activities = load_activity()
+        username = (qs.get('username', [''])[0]).strip()
+        if username:
+            activities = [a for a in activities if a.get('username') == username]
+        # Return newest first, cap at 100
+        activities.reverse()
+        self._send_json(200, activities[:100])
+
+    def _handle_log_activity(self):
+        """POST /api/activity — log an activity event from the client."""
+        body = self._read_body()
+        if not body:
+            return
+        username = body.get('username', '').strip()
+        action = body.get('action', '').strip()
+        detail = body.get('detail', '').strip()
+        if not username or not action:
+            self._send_json(400, {'error': 'username and action required'})
+            return
+        log_activity(username, action, detail, body.get('metadata'))
+        self._send_json(200, {'ok': True})
 
     def _handle_daily_summary(self):
         """POST /api/daily-summary — send daily summary email(s).
@@ -929,7 +1013,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         display_name = body.get('displayName', '').strip() or name
         color = body.get('color', '#7c73ff')
         avatar = body.get('avatar', '')
-        _heartbeat_presence(name, display_name, color, avatar)
+        active_page = body.get('activePage', '')
+        active_artifact = body.get('activeArtifact', '')
+        active_label = body.get('activeLabel', '')
+        _heartbeat_presence(name, display_name, color, avatar, active_page, active_artifact, active_label)
         self._send_json(200, {'ok': True})
 
     def _handle_leave(self):
@@ -991,6 +1078,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
         print(f'  📝 Review added by {review["name"]} on {artifact_id}')
         rebuild_data_json()
+        log_activity(review.get('name', ''), 'review_submitted',
+                     f'Reviewed {artifact_id} — {review.get("rating", "No rating")}',
+                     {'artifactId': artifact_id, 'reviewId': review.get('id')})
 
         self._send_json(200, {'ok': True, 'review': review})
 
@@ -1042,6 +1132,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
         print(f'  ✏️ Review {review_id} updated by {review.get("name", "?")}')
         rebuild_data_json()
+        log_activity(review.get('name', ''), 'review_edited',
+                     f'Edited review on {artifact_id}',
+                     {'artifactId': artifact_id, 'reviewId': review_id})
 
         self._send_json(200, {'ok': True, 'review': review})
 
@@ -1075,6 +1168,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         save_reviews(all_reviews)
         print(f'  🗑️ Review {review_id} deleted from {artifact_id}')
         rebuild_data_json()
+        log_activity('', 'review_deleted',
+                     f'Deleted review from {artifact_id}',
+                     {'artifactId': artifact_id, 'reviewId': review_id})
 
         self._send_json(200, {'ok': True})
 

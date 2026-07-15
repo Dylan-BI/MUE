@@ -587,6 +587,15 @@
   .pm-admin-access { display: none; margin-top: 10px; text-align: center; }
   .pm-admin-access button { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
   .pm-admin-access button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,92,231,.3); }
+  /* Modal activity history panel */
+  .pm-activity { margin-top: 12px; border-top: 1px solid rgba(255,255,255,.06); padding-top: 10px; }
+  .pm-activity .pa-header { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.5); margin-bottom: 6px; }
+  .pm-activity .pa-item { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; border-top: 1px solid rgba(255,255,255,.03); }
+  .pm-activity .pa-item:first-of-type { border-top: none; }
+  .pm-activity .pa-icon { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+  .pm-activity .pa-info { flex: 1; min-width: 0; }
+  .pm-activity .pa-detail { font-size: 11px; color: rgba(255,255,255,.55); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pm-activity .pa-time { font-size: 10px; color: rgba(255,255,255,.2); margin-top: 1px; }
   @keyframes profileIn { from { opacity: 0; transform: scale(.96) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   /* ── Sidebar Profile Card ── */
   .sidebar-profile { padding: 8px 12px; margin-bottom: 4px; background: var(--sidebar-hover-bg); border-radius: 8px; border: 1px solid var(--sidebar-level-btn-border); cursor: pointer; transition: background .15s; }
@@ -600,6 +609,15 @@
   .sidebar-profile-empty { padding: 8px 12px; text-align: center; }
   .sidebar-profile-empty button { background: var(--accent); color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: 600; transition: background .15s; }
   .sidebar-profile-empty button:hover { background: var(--accent-hover); }
+  /* Profile Activity History */
+  .profile-activity { padding: 8px 12px 0; }
+  .profile-activity .pa-header { font-size: 11px; font-weight: 600; color: var(--sidebar-header-text); margin-bottom: 6px; opacity: .8; }
+  .profile-activity .pa-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,.04); }
+  .profile-activity .pa-item:first-of-type { border-top: none; }
+  .profile-activity .pa-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+  .profile-activity .pa-info { flex: 1; min-width: 0; }
+  .profile-activity .pa-detail { font-size: 12px; color: var(--sidebar-footer-text, rgba(255,255,255,.65)); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-activity .pa-time { font-size: 10px; color: rgba(255,255,255,.25); margin-top: 1px; }
   .preview-box .preview-error { padding:24px; text-align:center; color:var(--danger-hue); }
   .preview-box .preview-body pre { background: var(--bg-preview); padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-code); }
 
@@ -659,6 +677,15 @@
   .presence-status.online { color: #22c55e; font-weight: 600; }
   .presence-status.offline { color: #6b7280; }
   .presence-empty { font-size: 11px; color: var(--text-sidebar-muted); padding: 4px 8px; font-style: italic; }
+  /* Presence dots on artifact cards */
+  .presence-dot-card { position: absolute; top: 10px; right: 10px; width: 10px; height: 10px; border-radius: 50%; z-index: 10; cursor: pointer; box-shadow: 0 0 8px rgba(255,255,255,.3); animation: presencePulse 2s ease-in-out infinite; transition: transform .15s; }
+  .presence-dot-card:hover { transform: scale(1.5); }
+  @keyframes presencePulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+  /* Presence hover tooltip */
+  .presence-tooltip { display: none; position: fixed; z-index: 9999; background: var(--bg-card, #1e1e2e); border: 1px solid var(--border-color, rgba(255,255,255,.12)); border-radius: 8px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.4); font-size: 12px; max-width: 220px; pointer-events: none; }
+  .presence-tooltip .pt-name { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .presence-tooltip .pt-location { color: var(--text-secondary, rgba(255,255,255,.6)); font-size: 11px; margin-bottom: 2px; }
+  .presence-tooltip .pt-page { color: var(--text-muted, rgba(255,255,255,.35)); font-size: 11px; }
   @media (max-width: 768px) {
     body { flex-direction: column; }
     .sidebar { width: 100%; height: auto; position: static; max-height: 260px; }
@@ -972,6 +999,7 @@
   </div>
   <!-- Profile card (above footer) -->
   <div id="sidebarProfile" style="padding:0 8px 4px"></div>
+  <div id="sidebarActivity" style="padding:0 8px 4px"></div>
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
       <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙 <span class="theme-icon">Dark</span></button>
@@ -1061,6 +1089,8 @@
         </div>
       </div>
       <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (jane_doe)</button></div>
+      <!-- Per-profile activity history (visible when editing existing profile) -->
+      <div id="pmActivityHistory" class="pm-activity" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -1298,6 +1328,9 @@ function confirmEnvironmentAdequate() {
   try { localStorage.setItem(ENV_CONFIRMED_KEY, 'true'); } catch {}
   document.getElementById('envOverlay').classList.remove('open');
   showToast('Environment confirmed — you\'re all set to review', 'success', 'Ready');
+  // Log dashboard viewed for existing profile
+  const _cp = getProfile();
+  if (_cp && _cp.username) { logProfileActivity(_cp.username, 'dashboard_viewed', 'Viewed dashboard as ' + _cp.displayName); }
   // Prompt profile setup after environment check (mandatory or first-time)
   if (isProfileMandatory() || !getProfile()) { setTimeout(() => openProfileModal(), 400); }
 }
@@ -1653,9 +1686,15 @@ function promptServerUrl() {
 }
 
 /* ── Presence API (reviewer online/offline tracking) ── */
-let REVIEWER_PRESENCE = [];  // [{name, color, avatar, last_seen, online}]
+let REVIEWER_PRESENCE = [];  // [{name, color, avatar, last_seen, online, active_page, active_artifact, active_label}]
 let _presenceInterval = null;
 let _presenceHeartbeatInterval = null;
+
+/* ── Active Location Tracking (for presence dots) ── */
+let _myActivePage = '';       // current page name (e.g. 'overview', 'third-party')
+let _myActiveArtifact = '';   // current artifact review-section id (e.g. 'pt_PT1', 'note_...')
+let _myActiveLabel = '';      // human-readable label for the artifact
+let _artifactObserver = null; // IntersectionObserver for tracking visible artifacts
 
 // Generate a unique two-color gradient mix from a reviewer name
 function _reviewerColor(name) {
@@ -1697,7 +1736,10 @@ async function sendPresenceHeartbeat() {
     await _serverFetch(REVIEW_SERVER + '/api/presence', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({name, displayName: p.displayName, color: _reviewerColor(name)})
+      body: JSON.stringify({
+        name, displayName: p.displayName, color: _reviewerColor(name),
+        activePage: _myActivePage, activeArtifact: _myActiveArtifact, activeLabel: _myActiveLabel
+      })
     });
   } catch (e) {}
 }
@@ -1722,7 +1764,7 @@ async function fetchPresence() {
   if (!REVIEW_SERVER) { REVIEWER_PRESENCE = []; renderPresencePanel(); return; }
   try {
     const resp = await _serverFetch(REVIEW_SERVER + '/api/presence?_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
-    if (resp.ok) { REVIEWER_PRESENCE = await resp.json(); renderPresencePanel(); }
+    if (resp.ok) { REVIEWER_PRESENCE = await resp.json(); renderPresencePanel(); renderPresenceDots(); }
   } catch (e) {}
 }
 
@@ -1795,6 +1837,80 @@ async function startPresenceTracking() {
   fetchPresence();
   // Send leave on page unload
   window.addEventListener('beforeunload', sendPresenceLeave);
+  // Initialize artifact intersection observer for presence tracking
+  _initArtifactObserver();
+}
+
+/* ── Artifact Intersection Observer — tracks which artifact the user is viewing ── */
+function _initArtifactObserver() {
+  if (_artifactObserver) _artifactObserver.disconnect();
+  _artifactObserver = new IntersectionObserver((entries) => {
+    // Find the most-visible review section
+    let bestEntry = null, bestRatio = 0;
+    entries.forEach(e => {
+      if (e.isIntersecting && e.intersectionRatio > bestRatio) {
+        bestRatio = e.intersectionRatio;
+        bestEntry = e;
+      }
+    });
+    if (bestEntry && bestEntry.target) {
+      const el = bestEntry.target;
+      _myActiveArtifact = el.getAttribute('data-presence-id') || '';
+      _myActiveLabel = el.getAttribute('data-presence-label') || '';
+    }
+  }, { threshold: [0.25, 0.5, 0.75] });
+  // Observe all review sections that have presence markers
+  _observePresenceMarkers();
+}
+
+function _observePresenceMarkers() {
+  if (!_artifactObserver) return;
+  // Defer to next frame so DOM is ready after renderAll
+  requestAnimationFrame(() => {
+    document.querySelectorAll('[data-presence-id]').forEach(el => {
+      _artifactObserver.observe(el);
+    });
+  });
+}
+
+/* ── Presence Dots — colored indicators on active artifacts ── */
+function renderPresenceDots() {
+  // Remove all existing presence dots first
+  document.querySelectorAll('.presence-dot-card').forEach(el => el.remove());
+  // For each online reviewer with an active artifact, inject a colored dot
+  REVIEWER_PRESENCE.forEach(r => {
+    if (!r.online || !r.active_artifact) return;
+    const target = document.querySelector('[data-presence-id="' + CSS.escape(r.active_artifact) + '"]');
+    if (!target) return;
+    // Find the closest parent .card or the target itself
+    const card = target.closest('.card') || target;
+    // Avoid duplicating dots
+    if (card.querySelector('.presence-dot-card[data-reviewer="' + CSS.escape(r.name) + '"]')) return;
+    const dot = document.createElement('div');
+    dot.className = 'presence-dot-card';
+    dot.setAttribute('data-reviewer', r.name);
+    dot.style.background = r.color || '#7c73ff';
+    dot.title = (r.display_name || r.name) + ' — ' + (r.active_label || r.active_artifact);
+    // Add hover tooltip with richer info
+    dot.addEventListener('mouseenter', function() {
+      let tip = document.getElementById('presenceTooltip');
+      if (!tip) { tip = document.createElement('div'); tip.id = 'presenceTooltip'; tip.className = 'presence-tooltip'; document.body.appendChild(tip); }
+      tip.innerHTML = '<div class="pt-name" style="color:' + (r.color || '#7c73ff') + '">' + escHtml(r.display_name || r.name) + '</div>' +
+        '<div class="pt-location">📍 ' + escHtml(r.active_label || r.active_artifact) + '</div>' +
+        '<div class="pt-page">📄 ' + escHtml(r.active_page || 'browsing') + '</div>';
+      const rect = dot.getBoundingClientRect();
+      tip.style.display = 'block';
+      tip.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+      tip.style.top = (rect.top - tip.offsetHeight - 6) + 'px';
+    });
+    dot.addEventListener('mouseleave', function() {
+      const tip = document.getElementById('presenceTooltip');
+      if (tip) tip.style.display = 'none';
+    });
+    // Position the dot in the top-right corner of the card
+    card.style.position = card.style.position || 'relative';
+    card.appendChild(dot);
+  });
 }
 
 const CLS_COLORS = {
@@ -1940,6 +2056,7 @@ async function loadData() {
       LAST_GENERATED = DATA.generated;
       updateSidebar();
       renderAll();
+      _observePresenceMarkers();
       updateSidebarLevelButtons();
       startAutoRefresh();
       checkEnvironment();
@@ -2071,6 +2188,7 @@ function startAutoRefresh() {
         DATA = fresh;
         updateSidebar();
         renderAll();
+        _observePresenceMarkers();
         updateSidebarLevelButtons();
         showToast('Dashboard updated with new learner data', 'success', 'Auto-synced');
       }
@@ -2487,6 +2605,10 @@ function showPage(name) {
   document.querySelectorAll('.nav a').forEach(a => a.classList.remove('active'));
   const link = document.querySelector('.nav a[data-page="' + name + '"]');
   if (link) link.classList.add('active');
+  // Update active page for presence tracking
+  _myActivePage = name;
+  _myActiveArtifact = '';
+  _myActiveLabel = '';
   // Hide outgoing pages instantly (remove active without transition)
   document.querySelectorAll('.page.active').forEach(p => {
     p.style.transition = 'none';
@@ -3142,7 +3264,7 @@ function renderAll() {
 function renderReviewSection(aid, type, label, filename) {
   const saved = getReviews(), itemRev = saved[aid]||[];
   const ropts = ['👍 Pass','⚡ Needs Work','❌ Rework'];
-  let html = '<div class="review-section">' +
+  let html = '<div class="review-section" data-presence-id="'+escHtml(aid)+'" data-presence-label="'+escHtml(label)+'">' +
     '<div class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rf_'+aid+'\').classList.toggle(\'open\')">💬 Review</div>' +
     '<div class="review-form" id="rf_'+aid+'">' +
     '<label>Instructor <span style="color:var(--danger)">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
@@ -3157,7 +3279,7 @@ function renderReviewSection(aid, type, label, filename) {
 
 function reviewToggleInline(aid, type, label, filename) {
   return '<span class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rif_'+aid+'\').classList.toggle(\'open\')">💬 Review</span>' +
-    '<div class="review-form" id="rif_'+aid+'" style="display:none">' +
+    '<div class="review-form" id="rif_'+aid+'" data-presence-id="'+escHtml(aid)+'" data-presence-label="'+escHtml(label)+'" style="display:none">' +
     '<label>Instructor <span style="color:var(--danger)">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
     '<label>Rating</label><div class="rating-group" id="rig_'+aid+'">' +
     ['👍 Pass','⚡ Needs Work','❌ Rework'].map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
@@ -3258,6 +3380,61 @@ async function requestDailySummary() {
   } catch (e) { showToast('Failed to send summary', 'warning', 'Error'); }
 }
 
+/* ── Per-Profile Activity History ── */
+let _profileActivityCache = []; // cached activity list for current user
+
+async function fetchProfileActivity(username) {
+  if (!REVIEW_SERVER || !username) { _profileActivityCache = []; return []; }
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/activity?username=' + encodeURIComponent(username) + '&_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    if (resp.ok) { _profileActivityCache = await resp.json(); return _profileActivityCache; }
+  } catch (e) {}
+  return [];
+}
+
+async function logProfileActivity(username, action, detail, metadata) {
+  if (!REVIEW_SERVER || !username) return;
+  try {
+    await _serverFetch(REVIEW_SERVER + '/api/activity', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, action, detail, metadata})
+    });
+  } catch (e) {}
+}
+
+function _activityIcon(action) {
+  const icons = {
+    'profile_created': '👤', 'profile_updated': '✏️',
+    'review_submitted': '📝', 'review_edited': '📝', 'review_deleted': '🗑️',
+    'session_started': '🟢', 'dashboard_viewed': '👁️'
+  };
+  return icons[action] || '📌';
+}
+
+function _activityTimeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+function renderProfileActivity(username, maxItems) {
+  maxItems = maxItems || 5;
+  if (!_profileActivityCache.length) return '';
+  const items = _profileActivityCache.slice(0, maxItems);
+  let h = '<div class="profile-activity">';
+  h += '<div class="pa-header">📋 Recent Activity</div>';
+  items.forEach(a => {
+    h += '<div class="pa-item">' +
+      '<span class="pa-icon">' + _activityIcon(a.action) + '</span>' +
+      '<div class="pa-info"><div class="pa-detail">' + escHtml(a.detail) + '</div>' +
+      '<div class="pa-time">' + _activityTimeAgo(a.timestamp) + '</div></div></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
 function getReviewerName() {
   const p = getProfile();
   return p ? (p.displayName || p.username || '') : '';
@@ -3346,6 +3523,14 @@ function openProfileModal(edit) {
   const hasProfiles = Object.keys(SERVER_PROFILES).length > 0;
   _switchProfileTab(hasProfiles ? 'signin' : 'signup');
   modal.classList.add('open');
+  // Load activity history for this profile when editing
+  const pmActDiv = document.getElementById('pmActivityHistory');
+  if (existing && pmActDiv) {
+    pmActDiv.style.display = 'block';
+    fetchProfileActivity(existing.username).then(items => {
+      pmActDiv.innerHTML = items.length ? renderProfileActivity(existing.username, 8) : '<div style="padding:8px 12px;font-size:11px;color:rgba(255,255,255,.35)">No activity yet</div>';
+    });
+  } else if (pmActDiv) { pmActDiv.style.display = 'none'; }
   if (!hasProfiles) { if (uInput) uInput.focus(); }
 }
 
@@ -3365,6 +3550,7 @@ function _quickLogin(username) {
   renderPresencePanel();
   sendPresenceHeartbeat();
   showToast('Signed in as ' + p.displayName + ' (@' + p.username + ')' + (p.email ? ' — daily summary: ' + (p.dailySummary ? 'ON' : 'OFF') : ''), 'success', 'Welcome Back');
+  logProfileActivity(username, 'session_started', 'Signed in as ' + p.displayName);
 }
 
 function closeProfileModal() {
@@ -3409,6 +3595,7 @@ async function saveProfile() {
   } else {
     showToast('Profile activated: ' + displayName + ' (@' + username + ') — saved locally', 'info', 'Profile Saved');
   }
+  logProfileActivity(username, isEditing ? 'profile_updated' : 'profile_created', (isEditing ? 'Updated' : 'Created') + ' profile as ' + displayName + ' (@' + username + ')');
 }
 
 function renderSidebarProfile() {
@@ -3430,6 +3617,11 @@ function renderSidebarProfile() {
     '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div></div>' +
     editBtn + '</div></div>';
+  // Fetch and render activity history for this profile
+  fetchProfileActivity(p.username).then(items => {
+    const actDiv = document.getElementById('sidebarActivity');
+    if (actDiv && items.length) { actDiv.innerHTML = renderProfileActivity(p.username, 5); }
+  });
 }
 
 /* ── Look up version/changes context for the reviewed artifact ── */
@@ -3487,6 +3679,7 @@ async function submitReview(aid, type, label, filename) {
     saveReview(aid, review);
     showToast('Review submitted for ' + label, 'success', 'Review Saved');
   }
+  logProfileActivity(getReviewerUsername() || name, 'review_submitted', 'Reviewed ' + label + ' (' + type + ') — ' + rating, {artifactId: aid, rating});
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
   if (list) list.innerHTML = renderReviewList(aid);
 
