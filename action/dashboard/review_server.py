@@ -829,6 +829,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             return
         if parsed.path == '/api/reviews':
             self._handle_delete_review()
+        elif parsed.path == '/api/profiles':
+            self._handle_delete_profile()
         else:
             self._send_json(404, {'error': 'Not found'})
 
@@ -1147,6 +1149,58 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                      {'artifactId': artifact_id, 'reviewId': review_id})
 
         self._send_json(200, {'ok': True, 'review': review})
+
+    def _handle_delete_profile(self):
+        """DELETE /api/profiles — permanently delete a reviewer profile.
+
+        Authorization: only the profile owner or an admin can delete.
+        After deletion, the username becomes available for re-registration.
+        Activity logs for this user are also removed.
+        Reviews authored by this user are preserved (they belong to artifacts)."""
+        body = self._read_body()
+        if not body:
+            return
+
+        username = body.get('username', '').strip()
+        requester = body.get('requester', '').strip()
+        if not username:
+            self._send_json(400, {'error': 'username required'})
+            return
+        if username == TPR_USERNAME:
+            self._send_json(403, {'error': 'Cannot delete the Test Proxy Learner profile'})
+            return
+
+        profiles = load_profiles()
+        if username not in profiles:
+            self._send_json(404, {'error': 'Profile not found'})
+            return
+
+        is_owner = requester == username
+        is_admin = requester in ADMIN_USERS
+        if not is_owner and not is_admin:
+            self._send_json(403, {'error': 'access denied — only the profile owner or an admin can delete this profile'})
+            print(f'  🚫 Profile delete denied: @{requester} tried to delete @{username}')
+            return
+
+        # Remove profile
+        del profiles[username]
+        save_profiles(profiles)
+
+        # Remove activity logs for this user
+        activities = load_activity()
+        before_count = len(activities)
+        activities = [a for a in activities if a.get('username') != username]
+        removed_activities = before_count - len(activities)
+        with open(ACTIVITY_PATH, 'w', encoding='utf-8') as f:
+            json.dump(activities, f, indent=2, ensure_ascii=False)
+
+        # Log the deletion itself (before removing, as log_activity appends)
+        log_activity(requester, 'profile_deleted',
+                     f'Deleted profile @{username}' + (f' (removed {removed_activities} activity logs)' if removed_activities else ''),
+                     {'deletedUsername': username, 'removedActivities': removed_activities})
+
+        print(f'  🗑️ Profile deleted: @{username} by @{requester} ({removed_activities} activity logs removed)')
+        self._send_json(200, {'ok': True, 'removedActivities': removed_activities})
 
     def _handle_delete_review(self):
         """DELETE /api/reviews — delete a review."""

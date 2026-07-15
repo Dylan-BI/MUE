@@ -9,18 +9,6 @@
     }
   },
   {
-    "username": "alice_w",
-    "action": "session_started",
-    "detail": "Signed in as Alice Wilson",
-    "timestamp": "2026-07-15T11:46:31.802315"
-  },
-  {
-    "username": "alice_w",
-    "action": "session_started",
-    "detail": "Signed in as Alice Wilson",
-    "timestamp": "2026-07-15T12:12:38.805897"
-  },
-  {
     "username": "tpr_bot",
     "action": "profile_created",
     "detail": "Created profile as 🧪 Test Proxy",
@@ -94,5 +82,24 @@
     "action": "tpr_test",
     "detail": "TPR automated test run",
     "timestamp": "2026-07-15T12:18:24.817530"
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_deleted",
+    "detail": "Deleted profile @alice_w (removed 6 activity logs)",
+    "timestamp": "2026-07-15T13:02:17.033836",
+    "metadata": {
+      "deletedUsername": "alice_w",
+      "removedActivities": 6
+    }
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_created",
+    "detail": "Created profile as Alice Wilson",
+    "timestamp": "2026-07-15T13:02:39.297471",
+    "metadata": {
+      "requester": "alice_w"
+    }
   }
 ]

@@ -582,6 +582,10 @@
   .profile-box .pm-actions .pm-save:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,92,231,.4); }
   .profile-box .pm-actions .pm-skip { background: rgba(255,255,255,.06); color: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.1); }
   .profile-box .pm-actions .pm-skip:hover { color: #fff; border-color: rgba(255,255,255,.2); }
+  .profile-box .pm-delete-actions { display: flex; gap: 8px; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.06); margin-top: 8px; }
+  .profile-box .pm-delete-actions .pm-delete-btn { padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255,77,77,.3); background: rgba(255,77,77,.08); color: #ff6b6b; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; }
+  .profile-box .pm-delete-actions .pm-delete-btn:hover { background: rgba(255,77,77,.15); border-color: rgba(255,77,77,.5); box-shadow: 0 2px 12px rgba(255,77,77,.15); }
+  .profile-box .pm-delete-actions .pm-delete-hint { font-size: 11px; color: rgba(255,255,255,.3); }
   .pm-mandatory-notice { background: linear-gradient(135deg, rgba(255,107,107,.15), rgba(255,107,107,.05)); border: 1px solid rgba(255,107,107,.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #ff6b6b; line-height: 1.5; }
   .pm-mandatory-notice strong { font-size: 13px; }
   .pm-admin-access { display: none; margin-top: 10px; text-align: center; }
@@ -1095,6 +1099,10 @@
         </label>
         <div class="pm-actions">
           <button class="pm-save" onclick="saveProfile()">✅ Create & Sign In</button>
+        </div>
+        <div class="pm-delete-actions" id="pmDeleteActions" style="display:none">
+          <button class="pm-delete-btn" onclick="deleteProfile()">🗑️ Delete Profile</button>
+          <span class="pm-delete-hint">Permanently removes your profile</span>
         </div>
       </div>
       <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (jane_doe)</button></div>
@@ -3618,6 +3626,38 @@ async function serverSaveProfile(profile) {
   return false;
 }
 
+async function serverDeleteProfile(username) {
+  if (!REVIEW_SERVER) return false;
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles', {
+      method: 'DELETE', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: username, requester: getReviewerUsername() || username })
+    });
+    if (resp.ok) { await serverFetchProfiles(); return true; }
+    const err = await resp.json().catch(() => ({}));
+    showToast(err.error || 'Failed to delete profile', 'warning', 'Delete Failed');
+    return false;
+  } catch (e) { showToast('Server error — profile not deleted', 'warning', 'Error'); return false; }
+}
+
+function deleteProfile() {
+  const current = getProfile();
+  if (!current) return;
+  const username = current.username;
+  const displayName = current.displayName || username;
+  if (!confirm('⚠️ Delete profile @' + username + '?\n\nThis will permanently remove your reviewer profile. Your past reviews will remain visible but your name will no longer be editable.\n\nYou can re-register with the same username afterward.')) return;
+  serverDeleteProfile(username).then(ok => {
+    if (ok) {
+      localStorage.removeItem(PROFILE_KEY);
+      logProfileActivity(username, 'profile_deleted', 'Deleted profile @' + username);
+      showToast('Profile @' + username + ' deleted — you can re-register with the same credentials', 'info', 'Profile Deleted');
+      renderSidebarProfile();
+      renderPresencePanel();
+      openProfileModal();
+    }
+  });
+}
+
 /* ── Daily Summary Email ── */
 async function requestDailySummary() {
   if (!REVIEW_SERVER) { showToast('Server not connected — cannot send summary', 'warning', 'Offline'); return; }
@@ -3766,14 +3806,21 @@ function openProfileModal(edit) {
     adminEl.style.display = (mandatory && ADMIN_USERS.includes(uname)) ? 'block' : 'none';
   }
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
+  const isEditing = !!existing;
   if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = existing.email || ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
   else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; }
+  // Show/hide delete button — only when editing an existing profile
+  const deleteActions = document.getElementById('pmDeleteActions');
+  if (deleteActions) deleteActions.style.display = isEditing ? 'flex' : 'none';
+  // Update save button label for edit vs create
+  const saveBtn = modal.querySelector('.pm-save');
+  if (saveBtn) saveBtn.textContent = isEditing ? '✅ Update Profile' : '✅ Create & Sign In';
   _previewProfileAvatar();
   // Render sign-in list with server profiles
   _renderSigninList();
-  // Default tab: Sign In if profiles exist, Sign Up if none
+  // Default tab: Sign Up if editing, else Sign In if profiles exist, Sign Up if none
   const hasProfiles = Object.keys(SERVER_PROFILES).length > 0;
-  _switchProfileTab(hasProfiles ? 'signin' : 'signup');
+  _switchProfileTab(isEditing ? 'signup' : (hasProfiles ? 'signin' : 'signup'));
   modal.classList.add('open');
   // Load activity history for this profile when editing
   const pmActDiv = document.getElementById('pmActivityHistory');

@@ -7,12 +7,6 @@
     "createdAt": "2026-07-10T00:00:00.000Z",
     "updatedAt": "2026-07-14T02:04:08.151455"
   },
-  "alice_w": {
-    "username": "alice_w",
-    "displayName": "Alice Wilson",
-    "createdAt": "2026-07-13T14:14:44.521139",
-    "updatedAt": "2026-07-13T14:14:44.521159"
-  },
   "tpr_bot": {
     "username": "tpr_bot",
     "displayName": "Test Proxy",
@@ -20,5 +14,14 @@
     "dailySummary": false,
     "createdAt": "2026-07-13T14:14:44.521139",
     "updatedAt": "2026-07-15T12:23:34.000000"
+  },
+  "alice_w": {
+    "username": "alice_w",
+    "displayName": "Alice Wilson",
+    "email": "",
+    "dailySummary": false,
+    "role": "",
+    "createdAt": "2026-07-15T13:02:39.295840",
+    "updatedAt": "2026-07-15T13:02:39.295851"
   }
 }
