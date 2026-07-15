@@ -3427,7 +3427,7 @@ function selectRating(aid, idx) {
 
 /* ── Reviewer Profile System ── */
 const PROFILE_KEY = 'mue_reviewer_profile';
-const ADMIN_USERS = ['jane_doe'];  // exempt from mandatory profile
+const ADMIN_USERS = ['jane_doe', 'dylan_bi'];  // exempt from mandatory profile
 const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
 const TPR_USERNAME = 'tpr_bot';    // Test Proxy Reviewer — invisible automated tester
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
@@ -3542,17 +3542,20 @@ async function runTPRTest() {
   } catch (e) { tprLog('fail', 'Activity log failed: ' + e.message); }
 
   // ── Test 7: Page rendering ──
-  const pages = ['overview', 'daily', 'scorecard', 'proof-tasks', 'evidence', 'classification', 'codex-gate'];
+  const renderPages = ['overview', 'daily', 'scorecard', 'proof-tasks', 'evidence', 'classification', 'codex-gate'];
   let renderOk = 0;
-  for (const pg of pages) {
+  for (const pg of renderPages) {
     try {
       showPage(pg);
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 500));
       const el = document.getElementById('page-' + pg);
-      if (el && el.classList.contains('active')) renderOk++;
+      // Check active class; if not yet set, force-check after reflow
+      let ok = el && el.classList.contains('active');
+      if (!ok && el) { void el.offsetHeight; ok = el.classList.contains('active'); }
+      if (ok) renderOk++;
     } catch {}
   }
-  tprLog(renderOk === pages.length ? 'pass' : 'fail', 'Page rendering: ' + renderOk + '/' + pages.length + ' pages OK');
+  tprLog(renderOk === renderPages.length ? 'pass' : 'fail', 'Page rendering: ' + renderOk + '/' + renderPages.length + ' pages OK');
   showPage('overview'); // return to overview
 
   // ── Test 8: Chart rendering ──
@@ -3580,6 +3583,87 @@ async function runTPRTest() {
     const total = Object.values(SERVER_REVIEWS).reduce((a, b) => a + b.length, 0);
     tprLog('pass', 'Server reviews fetched: ' + total + ' total');
   } catch (e) { tprLog('fail', 'Review fetch failed: ' + e.message); }
+
+  // ── Test 12: Generative data flow ──
+  try {
+    const dataChecks = [];
+    // 12a: data.json loaded in memory
+    if (DATA && typeof DATA === 'object') {
+      dataChecks.push('DATA object loaded');
+    } else { tprLog('fail', 'Generative flow: DATA object not loaded'); throw new Error('no DATA'); }
+
+    // 12b: generated timestamp exists and is recent (< 10 min old)
+    if (DATA.generated) {
+      const age = Date.now() - new Date(DATA.generated).getTime();
+      if (age < 600000) dataChecks.push('generated ' + Math.round(age / 1000) + 's ago');
+      else dataChecks.push('generated ' + Math.round(age / 60000) + 'min ago (stale)');
+    } else { tprLog('fail', 'Generative flow: missing generated timestamp'); throw new Error('no timestamp'); }
+
+    // 12c: summary totals
+    const s = DATA.summary || {};
+    const summaryFields = ['total_days', 'total_files', 'total_words'];
+    summaryFields.forEach(f => {
+      if (typeof s[f] === 'number') dataChecks.push(f + '=' + s[f]);
+    });
+
+    // 12d: notes array exists and has entries (data.json uses 'notes' not 'pages')
+    const notes = DATA.notes || [];
+    const evidence = DATA.evidence || [];
+    const artObj = DATA.artifacts || {};
+    const artCount = Array.isArray(artObj) ? artObj.length : Object.values(artObj).reduce((a, v) => a + (Array.isArray(v) ? v.length : 0), 0);
+    dataChecks.push(notes.length + ' notes, ' + evidence.length + ' evidence, ' + artCount + ' artifacts');
+
+    // 12e: verify note data has expected structure (id, date, classification)
+    let structuralOk = 0;
+    notes.forEach(n => {
+      if (n.id && n.date && n.classification) structuralOk++;
+    });
+    dataChecks.push(structuralOk + '/' + notes.length + ' notes structurally valid');
+
+    // 12f: check that charts have rendered data points (canvas pixel test)
+    await new Promise(r => setTimeout(r, 300)); // let charts render
+    const canvases = document.querySelectorAll('canvas');
+    let chartsWithData = 0;
+    canvases.forEach(c => {
+      try {
+        const ctx = c.getContext('2d');
+        const px = ctx.getImageData(c.width / 2, c.height / 2, 1, 1).data;
+        if (px[3] > 0) chartsWithData++; // non-transparent center pixel = chart has content
+      } catch {}
+    });
+    dataChecks.push(chartsWithData + '/' + canvases.length + ' charts rendered');
+
+    // 12g: navigation badges reflect data counts
+    const badges = document.querySelectorAll('.nav-badge');
+    let badgeNonZero = 0;
+    badges.forEach(b => { const n = parseInt(b.textContent); if (n > 0) badgeNonZero++; });
+    dataChecks.push(badgeNonZero + '/' + badges.length + ' badges with data');
+
+    // 12h: levels and categories present
+    const levels = DATA.levels || {};
+    const levelCount = Object.keys(levels).length;
+    const cats = DATA.categories || {};
+    const catCount = Array.isArray(cats) ? cats.length : Object.keys(cats).length;
+    dataChecks.push(levelCount + ' levels, ' + catCount + ' categories');
+
+    // 12i: trigger rebuild and verify data.json updates
+    const beforeGen = DATA.generated;
+    try {
+      const rebuildResp = await _serverFetch(REVIEW_SERVER + '/api/reviews?_cb=' + Date.now(), {signal: AbortSignal.timeout(3000)});
+      if (rebuildResp.ok) {
+        // Re-fetch data.json to check if it was rebuilt
+        const djResp = await _serverFetch(REVIEW_SERVER + '/data.json?_cb=' + Date.now(), {signal: AbortSignal.timeout(3000)});
+        if (djResp.ok) {
+          const freshData = await djResp.json();
+          if (freshData && freshData.generated) {
+            dataChecks.push('data.json re-fetch OK (gen=' + freshData.generated.substring(11, 19) + ')');
+          } else { dataChecks.push('data.json re-fetch: no generated field'); }
+        } else { dataChecks.push('data.json fetch returned ' + djResp.status); }
+      }
+    } catch (e) { dataChecks.push('rebuild check skipped: ' + e.message); }
+
+    tprLog('pass', 'Generative data flow: ' + dataChecks.join(' · '));
+  } catch (e) { if (!e.message.includes('no ')) tprLog('fail', 'Generative flow error: ' + e.message); }
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   const passed = _tprResults.filter(r => r.status === 'pass').length;

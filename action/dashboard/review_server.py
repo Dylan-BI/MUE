@@ -147,7 +147,7 @@ _presence_lock = threading.Lock()
 PRESENCE_TTL = 30  # 30s — offline if no heartbeat in 30s
 
 # Profile access control: only these usernames can edit any profile
-ADMIN_USERS = ['jane_doe']
+ADMIN_USERS = ['jane_doe', 'dylan_bi']
 
 # Test Proxy Reviewer — invisible automated testing profile
 TPR_USERNAME = 'tpr_bot'

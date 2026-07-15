@@ -12,8 +12,9 @@
     "displayName": "Test Proxy",
     "email": "tpr@mue.local",
     "dailySummary": false,
+    "role": "",
     "createdAt": "2026-07-13T14:14:44.521139",
-    "updatedAt": "2026-07-15T12:23:34.000000"
+    "updatedAt": "2026-07-15T14:08:19.769725"
   },
   "alice_w": {
     "username": "alice_w",

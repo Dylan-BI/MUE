@@ -146,5 +146,105 @@
     "action": "profile_updated",
     "detail": "Removed email from profile as Alice Wilson",
     "timestamp": "2026-07-15T13:20:55.895092"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-15T13:47:30.834173",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784116051467 — 👍 Pass",
+    "timestamp": "2026-07-15T13:47:33.317309",
+    "metadata": {
+      "artifactId": "tpr_test_1784116051467",
+      "reviewId": "17841160517165386"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T13:47:33.635339"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-15T14:01:00.807252",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784116861446 — 👍 Pass",
+    "timestamp": "2026-07-15T14:01:03.417553",
+    "metadata": {
+      "artifactId": "tpr_test_1784116861446",
+      "reviewId": "17841168617085464"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T14:01:03.738888"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-15T14:05:31.339938",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784117132025 — 👍 Pass",
+    "timestamp": "2026-07-15T14:05:33.802167",
+    "metadata": {
+      "artifactId": "tpr_test_1784117132025",
+      "reviewId": "17841171322386556"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T14:05:34.115378"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-15T14:08:19.770829",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784117300345 — 👍 Pass",
+    "timestamp": "2026-07-15T14:08:22.553418",
+    "metadata": {
+      "artifactId": "tpr_test_1784117300345",
+      "reviewId": "17841173006611098"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T14:08:23.140580"
   }
 ]
