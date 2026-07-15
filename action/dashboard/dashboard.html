@@ -618,6 +618,13 @@
   .profile-activity .pa-info { flex: 1; min-width: 0; }
   .profile-activity .pa-detail { font-size: 12px; color: var(--sidebar-footer-text, rgba(255,255,255,.65)); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .profile-activity .pa-time { font-size: 10px; color: rgba(255,255,255,.25); margin-top: 1px; }
+  /* TPR Test Results */
+  .tpr-results { padding: 8px 12px; }
+  .tpr-results .tpr-header { font-size: 12px; font-weight: 700; color: var(--sidebar-header-text); margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .tpr-results .tpr-item { display: flex; align-items: flex-start; gap: 6px; padding: 3px 0; font-size: 11px; }
+  .tpr-results .tpr-icon { flex-shrink: 0; font-size: 11px; }
+  .tpr-results .tpr-msg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tpr-results .tpr-time { flex-shrink: 0; font-size: 10px; color: rgba(255,255,255,.25); }
   .preview-box .preview-error { padding:24px; text-align:center; color:var(--danger-hue); }
   .preview-box .preview-body pre { background: var(--bg-preview); padding: 12px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; color: var(--text-code); }
 
@@ -1000,6 +1007,7 @@
   <!-- Profile card (above footer) -->
   <div id="sidebarProfile" style="padding:0 8px 4px"></div>
   <div id="sidebarActivity" style="padding:0 8px 4px"></div>
+  <div id="tprResults" style="padding:0 8px 4px"></div>
   <div class="sidebar-footer">
     <div style="display:flex;gap:4px;margin-bottom:6px;align-items:center">
       <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙 <span class="theme-icon">Dark</span></button>
@@ -1795,7 +1803,7 @@ function renderPresencePanel() {
     return;
   }
   // Sort: online first, then by name
-  const sorted = [...REVIEWER_PRESENCE].sort((a, b) => {
+  const sorted = [...REVIEWER_PRESENCE].filter(r => r.name !== TPR_USERNAME).sort((a, b) => {
     if (a.online !== b.online) return b.online - a.online;
     return a.name.localeCompare(b.name);
   });
@@ -3365,6 +3373,7 @@ function selectRating(aid, idx) {
 const PROFILE_KEY = 'mue_reviewer_profile';
 const ADMIN_USERS = ['jane_doe'];  // exempt from mandatory profile
 const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
+const TPR_USERNAME = 'tpr_bot';    // Test Proxy Reviewer — invisible automated tester
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
 
 function isAdminUser() {
@@ -3372,6 +3381,191 @@ function isAdminUser() {
   if (p && ADMIN_USERS.includes(p.username)) return true;
   try { const b = localStorage.getItem(ADMIN_BYPASS_KEY); if (b && ADMIN_USERS.includes(b)) return true; } catch {}
   return false;
+}
+
+function isTestProxy() {
+  const p = getProfile();
+  return p && p.username === TPR_USERNAME;
+}
+
+/* ── Test Proxy Reviewer (TPR) — invisible automated dashboard tester ── */
+let _tprRunning = false;
+let _tprResults = [];
+
+async function activateTPR() {
+  if (!isAdminUser()) { showToast('Only admins can activate TPR', 'warning', 'Restricted'); return; }
+  if (!REVIEW_SERVER) { showToast('Server not connected — TPR requires server', 'warning', 'Offline'); return; }
+  // Create or fetch TPR profile on server
+  const tprProfile = {
+    username: TPR_USERNAME,
+    displayName: '🧪 Test Proxy',
+    email: '',
+    dailySummary: false,
+    role: 'test_proxy',
+    createdAt: new Date().toISOString()
+  };
+  // Save via server (admin can create any profile)
+  const oldProfile = getProfile();
+  setProfile(tprProfile);
+  const synced = await serverSaveProfile(tprProfile);
+  if (!synced) { setProfile(oldProfile); showToast('TPR profile sync failed', 'warning', 'Error'); return; }
+  // Also sign in locally
+  setProfile(tprProfile);
+  renderSidebarProfile();
+  renderPresencePanel();
+  sendPresenceHeartbeat();
+  showToast('TPR activated — running test suite…', 'success', '🧪 Test Proxy');
+  // Run the test suite
+  await runTPRTest();
+}
+
+async function deactivateTPR() {
+  if (!isTestProxy()) return;
+  setProfile(null);
+  try { localStorage.removeItem(PROFILE_KEY); } catch {}
+  renderSidebarProfile();
+  renderPresencePanel();
+  showToast('TPR deactivated', 'info', '🧪 Test Proxy');
+}
+
+async function runTPRTest() {
+  if (_tprRunning) return;
+  _tprRunning = true;
+  _tprResults = [];
+  const t0 = Date.now();
+  tprLog('info', 'Starting TPR test suite…');
+
+  // ── Test 1: Server connectivity ──
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/status?_cb=' + Date.now(), {signal: AbortSignal.timeout(3000)});
+    if (resp.ok) {
+      const status = await resp.json();
+      tprLog('pass', 'Server connected — ' + status.reviews + ' reviews, ' + status.artifacts + ' artifacts');
+    } else { tprLog('fail', 'Server returned ' + resp.status); }
+  } catch (e) { tprLog('fail', 'Server unreachable: ' + e.message); }
+
+  // ── Test 2: Profile sync ──
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?include_tpr=1&_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
+    if (resp.ok) {
+      const profiles = await resp.json();
+      if (profiles[TPR_USERNAME]) tprLog('pass', 'TPR profile synced to server');
+      else tprLog('fail', 'TPR profile not found on server');
+    }
+  } catch (e) { tprLog('fail', 'Profile check failed: ' + e.message); }
+
+  // ── Test 3: Data.json integrity ──
+  try {
+    if (DATA && DATA.generated) {
+      const age = Date.now() - new Date(DATA.generated).getTime();
+      tprLog('pass', 'data.json loaded — ' + DATA.summary.total_days + ' days, generated ' + Math.round(age / 1000) + 's ago');
+    } else { tprLog('fail', 'data.json not loaded or missing generated timestamp'); }
+  } catch (e) { tprLog('fail', 'Data check failed: ' + e.message); }
+
+  // ── Test 4: Review submission ──
+  const testArtifact = 'tpr_test_' + Date.now();
+  try {
+    const testReview = {name: '🧪 TPR', rating: '👍 Pass', text: 'Automated TPR test review — ' + new Date().toISOString(), type: 'Test', label: 'TPR Validation', role: 'Test Proxy'};
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({artifactId: testArtifact, review: testReview})
+    });
+    if (resp.ok) tprLog('pass', 'Review submitted and synced');
+    else tprLog('fail', 'Review submit returned ' + resp.status);
+  } catch (e) { tprLog('fail', 'Review submit failed: ' + e.message); }
+
+  // ── Test 5: Presence heartbeat ──
+  try {
+    await sendPresenceHeartbeat();
+    tprLog('pass', 'Presence heartbeat sent');
+  } catch (e) { tprLog('fail', 'Heartbeat failed: ' + e.message); }
+
+  // ── Test 6: Activity logging ──
+  try {
+    await logProfileActivity(TPR_USERNAME, 'tpr_test', 'TPR automated test run');
+    tprLog('pass', 'Activity logged');
+  } catch (e) { tprLog('fail', 'Activity log failed: ' + e.message); }
+
+  // ── Test 7: Page rendering ──
+  const pages = ['overview', 'daily', 'scorecard', 'proof-tasks', 'evidence', 'classification', 'codex-gate'];
+  let renderOk = 0;
+  for (const pg of pages) {
+    try {
+      showPage(pg);
+      await new Promise(r => setTimeout(r, 100));
+      const el = document.getElementById('page-' + pg);
+      if (el && el.classList.contains('active')) renderOk++;
+    } catch {}
+  }
+  tprLog(renderOk === pages.length ? 'pass' : 'fail', 'Page rendering: ' + renderOk + '/' + pages.length + ' pages OK');
+  showPage('overview'); // return to overview
+
+  // ── Test 8: Chart rendering ──
+  try {
+    const canvas = document.querySelector('.chart-container canvas');
+    tprLog(canvas ? 'pass' : 'fail', canvas ? 'Chart canvas found' : 'No chart canvas detected');
+  } catch (e) { tprLog('fail', 'Chart check failed'); }
+
+  // ── Test 9: Navigation badges ──
+  try {
+    const badges = document.querySelectorAll('.nav-badge');
+    let badgeCount = 0;
+    badges.forEach(b => { if (b.textContent.trim() && !b.classList.contains('zero')) badgeCount++; });
+    tprLog('pass', 'Navigation badges: ' + badgeCount + ' active');
+  } catch { tprLog('fail', 'Badge check failed'); }
+
+  // ── Test 10: Browser notification support ──
+  try {
+    tprLog('pass', 'Notifications: ' + (_notifEnabled() ? 'enabled' : 'disabled (user preference)'));
+  } catch { tprLog('fail', 'Notification check failed'); }
+
+  // ── Test 11: Review fetch from server ──
+  try {
+    await serverFetchReviews();
+    const total = Object.values(SERVER_REVIEWS).reduce((a, b) => a + b.length, 0);
+    tprLog('pass', 'Server reviews fetched: ' + total + ' total');
+  } catch (e) { tprLog('fail', 'Review fetch failed: ' + e.message); }
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  const passed = _tprResults.filter(r => r.status === 'pass').length;
+  const failed = _tprResults.filter(r => r.status === 'fail').length;
+  tprLog('info', '━━━ TPR Complete: ' + passed + ' passed, ' + failed + ' failed in ' + elapsed + 's ━━━');
+  _tprRunning = false;
+
+  // Render results
+  renderTPRResults();
+
+  // Auto-deactivate TPR and restore admin profile
+  setTimeout(() => {
+    try { localStorage.removeItem(PROFILE_KEY); } catch {}
+    const adminProfile = { username: 'jane_doe', displayName: 'Jane Doe', email: 'jane@example.com', dailySummary: false, createdAt: '2026-07-13T14:14:44.521139' };
+    setProfile(adminProfile);
+    renderSidebarProfile();
+    renderPresencePanel();
+    sendPresenceHeartbeat();
+  }, 500);
+}
+
+function tprLog(status, message) {
+  _tprResults.push({ status, message, time: new Date().toLocaleTimeString() });
+  console.log('[TPR ' + status.toUpperCase() + '] ' + message);
+}
+
+function renderTPRResults() {
+  const container = document.getElementById('tprResults');
+  if (!container) return;
+  const passed = _tprResults.filter(r => r.status === 'pass').length;
+  const failed = _tprResults.filter(r => r.status === 'fail').length;
+  const total = _tprResults.length;
+  let h = '<div class="tpr-results">';
+  h += '<div class="tpr-header">🧪 TPR Test Results <span style="float:right;font-size:11px;font-weight:400;color:var(--text-muted)">' + passed + '/' + total + ' passed</span></div>';
+  _tprResults.forEach(r => {
+    const icon = r.status === 'pass' ? '✅' : r.status === 'fail' ? '❌' : 'ℹ️';
+    const color = r.status === 'pass' ? 'var(--success)' : r.status === 'fail' ? 'var(--danger)' : 'var(--text-muted)';
+    h += '<div class="tpr-item"><span class="tpr-icon">' + icon + '</span><span class="tpr-msg" style="color:' + color + '">' + escHtml(r.message) + '</span><span class="tpr-time">' + r.time + '</span></div>';
+  });
+  h += '</div>';
+  container.innerHTML = h;
 }
 function isProfileMandatory() {
   return !isAdminUser() && !getProfile();
@@ -3538,7 +3732,7 @@ function _switchProfileTab(tab) {
 function _renderSigninList() {
   const container = document.getElementById('pm_signin_list');
   if (!container) return;
-  const profiles = Object.values(SERVER_PROFILES);
+  const profiles = Object.values(SERVER_PROFILES).filter(p => p.role !== 'test_proxy');
   if (profiles.length === 0) {
     container.innerHTML = '<div class="pm-signin-empty"><div class="pm-signin-empty-icon">👤</div>No reviewer profiles yet.<br>Create your profile in the <strong>New Account</strong> tab.</div>';
     return;
@@ -3678,12 +3872,13 @@ function renderSidebarProfile() {
   const admin = isAdminUser();
   const editBtn = admin ? '<div class="sp-edit">✏️</div>' : '';
   const badge = admin ? '<span style="font-size:9px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">Admin</span>' : '';
+  const tprBtn = admin ? '<button class="theme-btn" onclick="activateTPR()" title="Run automated dashboard tests" style="margin-top:6px;width:100%;font-size:11px;justify-content:center">🧪 Run TPR Tests</button>' : '';
   const emailBadge = p.email ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="' + escHtml(p.email) + (p.dailySummary ? ' — Daily summary ON' : '') + '">' + (p.dailySummary ? '📬' : '✉️') + '</span>' : '';
   container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="' + (admin ? 'Admin — click to edit any profile' : 'Click to edit your profile') + '">' +
     '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
     '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div></div>' +
-    editBtn + '</div></div>';
+    editBtn + '</div></div>' + tprBtn;
   // Fetch and render activity history for this profile
   fetchProfileActivity(p.username).then(items => {
     const actDiv = document.getElementById('sidebarActivity');

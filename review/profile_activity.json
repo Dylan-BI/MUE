@@ -13,5 +13,86 @@
     "action": "session_started",
     "detail": "Signed in as Alice Wilson",
     "timestamp": "2026-07-15T11:46:31.802315"
+  },
+  {
+    "username": "alice_w",
+    "action": "session_started",
+    "detail": "Signed in as Alice Wilson",
+    "timestamp": "2026-07-15T12:12:38.805897"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_created",
+    "detail": "Created profile as 🧪 Test Proxy",
+    "timestamp": "2026-07-15T12:14:24.794497",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784110465455 — 👍 Pass",
+    "timestamp": "2026-07-15T12:14:29.250525",
+    "metadata": {
+      "artifactId": "tpr_test_1784110465455",
+      "reviewId": "17841104657619821"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T12:14:29.566327"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as 🧪 Test Proxy",
+    "timestamp": "2026-07-15T12:18:11.113579",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784110691915 — 👍 Pass",
+    "timestamp": "2026-07-15T12:18:13.844899",
+    "metadata": {
+      "artifactId": "tpr_test_1784110691915",
+      "reviewId": "17841106922366143"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T12:18:14.167252"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as 🧪 Test Proxy",
+    "timestamp": "2026-07-15T12:18:21.689613",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784110702203 — 👍 Pass",
+    "timestamp": "2026-07-15T12:18:24.495745",
+    "metadata": {
+      "artifactId": "tpr_test_1784110702203",
+      "reviewId": "17841107025175655"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-15T12:18:24.817530"
   }
 ]

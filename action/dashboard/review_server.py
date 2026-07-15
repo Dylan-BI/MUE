@@ -149,6 +149,9 @@ PRESENCE_TTL = 30  # 30s — offline if no heartbeat in 30s
 # Profile access control: only these usernames can edit any profile
 ADMIN_USERS = ['jane_doe']
 
+# Test Proxy Reviewer — invisible automated testing profile
+TPR_USERNAME = 'tpr_bot'
+
 
 def load_reviews():
     """Load reviews from review/reviews.json."""
@@ -350,12 +353,18 @@ def _leave_presence(name):
 
 
 def _get_all_presence():
-    """Return all reviewers with online/offline status and current location."""
+    """Return all reviewers with online/offline status and current location.
+    
+    Test proxy reviewer (TPR) presence is excluded — TPR is invisible to others.
+    """
     _cleanup_stale_presence()
     now = time.time()
     with _presence_lock:
         result = []
         for name, info in _presence.items():
+            # Skip TPR — it's invisible to other reviewers
+            if name == TPR_USERNAME:
+                continue
             result.append({
                 'name': name,
                 'display_name': info.get('display_name', name),
@@ -771,7 +780,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         elif path == '/api/presence':
             self._handle_get_presence()
         elif path == '/api/profiles':
-            self._handle_get_profiles()
+            self._handle_get_profiles(qs)
         elif path == '/api/activity':
             self._handle_get_activity(qs)
         elif path == '/api/file':
@@ -829,9 +838,17 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
     # ── API Handlers ───────────────────────────────────────────────────
 
-    def _handle_get_profiles(self):
-        """GET /api/profiles — return all reviewer profiles."""
+    def _handle_get_profiles(self, qs=None):
+        """GET /api/profiles — return all reviewer profiles.
+        
+        Test proxy profiles (role='test_proxy') are hidden from non-admin users
+        unless ?include_tpr=1 is passed.
+        """
         profiles = load_profiles()
+        # Filter out TPR profiles for non-admin clients
+        include_tpr = qs and any(v in ('1', 'true') for v in qs.get('include_tpr', []))
+        if not include_tpr:
+            profiles = {k: v for k, v in profiles.items() if v.get('role') != 'test_proxy'}
         self._send_json(200, profiles)
 
     def _handle_save_profile(self):
@@ -882,6 +899,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             'displayName': display_name or username,
             'email': body.get('email', '').strip(),
             'dailySummary': bool(body.get('dailySummary', False)),
+            'role': body.get('role', '').strip() or '',
             'createdAt': body.get('createdAt', datetime.now().isoformat()),
             'updatedAt': datetime.now().isoformat()
         }
