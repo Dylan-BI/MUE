@@ -1092,7 +1092,7 @@
           <input id="pm_displayname" placeholder="e.g. Jane Doe" autocomplete="off" oninput="_previewProfileAvatar()" />
           <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
         </div>
-        <div class="pm-field">
+        <div class="pm-field" id="pmEmailGroup" style="display:none">
           <label>Email <span style="color:rgba(255,255,255,.35)">(optional)</span></label>
           <div id="pmEmailStatus" class="pm-email-status" style="display:none"></div>
           <input id="pm_email" type="email" placeholder="e.g. jane@example.com" autocomplete="email" />
@@ -3815,8 +3815,11 @@ function openProfileModal(edit) {
   }
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
   const isEditing = !!existing;
-  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = existing.email || ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
+  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
   else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; }
+  // Show/hide email group — only visible when editing an existing profile
+  const emailGroup = document.getElementById('pmEmailGroup');
+  if (emailGroup) emailGroup.style.display = isEditing ? '' : 'none';
   // Show/hide delete button — only when editing an existing profile
   const deleteActions = document.getElementById('pmDeleteActions');
   if (deleteActions) deleteActions.style.display = isEditing ? 'flex' : 'none';
@@ -3827,12 +3830,12 @@ function openProfileModal(edit) {
     if (isEditing && existing.email) {
       emailStatus.style.display = 'flex';
       emailStatus.className = 'pm-email-status has-email';
-      emailStatus.innerHTML = '✅ Email on file: <strong>' + escHtml(existing.email) + '</strong>';
-      if (emailHint) emailHint.textContent = 'Update your email address below';
+      emailStatus.innerHTML = '✅ Email on file: <strong>' + escHtml(existing.email) + '</strong> <span style="cursor:pointer;text-decoration:underline;margin-left:6px;font-size:10px;opacity:.7" onclick="removeEmail()" title="Remove email from profile">remove</span>';
+      if (emailHint) emailHint.textContent = 'Type a new email to update, or leave blank to keep current';
     } else if (isEditing && !existing.email) {
       emailStatus.style.display = 'flex';
       emailStatus.className = 'pm-email-status no-email';
-      emailStatus.innerHTML = '⚠️ No email on file — add one to receive daily summaries';
+      emailStatus.innerHTML = '⚠️ No email on file — type one below to add it';
       if (emailHint) emailHint.textContent = 'Recommended: enter your email for daily review summaries';
     } else {
       emailStatus.style.display = 'none';
@@ -3893,12 +3896,15 @@ async function saveProfile() {
   if (!displayName) { dInput.style.borderColor = 'var(--danger-hue)'; showToast('Display name is required', 'warning', 'Required'); return; }
   const emailInput = document.getElementById('pm_email');
   const dsInput = document.getElementById('pm_dailySummary');
-  const email = emailInput ? emailInput.value.trim() : '';
-  const dailySummary = dsInput ? dsInput.checked : false;
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
-  if (dailySummary && !email) { showToast('Enter an email address to receive daily summaries', 'warning', 'Email Required'); if (emailInput) emailInput.focus(); return; }
-  // Client-side uniqueness: check if username is already claimed by another reviewer
+  const emailFieldVisible = emailInput && emailInput.offsetParent !== null;
+  const emailValue = emailInput ? emailInput.value.trim() : '';
+  // During edit: empty field = keep existing; non-empty = update; field hidden = keep existing
   const existingProfile = getProfile();
+  const email = emailFieldVisible ? (emailValue || (existingProfile ? existingProfile.email || '' : '')) : (existingProfile ? existingProfile.email || '' : '');
+  const dailySummary = dsInput ? dsInput.checked : false;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { if (emailInput) emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
+  if (dailySummary && !email) { showToast('Enter an email address to receive daily summaries', 'warning', 'Email Required'); if (emailInput && emailGroup) { emailGroup.style.display = ''; emailInput.focus(); } return; }
+  // Client-side uniqueness: check if username is already claimed by another reviewer
   const isEditing = existingProfile && existingProfile.username === username;
   if (!isEditing && !isAdminUser()) {
     for (const [uname, prof] of Object.entries(SERVER_PROFILES)) {
@@ -3924,6 +3930,21 @@ async function saveProfile() {
   logProfileActivity(username, isEditing ? 'profile_updated' : 'profile_created', (isEditing ? 'Updated' : 'Created') + ' profile as ' + displayName + ' (@' + username + ')');
 }
 
+function removeEmail() {
+  const existing = getProfile();
+  if (!existing) return;
+  if (!confirm('Remove email from your profile? You can add it back later from Edit Profile.')) return;
+  existing.email = '';
+  existing.dailySummary = false;
+  setProfile(existing);
+  serverSaveProfile(existing).then(() => {
+    renderSidebarProfile();
+    openProfileModal(true);
+    showToast('Email removed from profile', 'info', 'Email Removed');
+    logProfileActivity(existing.username, 'profile_updated', 'Removed email from profile as ' + existing.displayName);
+  });
+}
+
 function renderSidebarProfile() {
   const container = document.getElementById('sidebarProfile');
   if (!container) return;
@@ -3940,8 +3961,8 @@ function renderSidebarProfile() {
   const tprBtn = admin ? '<button class="theme-btn" onclick="activateTPR()" title="Run automated dashboard tests" style="margin-top:6px;width:100%;font-size:11px;justify-content:center">🧪 Run TPR Tests</button>' : '';
   const emailBadge = p.email ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="' + escHtml(p.email) + (p.dailySummary ? ' — Daily summary ON' : '') + '">' + (p.dailySummary ? '📬' : '✉️') + '</span>' : '';
   const emailLine = p.email
-    ? '<div class="sp-email" onclick="event.stopPropagation();openProfileModal(true);setTimeout(function(){var e=document.getElementById(\'pm_email\');if(e)e.focus();},200)" title="Click to edit email">✉️ ' + escHtml(p.email) + '</div>'
-    : '<div class="sp-email sp-email-missing" onclick="event.stopPropagation();openProfileModal(true);setTimeout(function(){var e=document.getElementById(\'pm_email\');if(e)e.focus();},200)" title="Add your email for daily summaries">➕ Add email</div>';
+    ? '<div class="sp-email" onclick="event.stopPropagation();openProfileModal(true)" title="Click to edit email">✉️ ' + escHtml(p.email) + '</div>'
+    : '<div class="sp-email sp-email-missing" onclick="event.stopPropagation();openProfileModal(true)" title="Add your email in Edit Profile">➕ Add email</div>';
   container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="' + (admin ? 'Admin — click to edit any profile' : 'Click to edit your profile') + '">' +
     '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
     '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + '</div>' +

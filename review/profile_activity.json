@@ -116,5 +116,35 @@
     "action": "profile_updated",
     "detail": "Updated profile as Alice Wilson (@alice_w)",
     "timestamp": "2026-07-15T13:11:50.620213"
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_updated",
+    "detail": "Updated profile as Alice Wilson",
+    "timestamp": "2026-07-15T13:20:30.985530",
+    "metadata": {
+      "requester": "alice_w"
+    }
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_updated",
+    "detail": "Updated profile as Alice Wilson (@alice_w)",
+    "timestamp": "2026-07-15T13:20:31.569119"
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_updated",
+    "detail": "Updated profile as Alice Wilson",
+    "timestamp": "2026-07-15T13:20:55.319708",
+    "metadata": {
+      "requester": "alice_w"
+    }
+  },
+  {
+    "username": "alice_w",
+    "action": "profile_updated",
+    "detail": "Removed email from profile as Alice Wilson",
+    "timestamp": "2026-07-15T13:20:55.895092"
   }
 ]
