@@ -1508,7 +1508,16 @@ function renderLevelProgressionSidebar() {
    ═══════════════════════════════════════════════════════════════════════════ */
 let DATA = null;
 let LAST_GENERATED = null;
-const REVIEW_EMAIL = 'jane@example.com';
+const REVIEW_EMAIL = 'monteretroion@gmail.com';
+function maskEmail(email) {
+  if (!email) return '';
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const user = parts[0];
+  const domain = parts[1];
+  if (user.length <= 2) return user[0] + '***@' + domain;
+  return user.slice(0, 2) + '***@' + domain;
+}
 
 /* ── Review Server API (multi-reviewer collaboration) ── */
 let REVIEW_SERVER = null;  // URL of review server when available, null otherwise
@@ -3363,7 +3372,7 @@ function renderReviewSection(aid, type, label, filename) {
     ropts.map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="rc_'+aid+'" placeholder="Write your review feedback here..."></textarea>' +
     '<div><button class="submit-btn" onclick="submitReview(\''+aid+'\',\''+escHtml(type)+'\',\''+escHtml(label)+'\',\''+escHtml(filename)+'\')">✉️ Send Review</button>' +
-    '<span class="mailto-note"> Opens email to '+REVIEW_EMAIL+'</span></div></div>' +
+    '<span class="mailto-note"> Opens email to '+maskEmail(REVIEW_EMAIL)+'</span></div></div>' +
     '<div class="review-list" id="rl_'+aid+'">'+renderReviewList(aid)+'</div></div>';
   return html;
 }
@@ -4930,7 +4939,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
   const infraTotal = DATA.infrastructure_count || 0;
 
   let h = '<h2>🔍 Third Party Review</h2>' +
-    '<p class="subtitle">Sync and review control center — Export All Reviews, Save to review/reviews.json, Sync action/ → review/ buttons; per-page change tables with learner vs infrastructure breakdown; synced file listing from review/; and email submission to <a href="mailto:' + REVIEW_EMAIL + '">' + REVIEW_EMAIL + '</a>.</p>' +
+    '<p class="subtitle">Sync and review control center — Export All Reviews, Save to review/reviews.json, Sync action/ → review/ buttons; per-page change tables with learner vs infrastructure breakdown; synced file listing from review/; and email submission to <a href="mailto:' + REVIEW_EMAIL + '">' + maskEmail(REVIEW_EMAIL) + '</a>.</p>' +
     '<div class="metric-row">' +
     '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value">' + learnerTotal + '</div><div class="label">📘 Learner Changes</div><div class="sublabel">curriculum artifacts</div></div>' +
     '<div class="metric"><div class="value">' + rtc + '</div><div class="label">✅ Synced to review/</div></div>' +
