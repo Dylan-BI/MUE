@@ -15,11 +15,10 @@
   },
   "tpr_bot": {
     "username": "tpr_bot",
-    "displayName": "🧪 Test Proxy",
-    "email": "",
+    "displayName": "Test Proxy",
+    "email": "tpr@mue.local",
     "dailySummary": false,
-    "role": "test_proxy",
-    "createdAt": "2026-07-15T10:18:21.513Z",
-    "updatedAt": "2026-07-15T12:18:21.686910"
+    "createdAt": "2026-07-13T14:14:44.521139",
+    "updatedAt": "2026-07-15T12:23:34.000000"
   }
 }
