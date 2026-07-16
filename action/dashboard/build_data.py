@@ -94,13 +94,19 @@ def detect_earliest_learner_artifact():
     earliest = None
     
     # 1) Note filenames are YYYY-MM-DD.md — parse directly
+    #    Strip known prefixes (tpl_) before date parsing
     for d in [NOTES_DIR, NOTES_ARCHIVE_DIR]:
         if not os.path.isdir(d):
             continue
         for f in os.listdir(d):
             if f.endswith('.md') and not f.startswith('.'):
                 try:
-                    dt = datetime.strptime(f.replace('.md', ''), '%Y-%m-%d').date()
+                    basename = f.replace('.md', '')
+                    for prefix in ['tpl_']:
+                        if basename.startswith(prefix):
+                            basename = basename[len(prefix):]
+                            break
+                    dt = datetime.strptime(basename, '%Y-%m-%d').date()
                     if earliest is None or dt < earliest:
                         earliest = dt
                 except ValueError:
@@ -720,6 +726,11 @@ def get_source_criteria():
 
 def parse_date_from_filename(filename):
     basename = os.path.basename(filename).replace('.md', '')
+    # Strip known prefixes used for testing/generated data (e.g. tpl_)
+    for prefix in ['tpl_']:
+        if basename.startswith(prefix):
+            basename = basename[len(prefix):]
+            break
     try:
         return str(datetime.strptime(basename, '%Y-%m-%d').date())
     except ValueError:
@@ -813,6 +824,7 @@ def scan_evidence():
             rel = os.path.relpath(fp, EVIDENCE_DIR)
             files.append({
                 'path': rel,
+                'filename': f,
                 'size': os.path.getsize(fp),
                 'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
             })

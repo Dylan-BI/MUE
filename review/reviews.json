@@ -144,5 +144,19 @@
       "version": 1,
       "_source": "synced"
     }
+  ],
+  "tpr_test_1784172828224": [
+    {
+      "name": "🧪 TPR",
+      "rating": "👍 Pass",
+      "text": "Automated TPR test review — 2026-07-16T03:33:48.224Z",
+      "type": "Test",
+      "label": "TPR Validation",
+      "role": "Test Proxy",
+      "id": "17841728285326754",
+      "timestamp": "2026-07-16T05:33:48.532270",
+      "version": 1,
+      "_source": "synced"
+    }
   ]
 }

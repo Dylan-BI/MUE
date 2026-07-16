@@ -296,5 +296,36 @@
     "action": "tpr_test",
     "detail": "TPR automated test run",
     "timestamp": "2026-07-15T14:29:03.630901"
+  },
+  {
+    "username": "dylan_bi",
+    "action": "session_started",
+    "detail": "Signed in as Dylan BI",
+    "timestamp": "2026-07-16T05:33:36.820262"
+  },
+  {
+    "username": "tpr_bot",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Proxy",
+    "timestamp": "2026-07-16T05:33:47.621516",
+    "metadata": {
+      "requester": "tpr_bot"
+    }
+  },
+  {
+    "username": "🧪 TPR",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_test_1784172828224 — 👍 Pass",
+    "timestamp": "2026-07-16T05:33:50.308260",
+    "metadata": {
+      "artifactId": "tpr_test_1784172828224",
+      "reviewId": "17841728285326754"
+    }
+  },
+  {
+    "username": "tpr_bot",
+    "action": "tpr_test",
+    "detail": "TPR automated test run",
+    "timestamp": "2026-07-16T05:33:50.626099"
   }
 ]
