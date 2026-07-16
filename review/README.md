@@ -10,6 +10,55 @@ This folder synchronizes completed work from `../action/` for independent review
 
 ---
 
+## Standards Enforcement
+
+Every review you submit should address a specific curriculum standard. The dashboard provides tools to ensure your feedback is structured, traceable, and actionable.
+
+### Rating Rubric
+
+| Rating | When to Use | What It Means |
+|--------|-------------|---------------|
+| **👍 Pass** | Learner meets the standard | Artifact demonstrates competency in the tagged category |
+| **⚡ Needs Work** | Learner is close but not there | Specific improvement needed — describe what's missing |
+| **❌ Rework** | Learner does not meet the standard | Must redo — fundamental gap in understanding or execution |
+
+### Curriculum Categories (Tag Your Reviews)
+
+Tag each review with the primary category it addresses:
+
+| Tag | Category | What to Assess |
+|-----|----------|----------------|
+| 🤖 AI | AI & Copilot | Mode selection, prompt quality, instruction files, drift avoidance |
+| ⚡ Codex | Codex Productivity | Codex Loop fluency, handoff quality, bounded automation |
+| 🏗️ Pyramid | Pyramid Platform | Model logic, deployment sequence, QC evidence, access policy |
+| 📊 BI | BI Judgment | Business question articulation, metric grain, validation evidence |
+| 🔗 Data | Data & Lineage | Source-to-model tracing, row ownership, double-counting risk |
+| 📦 Delivery | Delivery & Handoff | Change isolation, review packages, handoff quality |
+| 💬 Team | Team Communication | Standup quality, status updates, blocker identification |
+| 🧠 Retention | Retention & Readiness | Scorecard accuracy, proof task completeness, gate status |
+
+### Progression Gates (What You're Enforcing)
+
+| Gate | Criteria | Consequence if Failed |
+|------|----------|----------------------|
+| **Week 1 Gate** | 2+ scorecard areas score Fail | Repeat Week 1 before advancing |
+| **Week 3 Gate** | 2+ scorecard areas score Fail | Repeat this layer in Week 4 instead of expanding |
+| **Codex Gate** | All 6 Codex criteria must pass | Cannot advance to next level |
+| **Classification** | Foundational → Developing → Operational → Ready | Must demonstrate increasing autonomy |
+| **Proof Tasks** | PT1–PT6 due on specific days | Required for Codex Gate eligibility |
+
+### Reviewer Guidelines
+
+1. **Be specific** — reference the exact artifact, section, or behavior you're assessing
+2. **Tag the category** — helps the learner understand which competency area needs attention
+3. **Use the rubric** — consistent rating across reviewers ensures fair assessment
+4. **Check scorecard trends** — if a category shows 2+ consecutive Fails, flag it as a progression gate concern
+5. **Verify proof tasks** — PT1–PT6 have specific due days; late submission affects Codex Gate eligibility
+6. **Monitor classification** — the learner's classification should advance as they demonstrate competency; if it stalls, investigate
+7. **Submit daily** — the dashboard's daily summary email aggregates all reviews for the team; your input matters
+
+---
+
 ## Quick Start for Reviewers
 
 ### 1. Open the Dashboard
@@ -48,9 +97,9 @@ After submitting, the feedback appears on the dashboard under the relevant artif
 | Step | What Happens | Where |
 |------|-------------|-------|
 | Learner pushes to `main` | GitHub Actions syncs `action/` → `review/` | GitHub Actions |
-| Reviewer submits Issue | GitHub Actions parses feedback into `review/reviews.json` | GitHub Actions |
-| Dashboard rebuilds | `build_data.py` reads `action/` + `review/` → `data.json` | GitHub Actions |
-| Deploy to Pages | Dashboard updates at `dylan-bi.github.io/MUE/` | GitHub Pages |
+| Reviewer submits via dashboard | Reviews sync to server in real-time | Review Server |
+| Dashboard rebuilds | `build_data.py` reads `action/` + `review/` → `data.json` | Review Server |
+| Daily summary | Aggregated reviews emailed to opted-in instructors | Review Server |
 
 **Reviewers never need to:**
 - Clone the repo locally

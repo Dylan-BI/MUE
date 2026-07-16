@@ -3423,6 +3423,22 @@ function renderAll() {
 /* ═══════════════════════════════════════════════════════════════════════════
    REVIEW SECTION (embedded on every artifact, page, and section)
    ═══════════════════════════════════════════════════════════════════════════ */
+const _reviewCatOpts = [
+  {tag:'🤖',label:'AI & Copilot',key:'ai'},
+  {tag:'⚡',label:'Codex Productivity',key:'codex'},
+  {tag:'🏗️',label:'Pyramid Platform',key:'pyramid'},
+  {tag:'📊',label:'BI Judgment',key:'bi'},
+  {tag:'🔗',label:'Data & Lineage',key:'data'},
+  {tag:'📦',label:'Delivery & Handoff',key:'delivery'},
+  {tag:'💬',label:'Team Communication',key:'team'},
+  {tag:'🧠',label:'Retention & Readiness',key:'retention'}
+];
+function _buildCategorySelect(aid) {
+  return '<label>Category Tag</label><select id="rcat_'+aid+'" style="width:100%;padding:4px 8px;border:1px solid var(--border-input);border-radius:6px;font-size:12px;background:var(--bg-card);color:var(--text-primary);margin-bottom:6px">' +
+    '<option value="">— select curriculum area —</option>' +
+    _reviewCatOpts.map(c=>'<option value="'+c.key+'">'+c.tag+' '+c.label+'</option>').join('') +
+    '</select>';
+}
 function renderReviewSection(aid, type, label, filename) {
   const saved = getReviews(), itemRev = saved[aid]||[];
   const ropts = ['👍 Pass','⚡ Needs Work','❌ Rework'];
@@ -3430,6 +3446,7 @@ function renderReviewSection(aid, type, label, filename) {
     '<div class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rf_'+aid+'\').classList.toggle(\'open\')">💬 Review</div>' +
     '<div class="review-form" id="rf_'+aid+'">' +
     '<label>Instructor <span style="color:var(--danger)">*</span></label><input id="rn_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
+    _buildCategorySelect(aid) +
     '<label>Rating</label><div class="rating-group" id="rg_'+aid+'">' +
     ropts.map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="rc_'+aid+'" placeholder="Write your review feedback here..."></textarea>' +
@@ -3443,6 +3460,7 @@ function reviewToggleInline(aid, type, label, filename) {
   return '<span class="review-toggle" onclick="event.stopPropagation();document.getElementById(\'rif_'+aid+'\').classList.toggle(\'open\')">💬 Review</span>' +
     '<div class="review-form" id="rif_'+aid+'" data-presence-id="'+escHtml(aid)+'" data-presence-label="'+escHtml(label)+'" style="display:none">' +
     '<label>Instructor <span style="color:var(--danger)">*</span></label><input id="rin_'+aid+'" placeholder="Your name" required value="'+escHtml(getReviewerName())+'" style="border:1px solid var(--border-input);border-radius:6px;padding:4px 8px;width:100%;font-size:12px;background:var(--bg-card);color:var(--text-primary)">' +
+    _buildCategorySelect(aid) +
     '<label>Rating</label><div class="rating-group" id="rig_'+aid+'">' +
     ['👍 Pass','⚡ Needs Work','❌ Rework'].map((r,i)=>'<div class="rating-btn" onclick="selectRating(\''+aid+'\','+i+')">'+r+'</div>').join('') +
     '</div><label>Comments</label><textarea id="ric_'+aid+'" placeholder="Write your review..."></textarea>' +
@@ -4366,7 +4384,9 @@ async function submitReview(aid, type, label, filename) {
   let rating = 'No rating';
   const btns = document.querySelectorAll('#rg_'+aid+' .rating-btn, #rig_'+aid+' .rating-btn');
   btns.forEach((b,i)=>{if(b.classList.contains('selected'))rating=b.textContent.trim();});
-  const review = {name,rating,text,type,label,filename,role: 'Instructor'};
+  const catEl = document.getElementById('rcat_'+aid);
+  const category = catEl ? catEl.value : '';
+  const review = {name,rating,text,type,label,filename,role: 'Instructor', category};
   if (REVIEW_SERVER) {
     const result = await serverAddReview(aid, review);
     if (result) { showToast('Review shared with all reviewers', 'success', 'Review Shared'); }
@@ -4543,7 +4563,9 @@ function renderReviewList(aid) {
     const editedTag = r.editedAt ? ' <span style="font-size:9px;color:var(--text-muted)">(edited)</span>' : '';
     const roleBadge = r.role ? '<span style="font-size:9px;background:var(--accent);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px">'+escHtml(r.role)+'</span>' : '';
     const typeBadge = r.type ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:2px">'+escHtml(r.type)+'</span>' : '';
-    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name"><span class="r-avatar" style="background:'+rMix.gradient+'">'+escHtml(rInitials)+'</span>'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
+    const _catMap = Object.fromEntries(_reviewCatOpts.map(c=>[c.key,c]));
+    const catBadge = r.category && _catMap[r.category] ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-primary);padding:1px 5px;border-radius:4px;margin-left:4px;border:1px solid var(--border-color)">'+_catMap[r.category].tag+' '+_catMap[r.category].label+'</span>' : '';
+    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name"><span class="r-avatar" style="background:'+rMix.gradient+'">'+escHtml(rInitials)+'</span>'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+catBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
@@ -5574,8 +5596,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       h += '</tbody></table></div>';
     });
 
-    // Section 4: Run sync command instruction
-    h += '<div class="card"><h3>⚙️ Sync from action/ to review/</h3>' +
+    // Section 4: Compliance Summary — curriculum category review coverage\n    h += '<div class="card" style="border-left:3px solid var(--accent);margin-top:16px"><h3>📋 Curriculum Compliance Summary <span style="font-size:12px;color:var(--text-muted);font-weight:400">review coverage per learning category</span></h3>' +\n    '<p class=\"caption\" style=\"margin-bottom:10px\">Shows how many reviews have been tagged to each curriculum area. Full coverage means every category has received at least one review — use this to identify gaps in your feedback.</p>' +\n    '<div style=\"display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px\">';\n    const allReviews = getMergedReviews();\n    _reviewCatOpts.forEach(cat => {\n      let catCount = 0;\n      Object.values(allReviews).forEach(reviews => {\n        reviews.forEach(r => { if (r.category === cat.key) catCount++; });\n      });\n      const coverage = catCount > 0 ? '✅' : '⚠️';\n      const bgColor = catCount > 0 ? 'var(--bg-metric-green)' : 'var(--bg-metric-yellow)';\n      h += '<div style="background:'+bgColor+';border:1px solid var(--border-color);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">' +\n        '<span style="font-size:18px">'+coverage+'</span>' +\n        '<div><strong style="font-size:12px">'+cat.tag+' '+cat.label+'</strong><br><span style="font-size:11px;color:var(--text-muted)">'+(catCount>0?catCount+' review(s)':'No reviews yet')+'</span></div></div>';\n    });\n    h += '</div></div>' +\n\n    // Section 5: Run sync command instruction\n    h += '<div class=\"card\"><h3>⚙️ Sync from action/ to review/</h3>' +
       '<p class="caption">Run the sync script to copy completed learner work for third-party review:</p>' +
       '<pre style="background:var(--bg-muted);padding:10px;border-radius:6px;margin:8px 0;font-size:12px">python review/scripts/sync-from-action.py</pre>' +
       '<p class="caption">After syncing, click <strong>Refresh Now</strong> in the sidebar to reload.</p></div>';

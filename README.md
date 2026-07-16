@@ -1,8 +1,14 @@
 # Multifaceted User Education (MUE)
 
-> **Overarching Goal:** Become a confident, operationally reliable **Business Intelligence (BI) team contributor** who can analyze data, validate logic, deploy models, communicate and collaborate with the team, and hand off work cleanly — using Pyramid, Codex, BI judgment, and team collaboration skills.
+## Purpose
 
-A **maximum 28-working-day** training bundle for Pyramid, Codex, BI judgment, and team collaboration readiness — with evidence-backed results, retention learning, and a **BI team contributor** outcome.
+MUE is a **structured Business Intelligence (BI) curriculum** that transforms learners into operationally reliable **BI team contributors** through a 28-working-day program covering Pyramid Platform, Codex Productivity, BI Judgment, and team collaboration.
+
+**For learners:** This system tracks your daily progress, extracts curriculum standards from your notes, scores your competency across 7 areas, and gates your advancement through 6 proof tasks and 6 Codex readiness criteria.
+
+**For reviewers:** The integrated dashboard monitors learner output in real-time, surfaces curriculum compliance status, and provides a structured review workflow with rating rubrics (Pass / Needs Work / Rework), per-category tagging, and daily summary emails — so you can efficiently assess progress and enforce standards.
+
+**Standards enforced:** Classification milestones (Foundational → Developing → Operational → Ready for Codex), weekly progression gates (2+ Fail scores block advancement), proof task deadlines (PT1–PT6 due on specific days), and the Codex Gate (all 6 criteria must pass before level advancement).
 
 > **Hard constraint:** This program must not exceed 28 working days (Monday–Friday; weekends are excluded). See `source/CONTRIBUTING.md` for extension rules.
 
@@ -89,14 +95,15 @@ See [`action/README.md`](./action/README.md) for full learner instructions.
 
 ## For Reviewers
 
-```bash
-# Sync learner output into review/
-python3 review/scripts/sync-from-action.py
+The dashboard provides a complete review workflow — no local tools required:
 
-# Then review the synced files in review/notes/, review/evidence/, review/reports/
-```
+1. **Open the dashboard** — all learner artifacts, scorecards, and evidence are displayed
+2. **Select a category** — tag your review with the curriculum area it addresses (🤖 AI, ⚡ Codex, 🏗️ Pyramid, 📊 BI, 🔗 Data, 📦 Delivery, 💬 Team, 🧠 Retention)
+3. **Rate with the rubric** — Pass (meets standard), Needs Work (below standard, specific improvement needed), Rework (does not meet standard, must redo)
+4. **Submit feedback** — reviews sync in real-time to all reviewers; daily summaries email to opted-in instructors
+5. **Monitor compliance** — dashboard surfaces scorecard trends, proof task status, classification milestones, and Codex Gate progress
 
-See [`review/README.md`](./review/README.md) for full reviewer instructions.
+See [`review/README.md`](./review/README.md) for full reviewer instructions and standards enforcement guidelines.
 
 ---
 
@@ -138,6 +145,21 @@ See `action/templates/contributor-readiness-check.md` for the full certification
 6. Use `source/Pyramid, Codex, and BI Judgment Daily Working Template.txt` — daily working sheet
 7. Do your daily work in [`action/`](./action/) — notes, evidence, reports
 8. Reviewers use [`review/`](./review/) for sync and assessment
+
+## Standards & Compliance
+
+| Standard | Enforcement | Where to Check |
+|----------|-------------|----------------|
+| **28-day limit** | `create_daily_note.py` refuses day > 28 | Dashboard → Overview |
+| **Weekday-only** | Scripts refuse Saturday/Sunday | Dashboard → Calendar |
+| **6 proof tasks** | Due on PT1–PT6 days; required for Codex Gate | Dashboard → Proof Tasks |
+| **6 Codex gates** | All must pass before level advancement | Dashboard → Codex Gate |
+| **7 scorecard areas** | Weekly Pass/Moderate/Fail with trend tracking | Dashboard → Scorecard |
+| **Classification milestones** | Foundational → Developing → Operational → Ready | Dashboard → Classification |
+| **Weekly progression gates** | 2+ Fail scores → repeat week before advancing | Dashboard → Overview |
+| **Level advancement** | 28 days complete + Codex Gate passed | Dashboard → Level Progression |
+
+---
 
 ## Sharing Notes
 

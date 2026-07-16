@@ -1486,6 +1486,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         review['timestamp'] = review.get('timestamp') or datetime.now().isoformat()
         review['version'] = 1
         review['_source'] = 'synced'
+        # Preserve curriculum category tag (optional — reviewer's category selection)
+        if review.get('category'):
+            review['category'] = review['category'].strip()
 
         # Save to reviews.json
         all_reviews = load_reviews()
