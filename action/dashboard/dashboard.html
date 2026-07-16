@@ -1619,6 +1619,13 @@ async function detectReviewServer() {
 
 /* ── Server fetch wrapper — auto-appends access token ── */
 async function _serverFetch(url, opts) {
+  opts = opts || {};
+  // Send token via Authorization header as well (more secure than query string)
+  const t = _getToken();
+  if (t) {
+    opts.headers = opts.headers || {};
+    opts.headers['Authorization'] = 'Bearer ' + t;
+  }
   return fetch(_tokenAppend(url), opts);
 }
 

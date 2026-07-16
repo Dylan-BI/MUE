@@ -155,6 +155,61 @@ TPR_USERNAME = 'tpr_bot'
 # Test Proxy Learner — generates temporary dummy learner data for data-flow testing
 TPL_USERNAME = 'tpl_bot'
 
+# ── Security: blocked static files (never served, even with valid token) ──
+BLOCKED_STATIC_PATTERNS = (
+    '.env', '.env.', '.git', '.gitignore', '.gitattributes',
+    'config.json', 'credentials', 'secrets',
+)
+
+# ── Rate limiter: simple in-memory IP-based throttle ──
+_rate_limit_store = {}
+_rate_limit_lock = threading.Lock()
+RATE_LIMIT_WINDOW = 60        # seconds
+RATE_LIMIT_MAX_REQUESTS = 60   # max requests per window per IP
+
+
+def _check_rate_limit(ip):
+    """Return True if request is allowed, False if rate-limited."""
+    now = time.time()
+    with _rate_limit_lock:
+        window_start = now - RATE_LIMIT_WINDOW
+        # Prune stale entries
+        if ip in _rate_limit_store:
+            _rate_limit_store[ip] = [t for t in _rate_limit_store[ip] if t > window_start]
+            if len(_rate_limit_store[ip]) >= RATE_LIMIT_MAX_REQUESTS:
+                return False
+            _rate_limit_store[ip].append(now)
+        else:
+            _rate_limit_store[ip] = [now]
+    return True
+
+
+def _is_blocked_static(path):
+    """Return True if the path matches a blocked static file pattern."""
+    clean = path.lstrip('/').lower()
+    for pat in BLOCKED_STATIC_PATTERNS:
+        if clean == pat or clean.startswith(pat + '/') or clean.startswith(pat + '\\'):
+            return True
+        # Also block extension-like matches: .env, .env.local, etc.
+        if pat.endswith('.') and clean.startswith(pat):
+            return True
+    return False
+
+
+def _esc_html(s):
+    """HTML-escape a string for safe email rendering. Replaces &, <, >, quotes."""
+    if not isinstance(s, str):
+        s = str(s or '')
+    return (s
+        .replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;')
+        .replace("'", '&#39;'))
+
+
+_VALID_RATINGS = frozenset(['👍 Pass', '⚡ Needs Work', '❌ Rework'])
+
 
 def load_reviews():
     """Load reviews from review/reviews.json."""
@@ -446,8 +501,10 @@ def _build_summary_html(summary):
     who_rows = ''
     for name, info in who.items():
         ratings = info['ratings']
+        safe_display = _esc_html(info["display"])
+        safe_name = _esc_html(name.lower().replace(" ","_"))
         who_rows += f'''<tr style="border-bottom:1px solid #eee">
-          <td style="padding:8px 12px;font-weight:600">{info["display"]} <span style="color:#888">@{name.lower().replace(" ","_")}</span></td>
+          <td style="padding:8px 12px;font-weight:600">{safe_display} <span style="color:#888">@{safe_name}</span></td>
           <td style="padding:8px;text-align:center">{info["reviews_count"]}</td>
           <td style="padding:8px;text-align:center;color:#198754">{ratings["👍 Pass"]}</td>
           <td style="padding:8px;text-align:center;color:#ffc107">{ratings["⚡ Needs Work"]}</td>
@@ -458,12 +515,16 @@ def _build_summary_html(summary):
     for r in what[:20]:  # show up to 20 most recent
         rc = '#198754' if 'Pass' in r['rating'] else ('#dc3545' if 'Rework' in r['rating'] else '#ffc107')
         ts = r['timestamp'][:16].replace('T', ' ')
+        safe_name = _esc_html(r["name"])
+        safe_artifact = _esc_html(r["artifact"])
+        safe_rating = _esc_html(r["rating"])
+        safe_text = _esc_html(r["text"])
         review_rows += f'''<tr style="border-bottom:1px solid #f0f0f0">
           <td style="padding:6px 12px;font-size:13px">{ts}</td>
-          <td style="padding:6px;font-size:13px;font-weight:600">{r["name"]}</td>
-          <td style="padding:6px;font-size:13px">{r["artifact"]}</td>
-          <td style="padding:6px"><span style="background:{rc};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px">{r["rating"]}</span></td>
-          <td style="padding:6px;font-size:12px;color:#555;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{r["text"]}</td>
+          <td style="padding:6px;font-size:13px;font-weight:600">{safe_name}</td>
+          <td style="padding:6px;font-size:13px">{safe_artifact}</td>
+          <td style="padding:6px"><span style="background:{rc};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px">{safe_rating}</span></td>
+          <td style="padding:6px;font-size:12px;color:#555;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{safe_text}</td>
         </tr>'''
 
     period = f"Last {summary['hours']}h"
@@ -837,7 +898,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         # CORS headers for cross-origin access (file:// fallback)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
         super().end_headers()
 
@@ -846,10 +907,25 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def _get_client_ip(self):
+        """Extract client IP from request."""
+        forwarded = self.headers.get('X-Forwarded-For', '')
+        if forwarded:
+            return forwarded.split(',')[0].strip()
+        return self.client_address[0]
+
     def _check_token(self, qs):
-        """Verify access token. Returns True if allowed, False if denied (sends 403)."""
+        """Verify access token from query string or Authorization header.
+        Returns True if allowed, False if denied (sends 403)."""
         if not SERVER_ACCESS_TOKEN:
             return True  # No token required
+        # Try Authorization: Bearer header first
+        auth = self.headers.get('Authorization', '')
+        if auth.startswith('Bearer '):
+            token = auth[7:]
+            if token == SERVER_ACCESS_TOKEN:
+                return True
+        # Fallback to query string ?t=token
         token = qs.get('t', [''])[0]
         if token == SERVER_ACCESS_TOKEN:
             return True
@@ -872,6 +948,18 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         qs = parse_qs(parsed.query)
+
+        # Rate limit check (skip for static files to avoid breaking dashboard loads)
+        if path.startswith('/api/'):
+            client_ip = self._get_client_ip()
+            if not _check_rate_limit(client_ip):
+                self.send_response(429)
+                self.send_header('Content-Type', 'application/json')
+                body = b'{"error":"Too many requests"}'
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
 
         # Token check — skip for token-check endpoint, /go redirect, data.json, and CORS preflight
         if path not in ('/api/check-token', '/go', '/data.json') and not self._check_token(qs):
@@ -907,12 +995,32 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         elif path == '/api/check-token':
             self._handle_check_token(qs)
         else:
+            # Block sensitive files from being served statically
+            if _is_blocked_static(path):
+                self.send_response(403)
+                body = b'{"error":"Forbidden"}'
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             # Serve static files (dashboard.html, data.json, etc.)
             super().do_GET()
 
     def do_POST(self):
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
+
+        # Rate limit check
+        client_ip = self._get_client_ip()
+        if not _check_rate_limit(client_ip):
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            body = b'{"error":"Too many requests"}'
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         # Token check
         if not self._check_token(qs):
@@ -942,6 +1050,18 @@ class ReviewHandler(SimpleHTTPRequestHandler):
     def do_PUT(self):
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
+
+        # Rate limit check
+        client_ip = self._get_client_ip()
+        if not _check_rate_limit(client_ip):
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            body = b'{"error":"Too many requests"}'
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if not self._check_token(qs):
             return
         if parsed.path == '/api/reviews':
@@ -952,6 +1072,18 @@ class ReviewHandler(SimpleHTTPRequestHandler):
     def do_DELETE(self):
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
+
+        # Rate limit check
+        client_ip = self._get_client_ip()
+        if not _check_rate_limit(client_ip):
+            self.send_response(429)
+            self.send_header('Content-Type', 'application/json')
+            body = b'{"error":"Too many requests"}'
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if not self._check_token(qs):
             return
         if parsed.path == '/api/reviews':
@@ -1237,6 +1369,11 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 self._send_json(400, {'error': f'Missing required field: {field}'})
                 return
 
+        # Validate rating is one of the allowed values
+        if review.get('rating') not in _VALID_RATINGS:
+            self._send_json(400, {'error': f'Invalid rating: "{review.get("rating")}". Must be one of: {", ".join(sorted(_VALID_RATINGS))}'})
+            return
+
         # Assign ID, timestamp, and version
         review['id'] = review.get('id') or generate_id()
         review['timestamp'] = review.get('timestamp') or datetime.now().isoformat()
@@ -1294,6 +1431,12 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 })
                 return
 
+        # Validate rating if being updated
+        if 'rating' in updates:
+            if updates['rating'] not in _VALID_RATINGS:
+                self._send_json(400, {'error': f'Invalid rating: "{updates["rating"]}". Must be one of: {", ".join(sorted(_VALID_RATINGS))}'})
+                return
+
         # Apply updates
         for key, val in updates.items():
             if key.startswith('_'):
@@ -1329,7 +1472,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {'error': 'username required'})
             return
         if username == TPR_USERNAME:
-            self._send_json(403, {'error': 'Cannot delete the Test Proxy Learner profile'})
+            self._send_json(403, {'error': 'Cannot delete the Test Proxy Reviewer profile'})
             return
 
         profiles = load_profiles()
@@ -1413,11 +1556,13 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             return None
 
     def _handle_get_file(self):
-        """Serve a file from the repo root. ?path=<relative-path>&format=text|json"""
+        """Serve a file from the repo root. ?path=<relative-path>&format=text|json
+        Path traversal is prevented by resolving the absolute path and verifying
+        it falls within REPO_ROOT."""
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
         rel_path = (qs.get('path', [''])[0]).strip().lstrip('/')
-        if not rel_path or '..' in rel_path:
+        if not rel_path:
             self._send_json(400, {'error': 'Invalid path'})
             return
         # Map dashboard-relative paths to repo paths (same mapping as fetchRepoFile)
@@ -1434,12 +1579,21 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 rest = rel_path[len(prefix):]
                 repo_path = repo_prefix + rest
                 break
-        file_path = REPO_ROOT / repo_path
-        if not file_path.exists() or not file_path.is_file():
+        # Resolve to absolute path and verify it's inside REPO_ROOT
+        try:
+            resolved = (REPO_ROOT / repo_path).resolve()
+            resolved_root = REPO_ROOT.resolve()
+            if not str(resolved).startswith(str(resolved_root)):
+                self._send_json(403, {'error': 'Access denied: path outside repository root'})
+                return
+        except (ValueError, OSError):
+            self._send_json(400, {'error': 'Invalid path'})
+            return
+        if not resolved.exists() or not resolved.is_file():
             self._send_json(404, {'error': f'File not found: {rel_path}'})
             return
         try:
-            text = file_path.read_text(encoding='utf-8')
+            text = resolved.read_text(encoding='utf-8')
             self._send_json(200, {'content': text, 'path': rel_path})
         except Exception as e:
             self._send_json(500, {'error': str(e)})

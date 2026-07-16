@@ -327,5 +327,15 @@
     "action": "tpr_test",
     "detail": "TPR automated test run",
     "timestamp": "2026-07-16T05:33:50.626099"
+  },
+  {
+    "username": "tester",
+    "action": "review_submitted",
+    "detail": "Reviewed test — 👍 Pass",
+    "timestamp": "2026-07-16T05:57:37.255496",
+    "metadata": {
+      "artifactId": "test",
+      "reviewId": "17841742552351609"
+    }
   }
 ]
