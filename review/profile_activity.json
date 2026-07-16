@@ -367,5 +367,85 @@
       "deletedUsername": "jane_doe",
       "removedActivities": 1
     }
+  },
+  {
+    "username": "Test Proxy",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_security_test — 👍 Pass",
+    "timestamp": "2026-07-16T06:42:17.315888",
+    "metadata": {
+      "artifactId": "tpr_security_test",
+      "reviewId": "17841769364911346"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from tpr_security_test",
+    "timestamp": "2026-07-16T06:42:20.764899",
+    "metadata": {
+      "artifactId": "tpr_security_test",
+      "reviewId": "17841769364911346"
+    }
+  },
+  {
+    "username": "tpl_bot",
+    "action": "review_submitted",
+    "detail": "Reviewed tpl_security_test — 👍 Pass",
+    "timestamp": "2026-07-16T06:42:24.659493",
+    "metadata": {
+      "artifactId": "tpl_security_test",
+      "reviewId": "17841769428242324"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from tpl_security_test",
+    "timestamp": "2026-07-16T06:42:27.513932",
+    "metadata": {
+      "artifactId": "tpl_security_test",
+      "reviewId": "17841769428242324"
+    }
+  },
+  {
+    "username": "Test Proxy",
+    "action": "review_submitted",
+    "detail": "Reviewed tpr_security_test — 👍 Pass",
+    "timestamp": "2026-07-16T06:44:38.068300",
+    "metadata": {
+      "artifactId": "tpr_security_test",
+      "reviewId": "17841770764836147"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from tpr_security_test",
+    "timestamp": "2026-07-16T06:44:41.052065",
+    "metadata": {
+      "artifactId": "tpr_security_test",
+      "reviewId": "17841770764836147"
+    }
+  },
+  {
+    "username": "tpl_bot",
+    "action": "review_submitted",
+    "detail": "Reviewed tpl_security_test — 👍 Pass",
+    "timestamp": "2026-07-16T06:44:44.806449",
+    "metadata": {
+      "artifactId": "tpl_security_test",
+      "reviewId": "17841770830995248"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from tpl_security_test",
+    "timestamp": "2026-07-16T06:44:48.263516",
+    "metadata": {
+      "artifactId": "tpl_security_test",
+      "reviewId": "17841770830995248"
+    }
   }
 ]
