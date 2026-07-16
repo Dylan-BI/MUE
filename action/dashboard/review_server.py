@@ -857,7 +857,7 @@ def _start_tunnel(port, tool_path, tool_name):
     import subprocess
     import re
 
-    TUNNEL_NOTIFY_EMAIL = 'jane@example.com'
+    TUNNEL_NOTIFY_EMAIL = os.environ.get('MUE_TUNNEL_NOTIFY_EMAIL', 'monteretroion@gmail.com')
 
     if tool_name == 'cloudflared':
         cmd = [tool_path, 'tunnel', '--url', f'http://localhost:{port}', '--no-autoupdate']
