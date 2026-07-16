@@ -127,7 +127,7 @@ SMTP_USER = os.environ.get('MUE_SMTP_USER', '')
 SMTP_PASS = os.environ.get('MUE_SMTP_PASS', '')
 SMTP_FROM = os.environ.get('MUE_SMTP_FROM', SMTP_USER or 'mue-review-server@localhost')
 SMTP_USE_TLS = os.environ.get('MUE_SMTP_TLS', 'true').lower() == 'true'
-DAILY_SUMMARY_HOUR = int(os.environ.get('MUE_SUMMARY_HOUR', '17'))  # 5 PM default
+DAILY_SUMMARY_HOUR = int(os.environ.get('MUE_SUMMARY_HOUR', '6'))  # 6 AM default
 ADMIN_EMAIL = os.environ.get('MUE_ADMIN_EMAIL', 'dylan@bicyclebi.com')  # receives all reviewer input
 DAILY_SUMMARY_MINUTE = int(os.environ.get('MUE_SUMMARY_MINUTE', '0'))
 
@@ -442,10 +442,169 @@ def _get_all_presence():
 
 # ── Daily Summary Email ──────────────────────────────────────────────
 
+def _load_dashboard_data():
+    """Load the dashboard data.json for learner progress context."""
+    data_path = os.path.join(DASHBOARD_DIR, 'data.json')
+    if os.path.exists(data_path):
+        try:
+            with open(data_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _compute_learner_progress(data):
+    """Compute learner progress metrics from dashboard data."""
+    notes = data.get('notes', [])
+    summary = data.get('summary', {})
+    level_prog = summary.get('level_progression', {})
+    current_level = level_prog.get('current_level', 1)
+    levels = level_prog.get('levels', {})
+    
+    # Current level info
+    lvl_info = levels.get(current_level, {})
+    days_completed = lvl_info.get('days_completed', 0)
+    days_required = lvl_info.get('days_required', 28)
+    
+    # Overall progress
+    total_days = summary.get('total_days', 0)
+    working_days_elapsed = summary.get('working_days_elapsed', 0)
+    calendar_status = summary.get('calendar_status', 'no_data')
+    
+    # Classification
+    latest_classification = 'Not Started'
+    if notes:
+        latest_note = max(notes, key=lambda n: n.get('date', ''))
+        latest_classification = latest_note.get('classification', 'Not Started')
+    
+    # Proof tasks
+    proof_tasks = summary.get('proof_tasks', {})
+    completed_proofs = sum(1 for v in proof_tasks.values() if v)
+    total_proofs = len(proof_tasks)
+    
+    # Codex gates
+    codex_gates = summary.get('codex_gate_status', {})
+    passed_gates = sum(1 for v in codex_gates.values() if v == 'Yes')
+    total_gates = len(codex_gates)
+    
+    # Scorecard areas
+    scorecard = summary.get('scorecard_trend', {})
+    scored_areas = sum(1 for v in scorecard.values() if v and v[-1].get('score') != 'Unscored')
+    total_areas = len(scorecard)
+    
+    # Category coverage from notes
+    category_counts = {}
+    for n in notes:
+        cats = n.get('category_tags', '')
+        for cat in cats.split(','):
+            cat = cat.strip()
+            if cat:
+                category_counts[cat] = category_counts.get(cat, 0) + 1
+    
+    return {
+        'current_level': current_level,
+        'level_label': lvl_info.get('label', 'Foundation'),
+        'level_emoji': lvl_info.get('emoji', '🌱'),
+        'days_completed': days_completed,
+        'days_required': days_required,
+        'total_days': total_days,
+        'working_days_elapsed': working_days_elapsed,
+        'calendar_status': calendar_status,
+        'latest_classification': latest_classification,
+        'completed_proofs': completed_proofs,
+        'total_proofs': total_proofs,
+        'passed_gates': passed_gates,
+        'total_gates': total_gates,
+        'scored_areas': scored_areas,
+        'total_areas': total_areas,
+        'category_counts': category_counts,
+        'notes_count': len(notes),
+    }
+
+
+def _compute_outstanding_tasks(data, progress):
+    """Compute outstanding/incomplete tasks relative to curriculum standards."""
+    outstanding = []
+    notes = data.get('notes', [])
+    summary = data.get('summary', {})
+    
+    # 1. Missing daily notes (days without notes up to current day)
+    current_day = progress.get('days_completed', 0)
+    if current_day > 0:
+        noted_days = set(n.get('day_number') for n in notes if n.get('day_number'))
+        missing_days = [d for d in range(1, current_day + 1) if d not in noted_days]
+        if missing_days:
+            outstanding.append({
+                'category': '📅 Daily Notes',
+                'item': f'{len(missing_days)} missing daily note(s) (Days: {", ".join(map(str, missing_days[:10]))}{"..." if len(missing_days) > 10 else ""})',
+                'priority': 'High' if len(missing_days) > 3 else 'Medium'
+            })
+    
+    # 2. Unscored scorecard areas
+    scorecard = summary.get('scorecard_trend', {})
+    unscored = [area for area, entries in scorecard.items() if not entries or entries[-1].get('score') == 'Unscored']
+    if unscored:
+        outstanding.append({
+            'category': '🏆 Scorecard',
+            'item': f'{len(unscored)} unscored area(s): {", ".join(unscored[:5])}{"..." if len(unscored) > 5 else ""}',
+            'priority': 'High'
+        })
+    
+    # 3. Incomplete proof tasks
+    proof_tasks = summary.get('proof_tasks', {})
+    incomplete_proofs = [pt for pt, done in proof_tasks.items() if not done]
+    if incomplete_proofs:
+        outstanding.append({
+            'category': '✅ Proof Tasks',
+            'item': f'{len(incomplete_proofs)} incomplete: {", ".join(incomplete_proofs[:5])}{"..." if len(incomplete_proofs) > 5 else ""}',
+            'priority': 'High'
+        })
+    
+    # 4. Unpassed Codex gates
+    codex_gates = summary.get('codex_gate_status', {})
+    unpassed_gates = [gate for gate, status in codex_gates.items() if status != 'Yes']
+    if unpassed_gates:
+        outstanding.append({
+            'category': '🚪 Codex Gate',
+            'item': f'{len(unpassed_gates)} gate(s) not passed: {", ".join(unpassed_gates[:5])}{"..." if len(unpassed_gates) > 5 else ""}',
+            'priority': 'Critical'
+        })
+    
+    # 5. Category coverage gaps (8 categories expected)
+    expected_categories = ['🤖 AI', '⚡ Codex', '🏗️ Pyr', '📊 BI', '🔗 Data', '📦 Del', '🧠 Ret', '💬 Team']
+    category_counts = progress.get('category_counts', {})
+    missing_cats = [cat for cat in expected_categories if cat not in category_counts or category_counts[cat] == 0]
+    if missing_cats:
+        outstanding.append({
+            'category': '📚 Curriculum Coverage',
+            'item': f'{len(missing_cats)} category(ies) with no activity: {", ".join(missing_cats)}',
+            'priority': 'Medium'
+        })
+    
+    # 6. Missing required artifacts (from notes)
+    missing_artifacts = []
+    for n in notes:
+        artifact = n.get('required_artifact')
+        if artifact and artifact not in str(data.get('evidence', [])):
+            missing_artifacts.append(f"Day {n.get('day_number')}: {artifact}")
+    if missing_artifacts:
+        outstanding.append({
+            'category': '📁 Evidence Artifacts',
+            'item': f'{len(missing_artifacts)} missing: {", ".join(missing_artifacts[:5])}{"..." if len(missing_artifacts) > 5 else ""}',
+            'priority': 'Medium'
+        })
+    
+    return outstanding
+
+
 def _compile_daily_summary(hours=24):
-    """Compile review activity from the last N hours into a structured summary."""
+    """Compile review activity + learner progress from the last N hours into a structured summary."""
     reviews = load_reviews()
     profiles = load_profiles()
+    data = _load_dashboard_data()
+    progress = _compute_learner_progress(data)
+    outstanding = _compute_outstanding_tasks(data, progress)
     cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
 
     who = {}       # {name: {display, reviews_count, ratings: {pass, needs_work, rework}}}
@@ -499,7 +658,9 @@ def _compile_daily_summary(hours=24):
         'who': who,
         'what': sorted(what, key=lambda x: x['timestamp'], reverse=True),
         'when_oldest': when_oldest,
-        'when_newest': when_newest
+        'when_newest': when_newest,
+        'learner_progress': progress,
+        'outstanding_tasks': outstanding,
     }
 
 
@@ -507,6 +668,8 @@ def _build_summary_html(summary):
     """Build an HTML email body from a summary dict."""
     who = summary['who']
     what = summary['what']
+    learner_progress = summary.get('learner_progress', {})
+    outstanding_tasks = summary.get('outstanding_tasks', [])
 
     who_rows = ''
     for name, info in who.items():
@@ -537,6 +700,38 @@ def _build_summary_html(summary):
           <td style="padding:6px;font-size:12px;color:#555;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{safe_text}</td>
         </tr>'''
 
+    # Learner Progress Section
+    progress_html = ''
+    if learner_progress:
+        prog = learner_progress
+        progress_html = f'''
+      <h2 style="font-size:15px;color:#333;margin:24px 0 8px">🎓 Learner Progress</h2>
+      <table style="width:100%;margin-bottom:20px"><tr>
+        <td style="background:#eef7f2;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#198754">{prog.get("current_day", 0)}/28</div><div style="font-size:11px;color:#888">Days Completed</div></td>
+        <td style="background:#eef2fa;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#6c5ce7">{prog.get("current_week", 0)}/4</div><div style="font-size:11px;color:#888">Weeks Completed</div></td>
+        <td style="background:#faf6ea;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#d49330">{prog.get("evidence_count", 0)}</div><div style="font-size:11px;color:#888">Evidence Files</div></td>
+        <td style="background:#fef3c7;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#92400e">{prog.get("classification", "Foundational")}</div><div style="font-size:11px;color:#888">Classification</div></td>
+      </tr></table>
+      <div style="font-size:12px;color:#555;margin-bottom:12px"><strong>Level:</strong> {prog.get("current_level", 1)} ({prog.get("level_label", "Foundation")}) · <strong>Codex Gates:</strong> {prog.get("codex_gates_passed", 0)}/9 passed · <strong>Proof Tasks:</strong> {prog.get("proof_tasks_completed", 0)}/6 completed</div>'''
+
+    # Outstanding Tasks Section
+    outstanding_html = ''
+    if outstanding_tasks:
+        rows = ''
+        for ot in outstanding_tasks:
+            priority_color = {'Critical': '#dc3545', 'High': '#fd7e14', 'Medium': '#ffc107', 'Low': '#198754'}.get(ot.get('priority', 'Medium'), '#6c757d')
+            rows += f'''<tr style="border-bottom:1px solid #f0f0f0">
+              <td style="padding:8px 12px;font-weight:600">{_esc_html(ot.get('category', ''))}</td>
+              <td style="padding:8px 12px">{_esc_html(ot.get('item', ''))}</td>
+              <td style="padding:8px;text-align:center"><span style="background:{priority_color};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px">{_esc_html(ot.get('priority', 'Medium'))}</span></td>
+            </tr>'''
+        outstanding_html = f'''
+      <h2 style="font-size:15px;color:#333;margin:24px 0 8px">⚠️ Outstanding / Incomplete Tasks (vs Curriculum Standards)</h2>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #eee;border-radius:8px;overflow:hidden">
+        <tr style="background:#f8f9fa"><th style="padding:8px 12px;text-align:left;font-size:12px">Category</th><th style="padding:8px;text-align:left;font-size:12px">Details</th><th style="padding:8px;text-align:center;font-size:12px">Priority</th></tr>
+        {rows}
+      </table>'''
+
     period = f"Last {summary['hours']}h"
     when = f"{summary['when_oldest'][:16].replace('T',' ')} — {summary['when_newest'][:16].replace('T',' ')}" if summary['when_oldest'] else 'N/A'
 
@@ -565,6 +760,9 @@ def _build_summary_html(summary):
         <tr style="background:#f8f9fa"><th style="padding:8px 12px;text-align:left;font-size:12px">When</th><th style="padding:8px;text-align:left;font-size:12px">Who</th><th style="padding:8px;text-align:left;font-size:12px">Artifact</th><th style="padding:8px;text-align:left;font-size:12px">Rating</th><th style="padding:8px;text-align:left;font-size:12px">Comment</th></tr>
         {review_rows}
       </table>
+
+      {progress_html}
+      {outstanding_html}
 
       <p style="font-size:11px;color:#aaa;margin:20px 0 0;text-align:center">Period: {when}<br>Sent by MUE Review Server · <a href="{_SERVER_BASE_URL}/go" style="color:#6c5ce7">Open Dashboard</a></p>
     </div>
