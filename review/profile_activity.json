@@ -447,5 +447,11 @@
       "artifactId": "tpl_security_test",
       "reviewId": "17841770830995248"
     }
+  },
+  {
+    "username": "alice_w",
+    "action": "session_started",
+    "detail": "Signed in as Alice Wilson",
+    "timestamp": "2026-07-16T07:04:18.413400"
   }
 ]
