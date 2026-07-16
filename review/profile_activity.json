@@ -337,5 +337,35 @@
       "artifactId": "test",
       "reviewId": "17841742552351609"
     }
+  },
+  {
+    "username": "dylan_bi",
+    "action": "profile_deleted",
+    "detail": "Deleted profile @jane_doe (removed 1 activity logs)",
+    "timestamp": "2026-07-16T06:34:43.003068",
+    "metadata": {
+      "deletedUsername": "jane_doe",
+      "removedActivities": 1
+    }
+  },
+  {
+    "username": "test_user_a",
+    "action": "profile_deleted",
+    "detail": "Deleted profile @test_user_a (removed 6 activity logs)",
+    "timestamp": "2026-07-16T06:36:20.560263",
+    "metadata": {
+      "deletedUsername": "test_user_a",
+      "removedActivities": 6
+    }
+  },
+  {
+    "username": "dylan_bi",
+    "action": "profile_deleted",
+    "detail": "Deleted profile @jane_doe (removed 1 activity logs)",
+    "timestamp": "2026-07-16T06:36:24.642393",
+    "metadata": {
+      "deletedUsername": "jane_doe",
+      "removedActivities": 1
+    }
   }
 ]
