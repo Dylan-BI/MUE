@@ -99,13 +99,9 @@ def detect_earliest_learner_artifact():
         if not os.path.isdir(d):
             continue
         for f in os.listdir(d):
-            if f.endswith('.md') and not f.startswith('.'):
+            if f.endswith('.md') and not f.startswith('.') and not f.startswith('tpl_'):
                 try:
                     basename = f.replace('.md', '')
-                    for prefix in ['tpl_']:
-                        if basename.startswith(prefix):
-                            basename = basename[len(prefix):]
-                            break
                     dt = datetime.strptime(basename, '%Y-%m-%d').date()
                     if earliest is None or dt < earliest:
                         earliest = dt
@@ -818,7 +814,7 @@ def scan_evidence():
         return files
     for root, dirs, fnames in os.walk(EVIDENCE_DIR):
         for f in fnames:
-            if f == '.gitkeep':
+            if f == '.gitkeep' or f.startswith('tpl_'):
                 continue
             fp = os.path.join(root, f)
             rel = os.path.relpath(fp, EVIDENCE_DIR)
@@ -1226,6 +1222,9 @@ def main():
     notes = []
     if os.path.isdir(NOTES_DIR):
         for f in sorted(glob.glob(os.path.join(NOTES_DIR, '*.md'))):
+            # Skip TPL-generated files — only real learner data
+            if os.path.basename(f).startswith('tpl_'):
+                continue
             d = parse_date_from_filename(f)
             if d:
                 note = parse_note(f)
@@ -1239,6 +1238,9 @@ def main():
     archived_notes = 0
     if os.path.isdir(NOTES_ARCHIVE_DIR):
         for f in sorted(glob.glob(os.path.join(NOTES_ARCHIVE_DIR, '*.md'))):
+            # Skip TPL-generated files — only real learner data
+            if os.path.basename(f).startswith('tpl_'):
+                continue
             d = parse_date_from_filename(f)
             if d:
                 note = parse_note(f)
@@ -1328,8 +1330,16 @@ def main():
         try:
             with open(reviews_path, 'r', encoding='utf-8') as f:
                 synced_reviews = json.load(f)
+            # Filter out TPR bot reviews — only real reviewer data visible in dashboard
+            _TPR_BOT_NAMES = {'🧪 TPR', 'tpr_bot'}
+            synced_reviews = {
+                aid: [r for r in revs if r.get('name', '').strip() not in _TPR_BOT_NAMES
+                      and r.get('role', '').strip() != 'Test Proxy']
+                for aid, revs in synced_reviews.items()
+            }
+            synced_reviews = {aid: revs for aid, revs in synced_reviews.items() if revs}
             rcount = sum(len(v) for v in synced_reviews.values())
-            print(f'  Loaded {rcount} synced review(s) across {len(synced_reviews)} artifact(s)')
+            print(f'  Loaded {rcount} synced review(s) across {len(synced_reviews)} artifact(s) (TPR bot excluded)')
         except (json.JSONDecodeError, OSError) as e:
             print(f'  ⚠️  Warning: could not read {reviews_path}: {e}')
     else:

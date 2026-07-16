@@ -457,7 +457,10 @@ def _compile_daily_summary(hours=24):
             ts = r.get('timestamp', '')
             if ts < cutoff:
                 continue
+            # Skip TPR bot reviews — only real reviewer data in summaries
             name = r.get('name', 'Unknown')
+            if name == TPR_USERNAME or r.get('role', '').strip() == 'Test Proxy':
+                continue
             rating = r.get('rating', '?')
             if name not in who:
                 profile = profiles.get(name.lower().replace(' ', '_'), {})
@@ -1284,8 +1287,16 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         return True
 
     def _handle_get_reviews(self):
-        """GET /api/reviews — return all reviews."""
+        """GET /api/reviews — return all reviews (TPR bot excluded)."""
         reviews = load_reviews()
+        # Filter out TPR bot reviews — only real reviewer data visible in dashboard
+        reviews = {
+            aid: [r for r in revs
+                  if r.get('name', '').strip() != TPR_USERNAME
+                  and r.get('role', '').strip() != 'Test Proxy']
+            for aid, revs in reviews.items()
+        }
+        reviews = {aid: revs for aid, revs in reviews.items() if revs}
         self._send_json(200, reviews)
 
     def _handle_get_locks(self):

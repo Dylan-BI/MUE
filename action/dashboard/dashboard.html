@@ -1251,8 +1251,9 @@ function getLevelInfo(level) {
 function getLearnerDateRange() {
   let earliest = null, latest = null;
   const allItems = [];
-  if (DATA.notes) DATA.notes.forEach(n => { if (n.date) allItems.push({ date: n.date, type: 'note', item: n }); });
-  if (DATA.evidence) DATA.evidence.forEach(e => { if (e.date) allItems.push({ date: e.date, type: 'evidence', item: e }); });
+  // Only real learner data — skip TPL-generated items
+  if (DATA.notes) DATA.notes.filter(n => !n.id || !n.id.startsWith('tpl_')).forEach(n => { if (n.date) allItems.push({ date: n.date, type: 'note', item: n }); });
+  if (DATA.evidence) DATA.evidence.filter(e => !e.filename || !e.filename.startsWith('tpl_')).forEach(e => { if (e.date) allItems.push({ date: e.date, type: 'evidence', item: e }); });
   if (DATA.reports) DATA.reports.forEach(r => { if (r.date) allItems.push({ date: r.date, type: 'report', item: r }); });
   if (allItems.length === 0) return { earliest: null, latest: null };
   const sorted = allItems.sort((a, b) => a.date.localeCompare(b.date));
@@ -1298,8 +1299,8 @@ function searchLearnerHistory() {
   }
   
   // Search for matching artifacts
-  const notes = (DATA.notes || []).filter(n => n.date === queryDate);
-  const evidence = (DATA.evidence || []).filter(e => e.date === queryDate);
+  const notes = (DATA.notes || []).filter(n => (!n.id || !n.id.startsWith('tpl_')) && n.date === queryDate);
+  const evidence = (DATA.evidence || []).filter(e => (!e.filename || !e.filename.startsWith('tpl_')) && e.date === queryDate);
   const reports = (DATA.reports || []).filter(r => r.date === queryDate);
   
   const total = notes.length + evidence.length + reports.length;
@@ -2117,18 +2118,20 @@ function getSyncedReviews() {
 }
 
 /* ── Merge local, synced, and server reviews for a given artifact ── */
+/* Only real reviewer data — TPR bot reviews are filtered out */
 function getMergedReviews(aid) {
   const local = getReviews();
   const synced = getSyncedReviews();
   const localRev = local[aid] || [];
   const syncedRev = synced[aid] || [];
   const serverRev = SERVER_REVIEWS[aid] || [];
+  const _isRealReview = r => r.name !== TPR_USERNAME && r.role !== 'Test Proxy';
   // Deduplicate by review ID: server > synced > local
   const merged = [];
   const seen = new Set();
-  serverRev.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'synced' }); } });
-  syncedRev.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'synced' }); } });
-  localRev.forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'local' }); } });
+  serverRev.filter(_isRealReview).forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'synced' }); } });
+  syncedRev.filter(_isRealReview).forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'synced' }); } });
+  localRev.filter(_isRealReview).forEach(r => { if (!seen.has(r.id)) { seen.add(r.id); merged.push({ ...r, _source: 'local' }); } });
   return merged;
 }
 
