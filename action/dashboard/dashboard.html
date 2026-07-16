@@ -2835,7 +2835,7 @@ function renderAll() {
     // Data-dependent pages → show empty state message
     addPage('overview','<h2>📋 Third-Party Review Overview</h2><p class="subtitle">MUE training summary — learner-completed artifact tracking, change monitoring, and review hub.</p>' + emptyMsg);
     addPage('daily','<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips, primary track tags, evidence artifacts, and note file previews.</p>' + emptyMsg);
-    addPage('scorecard','<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Moderate/Fail entries with improvement trend and Fail warnings.</p>' + emptyMsg);
+    addPage('scorecard','<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 9 competency areas — stacked Pass/Moderate/Fail entries with improvement trend and Fail warnings.</p>' + emptyMsg);
     addPage('proof-tasks','<h2>✅ Proof Task Tracker</h2><p class="subtitle">Checklist of 6 required proof tasks — completion checkboxes, day evidence found, per-task review, and overall progress bar.</p>' + emptyMsg);
     addPage('evidence','<h2>📁 Evidence Gallery</h2><p class="subtitle">Evidence files from action/evidence/ grouped by ISO week — file name, size, modification date, preview, Agent-changed badge, and per-file review.</p>' + emptyMsg);
     addPage('classification','<h2>📈 Readiness Classification Trend</h2><p class="subtitle">Line chart and colored bars showing classification level (1-Foundational through 4-Mastery) on each training day, with current vs target-minimum comparison.</p>' + emptyMsg);
@@ -3016,7 +3016,7 @@ function renderAll() {
 
   // ── PAGE 3: SCORECARD + review per area + version tracking ──
   const tr = s.scorecard_trend||{}, trK=Object.keys(tr);
-  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 7 competency areas — stacked Pass/Moderate/Fail entries showing whether the learner is Improving, Steady, or Needs Attention per area, with Fail warnings.</p>';
+  let sh2 = '<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 9 competency areas — stacked Pass/Moderate/Fail entries showing whether the learner is Improving, Steady, or Needs Attention per area, with Fail warnings.</p>';
   sh2 += renderPageChanges('scorecard', 'Scorecard');
   // ≡≡≡ Score Legend ═══════════════════════════════════════════════════════
   sh2 += '<div class="card" style="padding:10px 14px;margin-bottom:10px"><h3 style="margin:0 0 6px;font-size:13px">🎨 Score Color Key</h3>' +
@@ -3300,14 +3300,17 @@ function renderAll() {
     '</div></div>' +
     '<div>' +
     '<h4 style="font-size:13px;margin-bottom:6px">🚪 Codex Gate (Final Checkpoint)</h4>' +
-    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.6">All <strong>6 Codex gates</strong> must pass before level advancement. The gate verifies:</p>' +
+    '<p style="font-size:12px;color:var(--text-secondary);line-height:1.6">All <strong>9 Codex gates</strong> (8 required + 1 bonus) must pass before level advancement. The gate verifies:</p>' +
     '<ul style="margin:4px 0 0 16px;font-size:12px;color:var(--text-secondary);line-height:1.7">' +
     '<li>One end-to-end workflow completed</li>' +
     '<li>Business-logic ownership understood</li>' +
     '<li>Validation evidence produced without help</li>' +
-    '<li>All proof tasks completed</li>' +
+    '<li>All 6 proof tasks completed</li>' +
     '<li>One clean reviewable change slice</li>' +
     '<li>One reusable team asset created</li>' +
+    '<li>Manual-vs-Codex comparison completed</li>' +
+    '<li>All 6 Codex exercises passed</li>' +
+    '<li>Can explain Bounded Codex rules (bonus)</li>' +
     '</ul>' +
     '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5"><strong>Instructor enforcement:</strong> Verify each gate criterion against actual artifacts. A learner who cannot demonstrate these without assistance is not ready to advance.</p></div>' +
     '</div>' +

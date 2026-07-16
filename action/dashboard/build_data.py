@@ -77,6 +77,7 @@ PAT_REMAINS = re.compile(r'What remains open:\*?\*?\s*(.+)', re.IGNORECASE)
 PAT_NEXT_STEP = re.compile(r'Next narrow step:\*?\*?\s*(.+)', re.IGNORECASE)
 PAT_WEEK_NUMBER = re.compile(r'Week Number:\*?\*?\s*(\d+)')
 PAT_LEVEL = re.compile(r'Level:\*?\*?\s*(\d+)')
+PAT_CATEGORY_TAGS = re.compile(r'Category Tags:\*?\*?\s*(.+)', re.IGNORECASE)
 
 # ── Level framework ────────────────────────────────────────────────────────
 LEVEL_DAYS = 28  # working days per curriculum level
@@ -217,6 +218,8 @@ SCORE_AREAS = [
     'Deployment awareness',
     'Reviewer handoff',
     'Reusability',
+    'Codex handoff fluency',
+    'Codex bounded use',
 ]
 
 CODEX_GATES = [
@@ -226,6 +229,9 @@ CODEX_GATES = [
     'Proof tasks completed',
     'One clean reviewable change slice',
     'One reusable team asset created',
+    'Manual-vs-Codex comparison completed',
+    'All 6 Codex exercises passed',
+    'Can explain Bounded Codex rules',
 ]
 
 PROOF_TASKS = [
@@ -321,6 +327,9 @@ SOURCE_CATEGORY_MAP = {
     'Pyramid, Codex, and BI Judgment Daily Execution Guide.txt': ['pyramid', 'codex', 'bi-judgment'],
     'Pyramid, Codex, and BI Judgment Daily Working Template.txt': ['pyramid', 'codex', 'bi-judgment'],
     'Pyramid, Codex, and BI Judgment Readiness Plan.md': ['pyramid', 'codex', 'bi-judgment', 'readiness'],
+    # BI Academic Framework
+    'BI Academic Framework.md': ['bi-judgment', 'ai-copilot', 'codex', 'pyramid', 'data-lineage', 'delivery-handoff', 'readiness'],
+    'BI Academic Framework - Updated.md': ['bi-judgment', 'ai-copilot', 'codex', 'pyramid', 'data-lineage', 'delivery-handoff', 'readiness'],
     # Data & Lineage
     # (embedded in onboarding map and category notes)
     # Delivery & Handoff
@@ -790,6 +799,10 @@ def parse_note(filepath):
     else:
         # Backward compatible: notes without Level field default to Level 1
         note['level'] = 1
+
+    m = PAT_CATEGORY_TAGS.search(content)
+    if m:
+        note['category_tags'] = m.group(1).strip()
 
     for area in SCORE_AREAS:
         p = re.compile(rf'{re.escape(area)}:\s*(Pass|Moderate|Fail|Unscored)', re.IGNORECASE)
