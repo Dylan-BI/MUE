@@ -3516,9 +3516,12 @@ async function deactivateTPR() {
 }
 
 /* ── Test Proxy Learner (TPL) — generates temporary dummy learner data for data-flow testing ── */
+let _tplAutoCleanupTimer = null;
 async function activateTPL() {
   if (!isAdminUser()) { showToast('Only admins can activate TPL', 'warning', 'Restricted'); return; }
   if (!REVIEW_SERVER) { showToast('Server not connected — TPL requires server', 'warning', 'Offline'); return; }
+  // Cancel any prior auto-cleanup timer
+  if (_tplAutoCleanupTimer) { clearTimeout(_tplAutoCleanupTimer); _tplAutoCleanupTimer = null; }
   showToast('TPL generating dummy learner data…', 'info', '📚 Test Proxy Learner');
   try {
     const resp = await _tplFetch(REVIEW_SERVER + '/api/tpl/generate', {
@@ -3533,6 +3536,19 @@ async function activateTPL() {
       renderAll();
       updateSidebar();
       showToast('TPL complete — dashboard refreshed with generative data', 'success', '📚 TPL Ready');
+      // Auto-cleanup timer: remove TPL data after 10 minutes if not manually cleaned
+      _tplAutoCleanupTimer = setTimeout(async () => {
+        try {
+          await _tplFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}
+          });
+          await loadData();
+          renderAll();
+          updateSidebar();
+          showToast('TPL auto-cleanup: 10-min TTL expired, dummy data removed', 'info', '📚 TPL');
+        } catch {}
+        _tplAutoCleanupTimer = null;
+      }, 10 * 60 * 1000);
     } else {
       const err = await resp.json().catch(() => ({}));
       showToast('TPL generation failed: ' + (err.error || resp.status), 'warning', '📚 TPL Error');
@@ -3545,6 +3561,8 @@ async function activateTPL() {
 async function deactivateTPL() {
   if (!isAdminUser()) { showToast('Only admins can cleanup TPL', 'warning', 'Restricted'); return; }
   if (!REVIEW_SERVER) { showToast('Server not connected', 'warning', 'Offline'); return; }
+  // Cancel auto-cleanup timer if active
+  if (_tplAutoCleanupTimer) { clearTimeout(_tplAutoCleanupTimer); _tplAutoCleanupTimer = null; }
   showToast('TPL cleaning up dummy data…', 'info', '📚 TPL');
   try {
     const resp = await _tplFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
@@ -3598,17 +3616,16 @@ async function runTPRTest() {
     } else { tprLog('fail', 'data.json not loaded or missing generated timestamp'); }
   } catch (e) { tprLog('fail', 'Data check failed: ' + e.message); }
 
-  // ── Test 4: Review submission ──
-  const testArtifact = 'tpr_test_' + Date.now();
+  // ── Test 4: TPR bot POST guard — must be blocked (403) ──
   try {
     const testReview = {name: '🧪 TPR', rating: '👍 Pass', text: 'Automated TPR test review — ' + new Date().toISOString(), type: 'Test', label: 'TPR Validation', role: 'Test Proxy'};
     const resp = await _serverFetch(REVIEW_SERVER + '/api/reviews', {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({artifactId: testArtifact, review: testReview})
+      body: JSON.stringify({artifactId: 'tpr_test_guard', review: testReview})
     });
-    if (resp.ok) tprLog('pass', 'Review submitted and synced');
-    else tprLog('fail', 'Review submit returned ' + resp.status);
-  } catch (e) { tprLog('fail', 'Review submit failed: ' + e.message); }
+    if (resp.status === 403) tprLog('pass', 'TPR bot POST blocked (403) — guard active');
+    else tprLog('fail', 'TPR bot POST returned ' + resp.status + ' — expected 403');
+  } catch (e) { tprLog('fail', 'TPR guard check failed: ' + e.message); }
 
   // ── Test 5: Presence heartbeat ──
   try {
@@ -3727,13 +3744,15 @@ async function runTPRTest() {
     const catCount = Array.isArray(cats) ? cats.length : Object.keys(cats).length;
     dataChecks.push(levelCount + ' levels, ' + catCount + ' categories');
 
-    // 12i: TPL data flow — generate dummy learner data, verify pipeline, cleanup
+    // 12i: TPL data flow — generate dummy learner data, verify pipeline, guaranteed cleanup
+    let tplGenerated = false;
     try {
       // Generate TPL data
       const genResp = await _tplFetch(REVIEW_SERVER + '/api/tpl/generate', {
         method: 'POST', headers: {'Content-Type': 'application/json'}
       });
       if (genResp.ok) {
+        tplGenerated = true;
         const genData = await genResp.json();
         dataChecks.push('TPL generated: ' + genData.notes + ' notes, ' + genData.evidence + ' evidence');
         // Wait for data.json to be rebuilt
@@ -3766,14 +3785,17 @@ async function runTPRTest() {
           });
           dataChecks.push('TPL charts: ' + tplChartsOk + '/' + tplCanvases.length);
         } else { dataChecks.push('TPL re-fetch: ' + djResp.status); }
-        // Cleanup TPL data
+      } else { dataChecks.push('TPL generate: ' + genResp.status); }
+    } catch (e) { dataChecks.push('TPL flow error: ' + e.message); }
+    // ALWAYS cleanup TPL data — guaranteed even if tests above failed
+    try {
+      if (tplGenerated) {
         const cleanResp = await _tplFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
           method: 'POST', headers: {'Content-Type': 'application/json'}
         });
         if (cleanResp.ok) {
           const cleanData = await cleanResp.json();
           dataChecks.push('TPL cleanup: ' + cleanData.removed + ' files removed');
-          // Rebuild and restore clean state
           await new Promise(r => setTimeout(r, 1000));
           const restoreResp = await _serverFetch(REVIEW_SERVER + '/data.json?_cb=' + Date.now(), {signal: AbortSignal.timeout(5000)});
           if (restoreResp.ok) {
@@ -3783,8 +3805,8 @@ async function runTPRTest() {
             dataChecks.push('TPL restore OK');
           }
         } else { dataChecks.push('TPL cleanup failed: ' + cleanResp.status); }
-      } else { dataChecks.push('TPL generate: ' + genResp.status); }
-    } catch (e) { dataChecks.push('TPL flow error: ' + e.message); }
+      }
+    } catch (e) { dataChecks.push('TPL cleanup error: ' + e.message); }
 
     // 12j: trigger rebuild and verify data.json updates
     try {
@@ -3813,7 +3835,24 @@ async function runTPRTest() {
   // Render results
   renderTPRResults();
 
-  // TPR is now a permanent profile — no auto-deactivation needed
+  // ── Auto-cleanup: remove all TPR/TPL test artifacts and deactivate TPR ──
+  try {
+    const cleanupResp = await _tplFetch(REVIEW_SERVER + '/api/tpr/cleanup', {
+      method: 'POST', headers: {'Content-Type': 'application/json'}
+    });
+    if (cleanupResp.ok) {
+      const cleanupData = await cleanupResp.json();
+      tprLog('info', '🧹 Auto-cleanup: ' + cleanupData.reviews_removed + ' review(s), ' + cleanupData.activities_removed + ' activity log(s), profile removed=' + cleanupData.profile_removed);
+      // Rebuild dashboard data after cleanup
+      await loadData();
+      renderAll();
+      updateSidebar();
+    }
+  } catch (e) { tprLog('info', 'Cleanup skipped: ' + e.message); }
+
+  // Deactivate TPR profile — sign out the test bot
+  await deactivateTPR();
+  showToast('TPR tests complete — test data auto-cleared', 'success', '🧪 TPR Done');
 }
 
 function tprLog(status, message) {

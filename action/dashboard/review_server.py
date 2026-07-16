@@ -895,6 +895,48 @@ def _cleanup_tpl_data():
     return removed
 
 
+def _cleanup_tpr_test_artifacts():
+    """Remove all TPR/TPL test artifacts from reviews.json and activity logs.
+
+    Cleans up:
+    - review keys starting with 'tpr_test_' or 'tpl_security_test' from reviews.json
+    - activity entries from tpr_bot / tpl_bot / Test Proxy in profile_activity.json
+    - TPR bot profile from reviewer_profiles.json
+
+    Returns dict with counts of removed items.
+    """
+    result = {'reviews_removed': 0, 'activities_removed': 0, 'profile_removed': False}
+
+    # 1) Clean reviews.json — remove test artifact keys
+    reviews = load_reviews()
+    test_prefixes = ('tpr_test_', 'tpl_', '_integrity_test', '_audit_test', 'test')
+    before = len(reviews)
+    reviews = {k: v for k, v in reviews.items()
+               if not any(k.startswith(p) or k == p for p in test_prefixes)}
+    result['reviews_removed'] = before - len(reviews)
+    if result['reviews_removed'] > 0:
+        save_reviews(reviews)
+
+    # 2) Clean activity log — remove TPR/TPL/test entries
+    activities = load_activity()
+    test_users = {TPR_USERNAME, TPL_USERNAME, 'Test Proxy', 'tester',
+                  'test_user_a', 'Integrity Test', 'Integrity Test 2', 'Integrity Audit'}
+    before_act = len(activities)
+    activities = [a for a in activities if a.get('username', '') not in test_users]
+    result['activities_removed'] = before_act - len(activities)
+    if result['activities_removed'] > 0:
+        save_activity(activities)
+
+    # 3) Remove TPR bot profile from reviewer_profiles.json
+    profiles = load_profiles()
+    if TPR_USERNAME in profiles:
+        del profiles[TPR_USERNAME]
+        save_profiles(profiles)
+        result['profile_removed'] = True
+
+    return result
+
+
 
 class ReviewHandler(SimpleHTTPRequestHandler):
     """HTTP handler: REST API for reviews + static file serving."""
@@ -1053,6 +1095,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_tpl_generate()
         elif parsed.path == '/api/tpl/cleanup':
             self._handle_tpl_cleanup()
+        elif parsed.path == '/api/tpr/cleanup':
+            self._handle_tpr_cleanup()
         else:
             self._send_json(404, {'error': 'Not found'})
 
@@ -1268,6 +1312,22 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         rebuild_data_json()
         print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧪 TPL cleanup: {removed} files removed')
         self._send_json(200, {'ok': True, 'removed': removed})
+
+    def _handle_tpr_cleanup(self):
+        """POST /api/tpr/cleanup — remove all TPR/TPL test artifacts.
+
+        Cleans reviews.json, activity logs, and the TPR bot profile.
+        Requires admin or TPR auth.
+        """
+        if not self._check_tpl_auth():
+            return
+        result = _cleanup_tpr_test_artifacts()
+        rebuild_data_json()
+        print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧹 TPR/TPL test cleanup: '
+              f'{result["reviews_removed"]} review(s), '
+              f'{result["activities_removed"]} activity log(s), '
+              f'profile={result["profile_removed"]}')
+        self._send_json(200, {'ok': True, **result})
 
     def _check_tpl_auth(self):
         """Check authorization for TPL operations.
