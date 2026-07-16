@@ -128,6 +128,7 @@ SMTP_PASS = os.environ.get('MUE_SMTP_PASS', '')
 SMTP_FROM = os.environ.get('MUE_SMTP_FROM', SMTP_USER or 'mue-review-server@localhost')
 SMTP_USE_TLS = os.environ.get('MUE_SMTP_TLS', 'true').lower() == 'true'
 DAILY_SUMMARY_HOUR = int(os.environ.get('MUE_SUMMARY_HOUR', '17'))  # 5 PM default
+ADMIN_EMAIL = os.environ.get('MUE_ADMIN_EMAIL', 'dylan@bicyclebi.com')  # receives all reviewer input
 DAILY_SUMMARY_MINUTE = int(os.environ.get('MUE_SUMMARY_MINUTE', '0'))
 
 
@@ -599,7 +600,7 @@ def _send_email(to_addr, subject, html_body):
 
 
 def send_daily_summaries():
-    """Compile and send daily summaries to all opted-in reviewers."""
+    """Compile and send daily summaries to all opted-in reviewers + admin."""
     print(f'  [{datetime.now().strftime("%H:%M:%S")}] 📬 Running daily summary...')
     summary = _compile_daily_summary(hours=24)
     if summary['total_reviews'] == 0:
@@ -610,6 +611,7 @@ def send_daily_summaries():
     profiles = load_profiles()
     sent_count = 0
 
+    # Send to opted-in reviewers
     for username, profile in profiles.items():
         if not profile.get('dailySummary') or not profile.get('email'):
             continue
@@ -621,6 +623,15 @@ def send_daily_summaries():
             sent_count += 1
         else:
             print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ Failed to send to {display} <{email}>: {err}')
+
+    # Also send to admin (comprehensive assessment of all reviewer input)
+    if ADMIN_EMAIL:
+        ok, err = _send_email(ADMIN_EMAIL, f'📬 MUE Admin Daily Summary — {summary["total_reviews"]} review(s), {summary["total_reviewers"]} reviewer(s)', html_body)
+        if ok:
+            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ✅ Admin summary sent to {ADMIN_EMAIL}')
+            sent_count += 1
+        else:
+            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ Failed to send admin summary: {err}')
 
     print(f'  [{datetime.now().strftime("%H:%M:%S")}] 📬 Daily summary complete — {sent_count} email(s) sent')
     return sent_count
