@@ -537,7 +537,7 @@
   .env-box .env-actions button.secondary:hover { color: var(--text-primary); background: transparent; }
   .env-box .env-actions button .env-icon { font-size: 18px; }
   /* ── Reviewer Sign-In Page ── */
-  .profile-modal { display: none; position: fixed; inset: 0; background: linear-gradient(135deg, #0f0c29 0%, #1a1640 40%, #24243e 100%); z-index: 300; justify-content: center; align-items: center; }
+  .profile-modal { display: none; position: fixed; inset: 0; background: linear-gradient(135deg, #0f0c29 0%, #1a1640 40%, #24243e 100%); z-index: 300; justify-content: center; align-items: center; overflow-y: auto; padding: 24px 0; }
   .profile-modal.open { display: flex; }
   .profile-box { background: rgba(255,255,255,.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.1); border-radius: 20px; max-width: 480px; width: 92%; padding: 0; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.5); color: #fff; animation: profileIn .3s ease; }
   .profile-box .pm-header { padding: 32px 32px 0 32px; text-align: center; }
