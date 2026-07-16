@@ -1,0 +1,11 @@
+# Ignored local files that Codex should copy into managed worktrees for MUE.
+# Keep tracked files out of this list.
+
+action/learner_config.json
+action/dashboard/.env
+action/notes/**
+action/evidence/**
+action/reports/**
+action/archive/notes/**
+action/archive/evidence/**
+action/archive/reports/**
