@@ -152,6 +152,12 @@ ADMIN_USERS = ['jane_doe', 'dylan_bi']
 # Test Proxy Reviewer — invisible automated testing profile
 TPR_USERNAME = 'tpr_bot'
 
+# TPL access secret — separate from SERVER_ACCESS_TOKEN.
+# When set, TPL generate/cleanup endpoints require this secret
+# (via X-TPL-Secret header). Without it, anyone with the main token
+# can trigger TPL operations. Set via --tpl-secret CLI argument.
+TPL_SECRET = None
+
 # Test Proxy Learner — generates temporary dummy learner data for data-flow testing
 TPL_USERNAME = 'tpl_bot'
 
@@ -1222,11 +1228,14 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         self._send_json(200, {'ok': True, 'sent': sent, 'reviews': summary['total_reviews'], 'reviewers': summary['total_reviewers']})
 
     def _handle_tpl_generate(self):
-        """POST /api/tpl/generate — create dummy learner data, rebuild data.json."""
-        body = self._read_body() or {}
-        requester = body.get('requester', '').strip()
-        if requester not in ADMIN_USERS and requester != TPR_USERNAME:
-            self._send_json(403, {'error': 'only admins or TPR can generate TPL data'})
+        """POST /api/tpl/generate — create dummy learner data, rebuild data.json.
+
+        Authorization: requires either the TPL secret (X-TPL-Secret header) or
+        if no TPL secret is configured, the main access token is sufficient.
+        The old requester-field-based check has been removed because it was
+        client-controlled and bypassable (requester spoofing).
+        """
+        if not self._check_tpl_auth():
             return
         # Clean up any existing TPL data first
         _cleanup_tpl_data()
@@ -1245,16 +1254,34 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         })
 
     def _handle_tpl_cleanup(self):
-        """POST /api/tpl/cleanup — remove TPL dummy files, rebuild data.json."""
-        body = self._read_body() or {}
-        requester = body.get('requester', '').strip()
-        if requester not in ADMIN_USERS and requester != TPR_USERNAME:
-            self._send_json(403, {'error': 'only admins or TPR can cleanup TPL data'})
+        """POST /api/tpl/cleanup — remove TPL dummy files, rebuild data.json.
+
+        Authorization: requires either the TPL secret (X-TPL-Secret header) or
+        if no TPL secret is configured, the main access token is sufficient.
+        """
+        if not self._check_tpl_auth():
             return
         removed = _cleanup_tpl_data()
         rebuild_data_json()
         print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧪 TPL cleanup: {removed} files removed')
         self._send_json(200, {'ok': True, 'removed': removed})
+
+    def _check_tpl_auth(self):
+        """Check authorization for TPL operations.
+
+        If TPL_SECRET is configured, the request must provide it via the
+        X-TPL-Secret header. Otherwise, the main SERVER_ACCESS_TOKEN is sufficient
+        (backward compatible with setups that don't use a separate TPL secret).
+        """
+        if TPL_SECRET:
+            tpl_secret = self.headers.get('X-TPL-Secret', '')
+            if tpl_secret == TPL_SECRET:
+                return True
+            self._send_json(403, {'error': 'invalid or missing TPL secret — learners cannot influence generative data'})
+            print(f'  🚫 TPL auth denied: X-TPL-Secret did not match configured secret')
+            return False
+        # No TPL_SECRET configured — main token check (already done in do_POST) is sufficient
+        return True
 
     def _handle_get_reviews(self):
         """GET /api/reviews — return all reviews."""
@@ -1651,6 +1678,7 @@ def main():
     parser.add_argument('--tunnel', action='store_true', help='Expose server to the internet via cloudflared or ngrok tunnel')
     parser.add_argument('--token', default='', help='Access token for secure remote access (auto-generated if not set)')
     parser.add_argument('--no-token', action='store_true', help='Disable access token (for local-only use)')
+    parser.add_argument('--tpl-secret', default='', help='Secret required to generate/cleanup TPL generative data. Prevents learners from influencing TPR test output.')
     args = parser.parse_args()
 
     # Apply CLI overrides to SMTP config
@@ -1667,6 +1695,10 @@ def main():
     if not args.no_token:
         import secrets, string
         SERVER_ACCESS_TOKEN = args.token if args.token else ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
+
+    # TPL secret — prevents learners from triggering TPL data generation/cleanup
+    global TPL_SECRET
+    TPL_SECRET = args.tpl_secret if args.tpl_secret else None
 
     # Set global base URL for email links (uses first LAN IP if available, else localhost)
     global _SERVER_BASE_URL
@@ -1700,6 +1732,11 @@ def main():
     else:
         print('   📧 SMTP: not configured (set MUE_SMTP_HOST or --smtp-host)')
         print('   📬 Daily summaries: disabled (no SMTP)')
+    # Print TPL secret status
+    if TPL_SECRET:
+        print(f'   🧪 TPL secret: configured (required for generative data operations)')
+    else:
+        print(f'   🧪 TPL secret: not set (any token holder can generate TPL data)')
     print()
 
     server = ThreadedHTTPServer((args.host, args.port), ReviewHandler)

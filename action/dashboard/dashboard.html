@@ -1629,6 +1629,22 @@ async function _serverFetch(url, opts) {
   return fetch(_tokenAppend(url), opts);
 }
 
+/* ── TPL Secret — separate auth for generative data operations ── */
+const MUE_TPL_SECRET_KEY = 'mue_tpl_secret';
+function _getTplSecret() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('tpl_secret')) return params.get('tpl_secret');
+  try { return localStorage.getItem(MUE_TPL_SECRET_KEY) || ''; } catch (e) { return ''; }
+}
+/* Wrapper that includes X-TPL-Secret header for TPL operations */
+async function _tplFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  const secret = _getTplSecret();
+  if (secret) opts.headers['X-TPL-Secret'] = secret;
+  return _serverFetch(url, opts);
+}
+
 async function serverFetchReviews() {
   if (!REVIEW_SERVER) return null;
   try {
@@ -3497,10 +3513,9 @@ async function activateTPL() {
   if (!REVIEW_SERVER) { showToast('Server not connected — TPL requires server', 'warning', 'Offline'); return; }
   showToast('TPL generating dummy learner data…', 'info', '📚 Test Proxy Learner');
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/tpl/generate', {
+    const resp = await _tplFetch(REVIEW_SERVER + '/api/tpl/generate', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({requester: getProfile()?.username || ''})
+      headers: {'Content-Type': 'application/json'}
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3524,10 +3539,9 @@ async function deactivateTPL() {
   if (!REVIEW_SERVER) { showToast('Server not connected', 'warning', 'Offline'); return; }
   showToast('TPL cleaning up dummy data…', 'info', '📚 TPL');
   try {
-    const resp = await _serverFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
+    const resp = await _tplFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({requester: getProfile()?.username || ''})
+      headers: {'Content-Type': 'application/json'}
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3707,11 +3721,9 @@ async function runTPRTest() {
 
     // 12i: TPL data flow — generate dummy learner data, verify pipeline, cleanup
     try {
-      const requester = getProfile()?.username || '';
       // Generate TPL data
-      const genResp = await _serverFetch(REVIEW_SERVER + '/api/tpl/generate', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({requester})
+      const genResp = await _tplFetch(REVIEW_SERVER + '/api/tpl/generate', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}
       });
       if (genResp.ok) {
         const genData = await genResp.json();
@@ -3747,9 +3759,8 @@ async function runTPRTest() {
           dataChecks.push('TPL charts: ' + tplChartsOk + '/' + tplCanvases.length);
         } else { dataChecks.push('TPL re-fetch: ' + djResp.status); }
         // Cleanup TPL data
-        const cleanResp = await _serverFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
-          method: 'POST', headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({requester})
+        const cleanResp = await _tplFetch(REVIEW_SERVER + '/api/tpl/cleanup', {
+          method: 'POST', headers: {'Content-Type': 'application/json'}
         });
         if (cleanResp.ok) {
           const cleanData = await cleanResp.json();
