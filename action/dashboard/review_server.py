@@ -1412,6 +1412,15 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {'error': f'Invalid rating: "{review.get("rating")}". Must be one of: {", ".join(sorted(_VALID_RATINGS))}'})
             return
 
+        # Block Test Proxy Reviewer (TPR) from submitting reviews —
+        # TPR bot reviews are invisible to the dashboard and must not
+        # trigger data.json rebuilds or live-notification false positives.
+        review_name = review.get('name', '').strip()
+        review_role = review.get('role', '').strip()
+        if review_name == TPR_USERNAME or review_role == 'Test Proxy':
+            self._send_json(403, {'error': 'Test Proxy Reviewer cannot submit reviews'})
+            return
+
         # Assign ID, timestamp, and version
         review['id'] = review.get('id') or generate_id()
         review['timestamp'] = review.get('timestamp') or datetime.now().isoformat()

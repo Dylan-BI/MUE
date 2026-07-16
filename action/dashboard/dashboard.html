@@ -2036,11 +2036,15 @@ function sendBrowserNotification(title, body) {
 }
 function _diffDataSummary(prev, next) {
   const parts = [];
-  const prevNotes = (prev.notes || []).length;
-  const nextNotes = (next.notes || []).length;
+  // Defense-in-depth: filter out TPL-generated (test proxy learner) items
+  // so they never contribute to notification diffs.
+  const isRealNote = n => !n.id || !n.id.startsWith('tpl_');
+  const isRealEvidence = e => !e.filename || !e.filename.startsWith('tpl_');
+  const prevNotes = (prev.notes || []).filter(isRealNote).length;
+  const nextNotes = (next.notes || []).filter(isRealNote).length;
   if (nextNotes > prevNotes) parts.push((nextNotes - prevNotes) + ' new note(s)');
-  const prevEv = (prev.evidence || []).length;
-  const nextEv = (next.evidence || []).length;
+  const prevEv = (prev.evidence || []).filter(isRealEvidence).length;
+  const nextEv = (next.evidence || []).filter(isRealEvidence).length;
   if (nextEv > prevEv) parts.push((nextEv - prevEv) + ' new evidence file(s)');
   const prevLearner = prev.learner_count || 0;
   const nextLearner = next.learner_count || 0;
@@ -2335,11 +2339,12 @@ function startAutoRefresh() {
         renderAll();
         _observePresenceMarkers();
         updateSidebarLevelButtons();
-        showToast('Dashboard updated with new learner data', 'success', 'Auto-synced');
-        // Browser notification with diff summary
+        // Only notify when real learner content actually changed (not TPL/TPR noise)
         const diffText = _diffDataSummary(_prevData, fresh);
-        if (diffText) { sendBrowserNotification('📊 MUE — Learner Data Synced', diffText); }
-        else { sendBrowserNotification('📊 MUE — Data Refreshed', 'Dashboard data has been updated'); }
+        if (diffText) {
+          showToast('Dashboard updated — ' + diffText, 'success', 'Auto-synced');
+          sendBrowserNotification('📊 MUE — Learner Data Synced', diffText);
+        }
       }
     } catch (e) {}
   }, 2 * 60 * 1000);
