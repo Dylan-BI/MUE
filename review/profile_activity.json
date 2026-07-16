@@ -453,5 +453,117 @@
     "action": "session_started",
     "detail": "Signed in as Alice Wilson",
     "timestamp": "2026-07-16T07:04:18.413400"
+  },
+  {
+    "username": "Integrity Test",
+    "action": "review_submitted",
+    "detail": "Reviewed _integrity_test_artifact — 👍 Pass",
+    "timestamp": "2026-07-16T07:26:26.567258",
+    "metadata": {
+      "artifactId": "_integrity_test_artifact",
+      "reviewId": "17841795852258051"
+    }
+  },
+  {
+    "username": "Integrity Test 2",
+    "action": "review_submitted",
+    "detail": "Reviewed _integrity_test_artifact — ⚡ Needs Work",
+    "timestamp": "2026-07-16T07:26:32.404475",
+    "metadata": {
+      "artifactId": "_integrity_test_artifact",
+      "reviewId": "17841795906391741"
+    }
+  },
+  {
+    "username": "Integrity Test",
+    "action": "review_edited",
+    "detail": "Edited review on _integrity_test_artifact",
+    "timestamp": "2026-07-16T07:26:38.883629",
+    "metadata": {
+      "artifactId": "_integrity_test_artifact",
+      "reviewId": "17841795852258051"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from _integrity_test_artifact",
+    "timestamp": "2026-07-16T07:26:46.896326",
+    "metadata": {
+      "artifactId": "_integrity_test_artifact",
+      "reviewId": "17841795852258051"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from _integrity_test_artifact",
+    "timestamp": "2026-07-16T07:26:52.517144",
+    "metadata": {
+      "artifactId": "_integrity_test_artifact",
+      "reviewId": "17841795906391741"
+    }
+  },
+  {
+    "username": "Integrity Audit",
+    "action": "review_submitted",
+    "detail": "Reviewed _audit_test — 👍 Pass",
+    "timestamp": "2026-07-16T07:33:47.376823",
+    "metadata": {
+      "artifactId": "_audit_test",
+      "reviewId": "17841800261892455"
+    }
+  },
+  {
+    "username": "Integrity Audit",
+    "action": "review_submitted",
+    "detail": "Reviewed _audit_test — ⚡ Needs Work",
+    "timestamp": "2026-07-16T07:33:51.855706",
+    "metadata": {
+      "artifactId": "_audit_test",
+      "reviewId": "17841800294029958"
+    }
+  },
+  {
+    "username": "Integrity Audit",
+    "action": "review_edited",
+    "detail": "Edited review on _audit_test",
+    "timestamp": "2026-07-16T07:33:56.583323",
+    "metadata": {
+      "artifactId": "_audit_test",
+      "reviewId": "17841800261892455"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from _audit_test",
+    "timestamp": "2026-07-16T07:34:03.976205",
+    "metadata": {
+      "artifactId": "_audit_test",
+      "reviewId": "17841800261892455"
+    }
+  },
+  {
+    "username": "",
+    "action": "review_deleted",
+    "detail": "Deleted review from _audit_test",
+    "timestamp": "2026-07-16T07:34:07.215019",
+    "metadata": {
+      "artifactId": "_audit_test",
+      "reviewId": "17841800294029958"
+    }
+  },
+  {
+    "username": "audit_bot",
+    "action": "integrity_audit",
+    "detail": "Core integrity audit completed",
+    "timestamp": "2026-07-16T07:34:58.592074"
+  },
+  {
+    "username": "alice_w",
+    "action": "session_started",
+    "detail": "Signed in as Alice Wilson",
+    "timestamp": "2026-07-16T07:38:10.958545"
   }
 ]
