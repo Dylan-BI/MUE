@@ -1,1 +1,33 @@
-[]
+[
+  {
+    "username": "Test Reviewer",
+    "action": "review_submitted",
+    "detail": "Reviewed test-artifact — 👍 Pass",
+    "timestamp": "2026-07-18T03:00:04.942471",
+    "metadata": {
+      "artifactId": "test-artifact",
+      "reviewId": "17843364034435505"
+    }
+  },
+  {
+    "username": "test_reviewer",
+    "action": "profile_created",
+    "detail": "Created profile as Test Reviewer",
+    "timestamp": "2026-07-18T03:00:29.023753",
+    "metadata": {
+      "requester": "test_reviewer"
+    }
+  },
+  {
+    "username": "test_reviewer",
+    "action": "session_started",
+    "detail": "Signed in as Test Reviewer",
+    "timestamp": "2026-07-18T03:32:41.204554"
+  },
+  {
+    "username": "test_reviewer",
+    "action": "session_started",
+    "detail": "Signed in as Test Reviewer",
+    "timestamp": "2026-07-18T04:22:38.578027"
+  }
+]
