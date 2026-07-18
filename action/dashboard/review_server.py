@@ -2043,11 +2043,12 @@ def main():
     global SERVER_ACCESS_TOKEN
     if not args.no_token:
         import secrets, string
-        SERVER_ACCESS_TOKEN = args.token if args.token else ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
+        # Priority: CLI arg > env var > auto-generated
+        SERVER_ACCESS_TOKEN = args.token or os.environ.get('MUE_ACCESS_TOKEN') or ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
 
     # TPL secret — prevents learners from triggering TPL data generation/cleanup
     global TPL_SECRET
-    TPL_SECRET = args.tpl_secret if args.tpl_secret else None
+    TPL_SECRET = args.tpl_secret or os.environ.get('MUE_TPL_SECRET')
 
     # Set global base URL for email links (uses first LAN IP if available, else localhost)
     global _SERVER_BASE_URL
@@ -2086,6 +2087,11 @@ def main():
         print(f'   🧪 TPL secret: configured (required for generative data operations)')
     else:
         print(f'   🧪 TPL secret: not set (any token holder can generate TPL data)')
+    # Print access token status
+    if SERVER_ACCESS_TOKEN:
+        print(f'   🔐 Access token: {SERVER_ACCESS_TOKEN}')
+    else:
+        print(f'   🔐 Access token: disabled (--no-token)')
     print()
 
     server = ThreadedHTTPServer((args.host, args.port), ReviewHandler)

@@ -24,6 +24,9 @@ import subprocess
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
+# Local structured logging
+from _log import log
+
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 ACTION_DIR = os.path.abspath(os.path.join(DASHBOARD_DIR, '..'))
 NOTES_DIR = os.path.join(ACTION_DIR, 'notes')
@@ -117,6 +120,26 @@ PAT_CATEGORY_TAGS = re.compile(r'Category\s+Tags\s*[:\-]?\s*\*?\*?\s*(.+)', re.I
 # ── Level framework ────────────────────────────────────────────────────────
 LEVEL_DAYS = 28  # working days per curriculum level
 
+# ── Curriculum week boundaries ──────────────────────────────────────────────
+# The 28-day curriculum has variable-length weeks: 5, 7, 7, 9 days.
+# These are defined by proxy/curriculum.py and duplicated here for the
+# build pipeline to use in week-progress calculations.
+WEEK_BOUNDARIES = [
+    (1, 1, 5),    # Week 1: days 1-5
+    (2, 6, 12),   # Week 2: days 6-12
+    (3, 13, 19),  # Week 3: days 13-19
+    (4, 20, 28),  # Week 4: days 20-28
+]
+
+def day_to_week(day_number):
+    """Map a curriculum day number to its week number using actual week boundaries."""
+    if not day_number:
+        return None
+    for week_num, start, end in WEEK_BOUNDARIES:
+        if start <= day_number <= end:
+            return week_num
+    return None
+
 # ── Level Competency Gates: Minimum requirements to advance to next level ────
 # Each level requires demonstrated competency, not just time served.
 LEVEL_COMPETENCY_GATES = {
@@ -179,19 +202,96 @@ def detect_earliest_learner_artifact():
                 mtime = datetime.fromtimestamp(os.path.getmtime(fp)).date()
                 if earliest is None or mtime < earliest:
                     earliest = mtime
-            except Exception:
-                pass
+            except Exception as exc:
+                log('WARNING', f'Could not read mtime for {fp}', error=str(exc))
     
     return earliest.isoformat() if earliest else None
+
+
+def _check_competency_gates(notes, level_gates):
+    """
+    Check competency gate requirements for a specific level.
+    Returns dict with gate compliance details.
+    """
+    if not level_gates:
+        return {'met': True, 'details': {}, 'blockers': []}
+    
+    # Compute metrics from notes for this level
+    total_areas = 0
+    pass_count = 0
+    gate_passes = 0
+    total_gates_attempted = 0
+    categories_covered = set()
+    proof_task_refs = set()
+    
+    for n in notes:
+        # Scorecard areas
+        for area, score in n.get('scorecard', {}).items():
+            total_areas += 1
+            if isinstance(score, str) and score.lower() == 'pass':
+                pass_count += 1
+        
+        # Codex gates
+        for gate, status in n.get('codex_gate', {}).items():
+            total_gates_attempted += 1
+            if isinstance(status, str) and status.lower() == 'yes':
+                gate_passes += 1
+        
+        # Categories
+        tags = n.get('category_tags', '')
+        if tags:
+            for tag in tags.split(','):
+                t = tag.strip()
+                if t:
+                    categories_covered.add(t)
+        
+        # Proof task references
+        content_for_pt = str(n.get('what_learned', '')) + str(n.get('evidence_produced', ''))
+        for pt_id in ('PT1', 'PT2', 'PT3', 'PT4', 'PT5', 'PT6'):
+            if pt_id in content_for_pt:
+                proof_task_refs.add(pt_id)
+    
+    # Compute pass rate
+    scorecard_pass_rate = pass_count / total_areas if total_areas > 0 else 0
+    
+    details = {
+        'scorecard_pass_rate': round(scorecard_pass_rate, 2),
+        'scorecard_pass_rate_target': level_gates.get('min_scorecard_pass_rate', 0),
+        'proof_tasks_found': len(proof_task_refs),
+        'proof_tasks_target': level_gates.get('min_proof_tasks', 0),
+        'codex_gates_passed': gate_passes,
+        'codex_gates_target': level_gates.get('min_codex_gates', 0),
+        'categories_covered': len(categories_covered),
+        'categories_target': level_gates.get('min_categories_covered', 0),
+    }
+    
+    blockers = []
+    if scorecard_pass_rate < level_gates.get('min_scorecard_pass_rate', 0):
+        blockers.append(f'Scorecard pass rate {scorecard_pass_rate:.0%} < {level_gates["min_scorecard_pass_rate"]:.0%} required')
+    if len(proof_task_refs) < level_gates.get('min_proof_tasks', 0):
+        blockers.append(f'Proof tasks {len(proof_task_refs)} < {level_gates["min_proof_tasks"]} required')
+    if gate_passes < level_gates.get('min_codex_gates', 0):
+        blockers.append(f'Codex gates passed {gate_passes} < {level_gates["min_codex_gates"]} required')
+    if len(categories_covered) < level_gates.get('min_categories_covered', 0):
+        blockers.append(f'Categories covered {len(categories_covered)} < {level_gates["min_categories_covered"]} required')
+    
+    return {
+        'met': len(blockers) == 0,
+        'details': details,
+        'blockers': blockers,
+    }
 
 
 def detect_level_progression(notes):
     """
     Detect level progression from learner notes.
     
-    Each level has LEVEL_DAYS (28) working days of curriculum content.
-    Level 1 starts on the date of the earliest learner artifact.
-    Level N+1 can only begin after Level N is completed (all 28 days done).
+    Each level has LEVEL_DAYS (28) working days of curriculum content,
+    plus competency gate requirements defined in LEVEL_COMPETENCY_GATES.
+    
+    A level is considered complete when:
+      1. Minimum working days completed (LEVEL_DAYS)
+      2. Competency gates met (scorecard pass rate, proof tasks, codex gates, categories)
     
     Returns a dict:
     {
@@ -200,7 +300,7 @@ def detect_level_progression(notes):
         'levels': {
             1: { 'start_date': ..., 'completion_date': ..., 'days_completed': N,
                  'days_required': 28, 'is_unlocked': True, 'is_completed': bool,
-                 'in_progress': bool },
+                 'in_progress': bool, 'gates': {...} },
             2: { ... },
             3: { ... },
             4: { ... },
@@ -223,7 +323,13 @@ def detect_level_progression(notes):
     
     for lvl in range(1, 5):
         l_notes = level_notes.get(lvl, [])
-        days_completed = len(l_notes)
+        # Count unique days with notes, not raw note count
+        unique_days = set()
+        for n in l_notes:
+            d = n.get('date')
+            if d:
+                unique_days.add(d)
+        days_completed = len(unique_days)
         
         # Start date: earliest note date for this level
         start_date = None
@@ -234,8 +340,14 @@ def detect_level_progression(notes):
                 start_date = dates[0]
                 last_date = dates[-1]
         
-        is_completed = days_completed >= LEVEL_DAYS
-        in_progress = bool(l_notes) and not is_completed
+        # Check competency gates for this level
+        gates = _check_competency_gates(l_notes, LEVEL_COMPETENCY_GATES.get(lvl))
+        
+        # A level is completed when BOTH days threshold AND competency gates are met
+        days_met = days_completed >= LEVEL_DAYS
+        gates_met = gates['met']
+        is_completed = days_met and gates_met
+        in_progress = bool(unique_days) and not is_completed
         
         # Unlock logic: Level 1 always unlocked; others need prior level complete
         if lvl == 1:
@@ -245,10 +357,10 @@ def detect_level_progression(notes):
             is_unlocked = prev.get('is_completed', False)
         
         # Track current level as highest level with any notes
-        if l_notes:
+        if unique_days:
             current_level = lvl
         
-        levels_info[lvl] = {
+        levels_info[str(lvl)] = {
             'start_date': start_date,
             'completion_date': last_date,
             'days_completed': days_completed,
@@ -256,6 +368,7 @@ def detect_level_progression(notes):
             'is_unlocked': is_unlocked,
             'is_completed': is_completed,
             'in_progress': in_progress,
+            'gates': gates,
         }
         
         if start_date and (overall_start is None or start_date < overall_start):
@@ -413,10 +526,10 @@ PROOF_TASK_CRITERIA = {
             'Risks Identified',
             'Safe Change Points'
         ],
-        'min_content_length': 300,
+        'min_content_length': 500,
         'quality_checks': [
             'Must identify at least 3 dependencies in correct order',
-            'Must name specific risk areas with mitigation',
+            'Must list at least 2 risks with mitigation',
             'Must identify at least 2 safe change points'
         ]
     },
@@ -431,9 +544,9 @@ PROOF_TASK_CRITERIA = {
         ],
         'min_content_length': 400,
         'quality_checks': [
-            'Must include reviewer feedback (Pass/Needs Work/Rework)',
-            'Must show incorporation of all reviewer comments',
-            'Must produce final handoff that passes quality rubric'
+            'Must document the review workflow steps followed',
+            'Must list at least 1 issue found during dry run',
+            'Must show resolution or plan for each issue'
         ]
     },
     'PT3': {
@@ -446,11 +559,12 @@ PROOF_TASK_CRITERIA = {
             'Rollup Path',
             'Snapshot Validation'
         ],
-        'min_content_length': 500,
+        'min_content_length': 600,
         'quality_checks': [
-            'Must define grain precisely (e.g., "one row per customer per month")',
+            'Must define grain explicitly (e.g., "one row per customer per month")',
             'Must specify active-row filter logic',
-            'Must trace rollup from grain to final presentation'
+            'Must trace rollup from source to final presentation',
+            'Must include snapshot validation results'
         ]
     },
     'PT4': {
@@ -459,9 +573,9 @@ PROOF_TASK_CRITERIA = {
             'What Was Validated',
             'Validation Results',
             'Edge Cases Tested',
-            'Performance Check'
+            'Performance Metrics'
         ],
-        'min_content_length': 400,
+        'min_content_length': 500,
         'quality_checks': [
             'Must include row count comparison (source vs target)',
             'Must test at least 3 edge cases (nulls, duplicates, boundaries)',
@@ -473,15 +587,15 @@ PROOF_TASK_CRITERIA = {
         'required_sections': [
             'Preflight Checklist',
             'Migration Steps',
-            'Access & Security',
+            'Access & Security Validation',
             'Rerun Procedure',
             'Rollback Plan'
         ],
-        'min_content_length': 400,
+        'min_content_length': 500,
         'quality_checks': [
-            'Must validate against actual deployment (not just plan)',
-            'Must include rollback plan with tested steps',
-            'Must verify correct environment connections'
+            'Must include complete preflight checklist with pass/fail',
+            'Must document migration steps in order',
+            'Must specify rollback trigger and procedure'
         ]
     },
     'PT6': {
@@ -844,8 +958,8 @@ def get_git_changed_files():
         if result.returncode == 0:
             changed = [line.strip() for line in result.stdout.splitlines() if line.strip()]
             return changed
-    except Exception:
-        pass
+    except Exception as exc:
+        log('WARNING', 'git diff --name-only failed', error=str(exc))
     return []
 
 
@@ -858,8 +972,8 @@ def get_git_diff_for_file(filepath):
         )
         if result.returncode == 0:
             return result.stdout.decode('utf-8', errors='replace')
-    except Exception:
-        pass
+    except Exception as exc:
+        log('WARNING', f'git diff for {filepath} failed', error=str(exc))
     return ''
 
 
@@ -880,8 +994,8 @@ def get_git_diff_stat(filepath):
                 removed = int(m.group(1)) if m else 0
                 if added or removed:
                     return f'+{added}/-{removed} lines'
-    except Exception:
-        pass
+    except Exception as exc:
+        log('WARNING', f'git diff --stat for {filepath} failed', error=str(exc))
     return ''
 
 
@@ -899,8 +1013,8 @@ def get_git_head_info():
                     'commit': parts[0],
                     'timestamp': datetime.fromtimestamp(int(parts[1])).isoformat(),
                 }
-    except Exception:
-        pass
+    except Exception as exc:
+        log('WARNING', 'git log failed, using fallback commit info', error=str(exc))
     return {'commit': '—', 'timestamp': datetime.now().isoformat()}
 
 
@@ -971,8 +1085,8 @@ def get_source_criteria():
                         preview = full[:500]
                         if file_size <= 204800:
                             content = full
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log('WARNING', f'Could not read file {fpath}', error=str(exc))
             files.append({
                 'path': f,
                 'size': file_size,
@@ -1203,7 +1317,7 @@ def compute_summary(notes):
         if n['week_number']:
             days_per_week[n['week_number']] += 1
         elif n['day_number']:
-            w = (n['day_number'] - 1) // 5 + 1
+            w = day_to_week(n['day_number']) or 1
             days_per_week[w] += 1
 
     scorecard_trend = defaultdict(list)
@@ -1228,25 +1342,56 @@ def compute_summary(notes):
             completed_tracks[n['primary_track']] += 1
 
     proof_tasks = {}
+    # Map PT ID to expected evidence filenames for file-based detection
+    EVIDENCE_FILE_MAP = {
+        'PT1': 'PT1_repository_analysis.md',
+        'PT2': 'PT2_review_dry_run.md',
+        'PT3': 'PT3_metric_lineage.md',
+        'PT4': 'PT4_qc_evidence_pack.md',
+        'PT5': 'PT5_deployment_rehearsal.md',
+        'PT6': 'PT6_reusable_asset.md',
+    }
+    # Also scan evidence directory for matching files
+    evidence_files_on_disk = set()
+    if os.path.isdir(EVIDENCE_DIR):
+        for f in os.listdir(EVIDENCE_DIR):
+            if f.endswith('.md') and not f.startswith('.') and not f.startswith('tpl_'):
+                evidence_files_on_disk.add(f)
+    if os.path.isdir(EVIDENCE_ARCHIVE_DIR):
+        for f in os.listdir(EVIDENCE_ARCHIVE_DIR):
+            if f.endswith('.md') and not f.startswith('.') and not f.startswith('tpl_'):
+                evidence_files_on_disk.add(f)
+
     for pt_id, pt_desc in PROOF_TASKS:
+        found = False
+        days = []
+
+        # 1) Check if the expected evidence file exists on disk (primary method)
+        expected_file = EVIDENCE_FILE_MAP.get(pt_id, '')
+        if expected_file and expected_file in evidence_files_on_disk:
+            found = True
+
+        # 2) Fallback: scan note content for text reference
+        if not found:
+            for n in notes:
+                fpath = n.get('filepath', n.get('id', ''))
+                try:
+                    with open(fpath, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                except Exception as exc:
+                    log('WARNING', f'Could not read evidence file {fpath}', error=str(exc))
+                    content = ''
+                if re.search(f'{pt_id}|{re.escape(pt_desc)}', content, re.IGNORECASE):
+                    found = True
+                    if n['day_number']:
+                        days.append(n['day_number'])
+
         proof_tasks[pt_id] = {
             'id': pt_id,
             'description': pt_desc,
-            'found': False,
-            'days': [],
+            'found': found,
+            'days': days if days else [],
         }
-    for n in notes:
-        fpath = n.get('filepath', n.get('id', ''))
-        try:
-            with open(fpath, 'r', encoding='utf-8') as f:
-                content = f.read()
-        except Exception:
-            content = ''
-        for pt_id, pt_desc in PROOF_TASKS:
-            if re.search(f'{pt_id}|{re.escape(pt_desc)}', content, re.IGNORECASE):
-                proof_tasks[pt_id]['found'] = True
-                if n['day_number']:
-                    proof_tasks[pt_id]['days'].append(n['day_number'])
 
     # ── Dynamic level progression detection ──
     # Primary method: detect start dates from earliest learner artifacts.
@@ -1283,7 +1428,7 @@ def compute_summary(notes):
 
     # 3) Fall back to Level 1 note detection
     if not curriculum_start_date:
-        l1_info = level_progression.get('levels', {}).get(1, {})
+        l1_info = level_progression.get('levels', {}).get('1', {})
         if l1_info.get('start_date'):
             curriculum_start_date = l1_info['start_date']
             _start_source = 'auto_detected_from_level_1_notes'
@@ -1291,7 +1436,7 @@ def compute_summary(notes):
 
     # If we have a config override, propagate it into level_progression
     if _start_source == 'learner_config' and curriculum_start_date:
-        lvl_info = level_progression.get('levels', {}).get(1, {})
+        lvl_info = level_progression.get('levels', {}).get('1', {})
         if lvl_info:
             if not lvl_info['start_date']:
                 lvl_info['start_date'] = curriculum_start_date
@@ -1310,8 +1455,8 @@ def compute_summary(notes):
                 if current.weekday() < 5:
                     working_days_elapsed += 1
                 current += timedelta(days=1)
-        except Exception:
-            pass
+        except Exception as exc:
+            log('WARNING', 'Could not compute calendar days elapsed', error=str(exc))
 
     # Determine calendar status
     if curriculum_current_day == 0:
@@ -1323,26 +1468,29 @@ def compute_summary(notes):
     else:
         calendar_status = 'behind'
 
-    # Week-by-week progress with real calendar dates
+    # Week-by-week progress using actual curriculum week boundaries
     week_progress = []
-    for w in range(1, 5):
-        week_start_day = (w - 1) * 7 + 1
-        week_end_day = min(w * 7, 28)
+    for week_num, week_start_day, week_end_day in WEEK_BOUNDARIES:
         days_in_week = week_end_day - week_start_day + 1
-        days_completed = sum(1 for n in notes if n.get('day_number') and week_start_day <= n['day_number'] <= week_end_day)
+        unique_days_in_week = set()
+        for n in notes:
+            dn = n.get('day_number')
+            if dn and week_start_day <= dn <= week_end_day:
+                unique_days_in_week.add(n.get('date', ''))
+        days_completed = len(unique_days_in_week)
         cal_start_str = ''
         cal_end_str = ''
         if curriculum_start_date:
             try:
                 start = datetime.strptime(curriculum_start_date, '%Y-%m-%d').date()
-                cal_start = start + timedelta(days=(w-1)*7)
-                cal_end = cal_start + timedelta(days=6)
+                cal_start = start + timedelta(days=week_start_day - 1)
+                cal_end = start + timedelta(days=week_end_day - 1)
                 cal_start_str = cal_start.isoformat()
                 cal_end_str = cal_end.isoformat()
-            except Exception:
-                pass
+            except Exception as exc:
+                log('WARNING', f'Could not compute calendar dates for week {week_num}', error=str(exc))
         week_progress.append({
-            'week': w,
+            'week': week_num,
             'days_completed': days_completed,
             'days_in_week': days_in_week,
             'pct': round(days_completed / days_in_week * 100, 1) if days_in_week else 0,
@@ -1351,15 +1499,22 @@ def compute_summary(notes):
         })
 
     # Estimate learner level from classification sequence
+    # Uses exact classification label matching.
+    # Valid labels: Foundational (L1), Developing (L2), Operational (L3),
+    # Ready for Codex Acceleration (L4).
+    CLASS_TO_LEVEL = {
+        'foundational': 1,
+        'developing': 2,
+        'operational': 3,
+        'ready for codex acceleration': 4,
+    }
     learner_level = 1
     if cls_seq:
-        latest_cls = cls_seq[-1]['classification'].lower()
-        if 'mastery' in latest_cls:
-            learner_level = 4
-        elif 'operational' in latest_cls:
-            learner_level = 3
-        elif 'development' in latest_cls:
-            learner_level = 2
+        latest_cls = cls_seq[-1]['classification'].lower().strip()
+        for label, lvl in CLASS_TO_LEVEL.items():
+            if label in latest_cls or latest_cls.startswith(label):
+                learner_level = lvl
+                break
 
     return {
         'total_days': len(notes),
@@ -1430,8 +1585,8 @@ def scan_all_artifacts():
                         preview = full[:500]
                         if file_size <= 204800:  # 200 KB limit for embedded content
                             content = full
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log('WARNING', f'Could not read entity file {fp}', error=str(exc))
 
             entry = {
                 'path': rel,
@@ -1499,8 +1654,8 @@ def scan_review_dir():
                             preview = full[:500]
                             if file_size <= 204800:
                                 content = full
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        log('WARNING', f'Could not read synced file {fp}', error=str(exc))
                 synced[sub].append({
                     'path': rel,
                     'filename': f,
@@ -1588,10 +1743,12 @@ def main():
                     try:
                         nd = datetime.strptime(n['date'], '%Y-%m-%d').date()
                         n['days_since_start'] = (nd - cs_start).days
-                    except Exception:
+                    except Exception as exc:
+                        note_id = n.get('id', '?')
+                        log('WARNING', f'Could not compute days_since_start for note {note_id}', error=str(exc))
                         n['days_since_start'] = None
-        except Exception:
-            pass
+        except Exception as exc:
+            log('WARNING', 'Could not compute curriculum start date', error=str(exc))
 
     print('Scanning evidence...')
     evidence = scan_evidence()
@@ -1860,8 +2017,8 @@ def get_environment_status():
         )
         if result.returncode == 0 and 'github.com' in result.stdout:
             git_remote_exists = True
-    except Exception:
-        pass
+    except Exception as exc:
+        log('WARNING', 'Could not check git remote', error=str(exc))
     
     if gh_available or git_remote_exists:
         env_status['requirements']['github_access']['status'] = 'available'

@@ -18,6 +18,8 @@ SCORE_AREAS = [
     'Deployment awareness',
     'Reviewer handoff',
     'Reusability',
+    'Codex handoff fluency',
+    'Codex bounded use',
 ]
 
 # ── Scorecard Rubric: Behavioral anchors for each score level ────────────────
@@ -59,6 +61,16 @@ SCORECARD_RUBRIC = {
         'Moderate': 'Creates assets but they are not yet used by others; documentation incomplete',
         'Fail': 'No reusable assets created; work is not packaged for reuse'
     },
+    'Codex handoff fluency': {
+        'Pass': 'Completes Codex Loop (Pull→Summarize→Identify→Execute→Record) in <5 min; handoff passes quality rubric; bounds self-enforced without reminders',
+        'Moderate': 'Completes Codex Loop with guidance; handoff needs revision; bounds occasionally need enforcement',
+        'Fail': 'Cannot complete Codex Loop independently; handoff fails quality rubric; bounds not self-enforced'
+    },
+    'Codex bounded use': {
+        'Pass': 'Applies bounded Codex use to proven workflows only; evaluates manual vs Codex for each task; documents bounds and rationale',
+        'Moderate': 'Uses Codex for some tasks but bounds not consistently documented; manual-vs-Codex evaluation inconsistent',
+        'Fail': 'Uses Codex without bounds; lets AI define business logic; no manual-vs-Codex evaluation'
+    },
 }
 
 # ── Codex gates (matches build_data.py CODEX_GATES) ─────────────────────────
@@ -69,6 +81,9 @@ CODEX_GATES = [
     'Proof tasks completed',
     'One clean reviewable change slice',
     'One reusable team asset created',
+    'Manual-vs-Codex comparison completed',
+    'All 6 Codex exercises passed',
+    'Can explain Bounded Codex rules',
 ]
 
 # ── Codex Gate Criteria: Measurable acceptance criteria for each gate ────────
