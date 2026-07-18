@@ -29,11 +29,11 @@ def load_template():
         return f.read()
 
 
-def write_note(date_str, day_number, template_content):
+def write_note(date_str, day_number, level, template_content):
     os.makedirs(NOTES_DIR, exist_ok=True)
     filename = f"{date_str}.md"
     path = os.path.join(NOTES_DIR, filename)
-    header = f"# Daily Working Note — {date_str} (Day {day_number})\n\n"
+    header = f"# Daily Working Note — {date_str} (Day {day_number}) (Level {level})\n\n"
     if os.path.exists(path):
         print(f"Note already exists: {path}")
         return path
@@ -53,6 +53,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', required=True, help='Date for the note YYYY-MM-DD (must be a weekday)')
     parser.add_argument('--day-number', type=int, required=True, help='Day number in training (1..28)')
+    parser.add_argument('--level', type=int, default=1, choices=[1, 2, 3, 4], help='Curriculum level (1=Foundation, 2=Development, 3=Operational, 4=Mastery)')
     args = parser.parse_args()
 
     # Enforce 28-working-day max
@@ -74,7 +75,7 @@ def main():
         sys.exit(2)
 
     template = load_template()
-    write_note(args.date, args.day_number, template)
+    write_note(args.date, args.day_number, args.level, template)
 
 
 if __name__ == '__main__':

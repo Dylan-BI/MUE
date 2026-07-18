@@ -20,6 +20,47 @@ SCORE_AREAS = [
     'Reusability',
 ]
 
+# ── Scorecard Rubric: Behavioral anchors for each score level ────────────────
+# Used by reviewers to consistently assess learner competency.
+# Each area has explicit criteria for Pass / Moderate / Fail.
+SCORECARD_RUBRIC = {
+    'Prompt discipline': {
+        'Pass': 'Consistently uses structured prompts (Context + Task + Format + Constraints); revises prompts based on output quality; documents reusable prompt patterns in prompt library',
+        'Moderate': 'Uses structured prompts occasionally; sometimes revises prompts; limited prompt pattern documentation',
+        'Fail': 'Ad-hoc prompting without structure; no revision based on output; no prompt pattern reuse'
+    },
+    'Repo or workspace analysis': {
+        'Pass': 'Produces complete repository analysis with business purpose, dependency order, key inputs/outputs, risk areas, and safe change points; analysis enables targeted work',
+        'Moderate': 'Produces partial repository analysis; covers some elements but misses key dependencies or risks',
+        'Fail': 'No repository analysis or analysis is superficial; cannot identify dependency order or risk areas'
+    },
+    'Change isolation': {
+        'Pass': 'Every change scoped to single logical unit; <5 files changed; no unrelated formatting/whitespace; tests or validation evidence included; follows project conventions',
+        'Moderate': 'Most changes scoped appropriately; occasional scope creep; validation evidence sometimes missing',
+        'Fail': 'Changes span unrelated areas; "while I was here" fixes common; no validation evidence; debug code or TODOs left in'
+    },
+    'Validation order': {
+        'Pass': 'Validates from bottom up (source → transform → snapshot → rollup → presentation); identifies upstream defects before downstream; documents validation steps and results',
+        'Moderate': 'Validates some layers but not consistently bottom-up; sometimes trusts downstream without verifying upstream',
+        'Fail': 'No systematic validation; trusts output without checking logic; cannot trace validation path'
+    },
+    'Deployment awareness': {
+        'Pass': 'Builds deployment checklists covering preflight, migration, access, rerun; validates against actual deployment; documents rollback plan; uses correct environment connections',
+        'Moderate': 'Creates basic deployment checklist; misses some environments or validation steps; rollback plan incomplete',
+        'Fail': 'No deployment checklist; deploys without validation; no rollback plan; uses wrong connections'
+    },
+    'Reviewer handoff': {
+        'Pass': 'Produces review packages with purpose, audience, focus, reviewer questions; handoff notes have current state, completed, remains open, next action; passes quality rubric',
+        'Moderate': 'Produces handoff notes but missing some sections; review package lacks focus or reviewer questions',
+        'Fail': 'No handoff notes or review package; reviewer cannot understand change without clarification'
+    },
+    'Reusability': {
+        'Pass': 'Creates reusable team assets (prompt templates, QC checklists, deployment scripts, handoff templates) that another team member has successfully used; documents usage',
+        'Moderate': 'Creates assets but they are not yet used by others; documentation incomplete',
+        'Fail': 'No reusable assets created; work is not packaged for reuse'
+    },
+}
+
 # ── Codex gates (matches build_data.py CODEX_GATES) ─────────────────────────
 CODEX_GATES = [
     'One end-to-end workflow completed',
@@ -30,14 +71,215 @@ CODEX_GATES = [
     'One reusable team asset created',
 ]
 
+# ── Codex Gate Criteria: Measurable acceptance criteria for each gate ────────
+# Used by reviewers to verify gate completion with evidence.
+CODEX_GATE_CRITERIA = {
+    'end_to_end_workflow': {
+        'criterion': 'Learner completed full Codex Loop (Pull→Summarize→Identify→Execute→Record) for a real task, documented in handoff note with timestamps',
+        'evidence_required': ['handoff_note.md', 'context_pull_log', 'execution_record'],
+        'verifier': 'reviewer'
+    },
+    'business_logic_ownership': {
+        'criterion': 'Learner explains business purpose, grain, filters, and validation rules for at least one metric they worked on, without referencing documentation',
+        'evidence_required': ['oral_exam_record.md', 'metric_lineage_note.md'],
+        'verifier': 'reviewer'
+    },
+    'validation_evidence': {
+        'criterion': 'Learner produced validation evidence (row counts, QC checks, snapshot diffs) for a model change without reviewer prompting',
+        'evidence_required': ['qc_evidence_pack.md', 'validation_log'],
+        'verifier': 'reviewer'
+    },
+    'proof_tasks': {
+        'criterion': 'All 6 proof tasks (PT1–PT6) submitted with passing reviewer assessment',
+        'evidence_required': ['PT1_repository_analysis.md', 'PT2_review_dry_run.md', 'PT3_metric_lineage.md', 'PT4_qc_evidence.md', 'PT5_deployment_rehearsal.md', 'PT6_reviewer_handoff.md'],
+        'verifier': 'reviewer'
+    },
+    'clean_change_slice': {
+        'criterion': 'Submitted a reviewable change slice meeting all Code Review Standards checklist items',
+        'evidence_required': ['review_package.md', 'changed_files_diff'],
+        'verifier': 'reviewer'
+    },
+    'reusable_asset': {
+        'criterion': 'Created a reusable team asset (prompt template, QC checklist, deployment script, handoff template) that another team member has successfully used',
+        'evidence_required': ['asset_file', 'usage_testimony.md'],
+        'verifier': 'reviewer'
+    },
+    'manual_vs_codex': {
+        'criterion': 'Completed Exercise 5: Manual-vs-Codex Comparison for one defined task with documented results',
+        'evidence_required': ['codex_comparison_note.md'],
+        'verifier': 'reviewer'
+    },
+    'codex_exercises': {
+        'criterion': 'All 6 Codex exercises passed (Handoff Reading, Context Pull, State Summary, Handoff Creation, Manual-vs-Codex, Bounded Codex Simulation)',
+        'evidence_required': ['exercise_1_handoff_reading.md', 'exercise_2_context_pull.md', 'exercise_3_state_summary.md', 'exercise_4_handoff_creation.md', 'exercise_5_manual_vs_codex.md', 'exercise_6_bounded_codex.md'],
+        'verifier': 'reviewer'
+    },
+    'bounded_codex_rules': {
+        'criterion': 'Can explain Bounded Codex rules: only proven workflows, manual-vs-Codex evaluation required, bounds self-enforced, handoff quality rubric applies',
+        'evidence_required': ['bounded_codex_explanation.md'],
+        'verifier': 'reviewer'
+    },
+}
+
 # ── Proof tasks (matches build_data.py PROOF_TASKS) ─────────────────────────
 PROOF_TASKS = {
     'PT1': {'name': 'Repository Analysis Brief', 'due_day': 9, 'week': 2},
-    'PT2': {'name': 'Review Workflow Dry Run', 'due_day': 21, 'week': 4},
+    'PT2': {'name': 'Review Workflow Dry Run', 'due_day': 19, 'week': 4},
     'PT3': {'name': 'Metric Lineage Walkthrough', 'due_day': 13, 'week': 3},
     'PT4': {'name': 'QC Evidence Pack', 'due_day': 16, 'week': 3},
     'PT5': {'name': 'Deployment Rehearsal', 'due_day': 18, 'week': 3},
     'PT6': {'name': 'Reviewer Handoff Test', 'due_day': 21, 'week': 4},
+}
+
+# ── Proof Task Criteria: Minimum viable artifact definitions ────────────────
+# Used by build_data.py to validate proof task completion quality.
+PROOF_TASK_CRITERIA = {
+    'PT1': {
+        'name': 'Repository Analysis Brief',
+        'required_sections': [
+            'Business Purpose',
+            'Dependency Order',
+            'Key Inputs & Outputs',
+            'Risks Identified',
+            'Safe Change Points'
+        ],
+        'min_content_length': 500,
+        'quality_checks': [
+            'Must identify at least 3 dependencies in correct order',
+            'Must list at least 2 risks with mitigation',
+            'Must identify at least 2 safe change points'
+        ]
+    },
+    'PT2': {
+        'name': 'Review Workflow Dry Run',
+        'required_sections': [
+            'Review Scope',
+            'Reviewer Path',
+            'Dry Run Results',
+            'Issues Found',
+            'Resolution'
+        ],
+        'min_content_length': 400,
+        'quality_checks': [
+            'Must document the review workflow steps followed',
+            'Must list at least 1 issue found during dry run',
+            'Must show resolution or plan for each issue'
+        ]
+    },
+    'PT3': {
+        'name': 'Metric Lineage Walkthrough',
+        'required_sections': [
+            'Counting Grain',
+            'Active-Row Rules',
+            'Period Definitions',
+            'Calculation Point',
+            'Rollup Path',
+            'Snapshot Validation'
+        ],
+        'min_content_length': 600,
+        'quality_checks': [
+            'Must define grain explicitly (e.g., "one row per customer per month")',
+            'Must specify active-row filter logic',
+            'Must trace rollup from source to final presentation',
+            'Must include snapshot validation results'
+        ]
+    },
+    'PT4': {
+        'name': 'QC Evidence Pack',
+        'required_sections': [
+            'What Was Validated',
+            'Validation Results',
+            'Edge Cases Tested',
+            'Performance Metrics'
+        ],
+        'min_content_length': 500,
+        'quality_checks': [
+            'Must include row count comparison (source vs target)',
+            'Must test at least 3 edge cases (nulls, duplicates, boundaries)',
+            'Must document query performance within SLA'
+        ]
+    },
+    'PT5': {
+        'name': 'Deployment Rehearsal',
+        'required_sections': [
+            'Preflight Checklist',
+            'Migration Steps',
+            'Access & Security Validation',
+            'Rerun Procedure',
+            'Rollback Plan'
+        ],
+        'min_content_length': 500,
+        'quality_checks': [
+            'Must include complete preflight checklist with pass/fail',
+            'Must document migration steps in order',
+            'Must specify rollback trigger and procedure'
+        ]
+    },
+    'PT6': {
+        'name': 'Reviewer Handoff Test',
+        'required_sections': [
+            'Handoff Package',
+            'Reviewer Feedback',
+            'Incorporation Log',
+            'Final Handoff'
+        ],
+        'min_content_length': 400,
+        'quality_checks': [
+            'Must include reviewer feedback (Pass/Needs Work/Rework)',
+            'Must show incorporation of all reviewer comments',
+            'Must produce final handoff that passes quality rubric'
+        ]
+    },
+}
+
+# ── Codex Gate Criteria: Measurable acceptance criteria for each gate ────────
+# Used by reviewers to verify gate completion with evidence.
+CODEX_GATE_CRITERIA = {
+    'end_to_end_workflow': {
+        'criterion': 'Learner completed full Codex Loop (Pull→Summarize→Identify→Execute→Record) for a real task, documented in handoff note with timestamps',
+        'evidence_required': ['handoff_note.md', 'context_pull_log', 'execution_record'],
+        'verifier': 'reviewer'
+    },
+    'business_logic_ownership': {
+        'criterion': 'Learner explains business purpose, grain, filters, and validation rules for at least one metric they worked on, without referencing documentation',
+        'evidence_required': ['oral_exam_record.md', 'metric_lineage_note.md'],
+        'verifier': 'reviewer'
+    },
+    'validation_evidence': {
+        'criterion': 'Learner produced validation evidence (row counts, QC checks, snapshot diffs) for a model change without reviewer prompting',
+        'evidence_required': ['qc_evidence_pack.md', 'validation_log'],
+        'verifier': 'reviewer'
+    },
+    'proof_tasks': {
+        'criterion': 'All 6 proof tasks (PT1–PT6) submitted with passing reviewer assessment',
+        'evidence_required': ['PT1_repository_analysis.md', 'PT2_review_dry_run.md', 'PT3_metric_lineage.md', 'PT4_qc_evidence.md', 'PT5_deployment_rehearsal.md', 'PT6_reviewer_handoff.md'],
+        'verifier': 'reviewer'
+    },
+    'clean_change_slice': {
+        'criterion': 'Submitted a reviewable change slice meeting all Code Review Standards checklist items',
+        'evidence_required': ['review_package.md', 'changed_files_diff'],
+        'verifier': 'reviewer'
+    },
+    'reusable_asset': {
+        'criterion': 'Created a reusable team asset (prompt template, QC checklist, deployment script, handoff template) that another team member has successfully used',
+        'evidence_required': ['asset_file', 'usage_testimony.md'],
+        'verifier': 'reviewer'
+    },
+    'manual_vs_codex': {
+        'criterion': 'Completed Exercise 5: Manual-vs-Codex Comparison for one defined task with documented results',
+        'evidence_required': ['codex_comparison_note.md'],
+        'verifier': 'reviewer'
+    },
+    'codex_exercises': {
+        'criterion': 'All 6 Codex exercises passed (Handoff Reading, Context Pull, State Summary, Handoff Creation, Manual-vs-Codex, Bounded Codex Simulation)',
+        'evidence_required': ['exercise_1_handoff_reading.md', 'exercise_2_context_pull.md', 'exercise_3_state_summary.md', 'exercise_4_handoff_creation.md', 'exercise_5_manual_vs_codex.md', 'exercise_6_bounded_codex.md'],
+        'verifier': 'reviewer'
+    },
+    'bounded_codex_rules': {
+        'criterion': 'Can explain Bounded Codex rules: only proven workflows, manual-vs-Codex evaluation required, bounds self-enforced, handoff quality rubric applies',
+        'evidence_required': ['bounded_codex_explanation.md'],
+        'verifier': 'reviewer'
+    },
 }
 
 # ── Classification progression milestones ────────────────────────────────────
@@ -48,34 +290,31 @@ CLASSIFICATION_MILESTONES = [
     (25, 'Ready For Codex Acceleration'),
 ]
 
+# ── Level Competency Gates: Requirements to advance to next level ────────────
+# Each level requires minimum competency across scorecard, proof tasks, gates, and categories.
+LEVEL_COMPETENCY_GATES = {
+    1: {  # Foundation → Development
+        'min_scorecard_pass_rate': 0.5,      # 4/7 areas Pass
+        'min_proof_tasks': 2,                # PT1, PT3
+        'min_codex_gates': 2,                # end_to_end_workflow, business_logic_ownership
+        'min_categories_covered': 5,
+    },
+    2: {  # Development → Operational
+        'min_scorecard_pass_rate': 0.7,      # 5/7 areas Pass
+        'min_proof_tasks': 4,                # PT1, PT3, PT4, PT5
+        'min_codex_gates': 4,                # + validation_evidence, clean_change_slice
+        'min_categories_covered': 7,
+    },
+    3: {  # Operational → Mastery
+        'min_scorecard_pass_rate': 0.85,     # 6/7 areas Pass
+        'min_proof_tasks': 6,                # All PTs
+        'min_codex_gates': 6,                # All gates
+        'min_categories_covered': 8,
+    },
+}
+
 # ── Primary track rotation (matches curriculum tags) ─────────────────────────
 TRACK_ROTATION = {
-    1: 'Pyramid operations',
-    2: 'Codex productivity',
-    3: 'BI judgment',
-    4: 'Pyramid operations',
-    5: 'Pyramid operations',
-    6: 'BI judgment',
-    7: 'Pyramid operations',
-    8: 'Pyramid operations',
-    9: 'Codex productivity',
-    10: 'Pyramid operations',
-    11: 'Pyramid operations',
-    12: 'Codex productivity',
-    13: 'BI judgment',
-    14: 'BI judgment',
-    15: 'Codex productivity',
-    16: 'Codex productivity',
-    17: 'Pyramid operations',
-    18: 'Pyramid operations',
-    19: 'Pyramid operations',
-    20: 'Pyramid operations',
-    21: 'Codex productivity',
-    22: 'BI judgment',
-    23: 'Pyramid operations',
-    24: 'Codex productivity',
-    25: 'BI judgment',
-    26: 'Codex productivity',
     27: 'Pyramid operations',
     28: 'Codex productivity',
 }

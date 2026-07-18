@@ -16,6 +16,7 @@ USE RULES
 
 DAILY WORK BLOCK
 Day Number:
+Level: 1 / 2 / 3 / 4
 Phase:
 Date:
 

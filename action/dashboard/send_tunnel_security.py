@@ -11,8 +11,10 @@ SMTP_FROM = 'monteretroion@gmail.com'
 SMTP_TLS = True
 
 # SECURITY email gets tunnel notifications
-TO_EMAIL = 'monteretroion@gmail.com'
-TUNNEL_URL = 'https://cardiff-forever-needed-mattress.trycloudflare.com/go'
+TO_EMAIL = os.environ.get('MUE_TUNNEL_NOTIFY_EMAIL', 'monteretroion@gmail.com')
+# Tunnel URL - should be passed as environment variable or argument
+# Default is a placeholder; actual URL is provided by review_server.py when tunnel starts
+TUNNEL_URL = os.environ.get('MUE_TUNNEL_URL', 'https://your-tunnel.trycloudflare.com/go')
 
 if not SMTP_PASS:
     print('SMTP_PASS not set - cannot send email')

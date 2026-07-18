@@ -1541,19 +1541,21 @@ class ReviewHandler(SimpleHTTPRequestHandler):
     def _check_tpl_auth(self):
         """Check authorization for TPL operations.
 
-        If TPL_SECRET is configured, the request must provide it via the
-        X-TPL-Secret header. Otherwise, the main SERVER_ACCESS_TOKEN is sufficient
-        (backward compatible with setups that don't use a separate TPL secret).
+        TPL is for test-only data-flow checks. It must never be available through
+        ordinary dashboard access, so a separate configured TPL secret is always
+        required.
         """
-        if TPL_SECRET:
-            tpl_secret = self.headers.get('X-TPL-Secret', '')
-            if tpl_secret == TPL_SECRET:
-                return True
-            self._send_json(403, {'error': 'invalid or missing TPL secret — learners cannot influence generative data'})
-            print(f'  🚫 TPL auth denied: X-TPL-Secret did not match configured secret')
+        if not TPL_SECRET:
+            self._send_json(403, {'error': 'TPL disabled — configure --tpl-secret to run test learner data operations'})
+            print(f'  🚫 TPL auth denied: no TPL secret configured')
             return False
-        # No TPL_SECRET configured — main token check (already done in do_POST) is sufficient
-        return True
+
+        tpl_secret = self.headers.get('X-TPL-Secret', '')
+        if tpl_secret == TPL_SECRET:
+            return True
+        self._send_json(403, {'error': 'invalid or missing TPL secret — learners cannot influence generative data'})
+        print(f'  🚫 TPL auth denied: X-TPL-Secret did not match configured secret')
+        return False
 
     def _handle_get_reviews(self):
         """GET /api/reviews — return all reviews (TPR bot excluded)."""
@@ -1952,6 +1954,49 @@ class ThreadedHTTPServer(HTTPServer):
             self.shutdown_request(request)
 
 
+def _validate_environment():
+    """Validate required environment variables and configuration at startup.
+    Returns (ok: bool, warnings: list[str], errors: list[str])."""
+    warnings = []
+    errors = []
+    
+    # Check SMTP configuration if email features are expected
+    if not SMTP_HOST:
+        warnings.append('SMTP not configured (MUE_SMTP_HOST) — daily summaries and tunnel notifications will be disabled')
+    else:
+        if not SMTP_USER:
+            warnings.append('SMTP user not set (MUE_SMTP_USER) — authentication may fail')
+        if not SMTP_PASS:
+            warnings.append('SMTP password not set (MUE_SMTP_PASS) — authentication will fail')
+        if not SMTP_FROM:
+            warnings.append('SMTP from address not set (MUE_SMTP_FROM) — will default to SMTP_USER')
+    
+    # Check admin email
+    if not ADMIN_EMAIL or ADMIN_EMAIL == 'dylan@bicyclebi.com':
+        warnings.append('MUE_ADMIN_EMAIL not customized — using default')
+    
+    # Check tunnel notification email
+    tunnel_email = os.environ.get('MUE_TUNNEL_NOTIFY_EMAIL', 'monteretroion@gmail.com')
+    if tunnel_email == 'monteretroion@gmail.com':
+        warnings.append('MUE_TUNNEL_NOTIFY_EMAIL not customized — using default')
+    
+    # Check .env file exists
+    if not ENV_FILE.exists():
+        warnings.append(f'.env file not found at {ENV_FILE} — copy .env.example and configure')
+    
+    # Check Python version
+    import sys
+    if sys.version_info < (3, 9):
+        errors.append(f'Python 3.9+ required, found {sys.version_info.major}.{sys.version_info.minor}')
+    
+    # Check required directories
+    for path, name in [(REVIEWS_PATH.parent, 'review/'), (DASHBOARD_DIR, 'action/dashboard/')]:
+        if not path.exists():
+            errors.append(f'Required directory missing: {path} ({name})')
+    
+    return len(errors) == 0, warnings, errors
+
+
 def main():
     global SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
     global DAILY_SUMMARY_HOUR, DAILY_SUMMARY_MINUTE
@@ -1972,6 +2017,18 @@ def main():
     parser.add_argument('--no-token', action='store_true', help='Disable access token (for local-only use)')
     parser.add_argument('--tpl-secret', default='', help='Secret required to generate/cleanup TPL generative data. Prevents learners from influencing TPR test output.')
     args = parser.parse_args()
+
+    # Validate environment early
+    ok, warnings, errors = _validate_environment()
+    for w in warnings:
+        print(f'   ⚠️  {w}')
+    for e in errors:
+        print(f'   ❌ {e}')
+    if errors:
+        print('\n❌ Startup aborted due to configuration errors.')
+        sys.exit(1)
+    if warnings:
+        print()  # Add spacing after warnings
 
     # Apply CLI overrides to SMTP config
     if args.smtp_host: SMTP_HOST = args.smtp_host

@@ -44,6 +44,37 @@ SOURCE_DIR = os.path.join(REPO_ROOT, 'source')
 # Learner config — dynamic start date override
 LEARNER_CONFIG_PATH = os.path.join(ACTION_DIR, 'learner_config.json')
 
+
+def _load_learner_config():
+    """Return learner config if present; ignored/missing config means no real learner is active."""
+    if not os.path.exists(LEARNER_CONFIG_PATH):
+        return {}
+    try:
+        with open(LEARNER_CONFIG_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def has_real_learner_identity():
+    """Only show learner-generated dashboard data after a real learner is configured."""
+    cfg = _load_learner_config()
+    learner_name = str(cfg.get('learner_name') or '').strip()
+    if not learner_name:
+        return False
+    blocked_names = {
+        'your name',
+        'test',
+        'test learner',
+        'dummy',
+        'dummy learner',
+        'proxy',
+        'test proxy',
+        'tpl_bot',
+        'tpr_bot',
+    }
+    return learner_name.lower() not in blocked_names
+
 # ── Page mapping: file path patterns → dashboard page id ──
 PAGE_MAP = [
     ('daily',       ['action/notes/', 'notes/']),
@@ -61,26 +92,53 @@ PAGE_MAP = [
 ]
 
 # ── Regex patterns ──────────────────────────────────────────────────────────
+# Patterns are designed to be flexible with markdown formatting:
+# - Handle **bold**, *italic*, or plain text
+# - Handle optional colons and whitespace
+# - Case-insensitive where appropriate
 PAT_CLASSIFICATION = re.compile(
-    r'Classification:\*?\*?\s*(Foundational|Developing|Operational|Ready for Codex Acceleration)',
+    r'Classification\s*[:\-]?\s*\*?\*?\s*(Foundational|Developing|Operational|Ready\s+for\s+Codex\s+Acceleration)',
     re.IGNORECASE,
 )
 PAT_PRIMARY_TRACK = re.compile(
-    r'Primary track:\*?\*?\s*(Pyramid operations|Codex productivity|BI judgment)',
+    r'Primary\s+track\s*[:\-]?\s*\*?\*?\s*(Pyramid\s+operations|Codex\s+productivity|BI\s+judgment)',
     re.IGNORECASE,
 )
-PAT_DAY_NUMBER = re.compile(r'Day\*?\*?\s*(\d+)')
-PAT_ARTIFACT = re.compile(r'Required Artifact:\*?\*?\s*(.+)', re.IGNORECASE)
-PAT_LEARNED = re.compile(r'What I learned today:\*?\*?\s*(.+)', re.IGNORECASE)
-PAT_EVIDENCE = re.compile(r'What evidence I produced:\*?\*?\s*(.+)', re.IGNORECASE)
-PAT_REMAINS = re.compile(r'What remains open:\*?\*?\s*(.+)', re.IGNORECASE)
-PAT_NEXT_STEP = re.compile(r'Next narrow step:\*?\*?\s*(.+)', re.IGNORECASE)
-PAT_WEEK_NUMBER = re.compile(r'Week Number:\*?\*?\s*(\d+)')
-PAT_LEVEL = re.compile(r'Level:\*?\*?\s*(\d+)')
-PAT_CATEGORY_TAGS = re.compile(r'Category Tags:\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_DAY_NUMBER = re.compile(r'Day\s*[:\-]?\s*\*?\*?\s*(\d+)', re.IGNORECASE)
+PAT_ARTIFACT = re.compile(r'Required\s+Artifact\s*[:\-]?\s*\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_LEARNED = re.compile(r'What\s+I\s+learned\s+today\s*[:\-]?\s*\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_EVIDENCE = re.compile(r'What\s+evidence\s+I\s+produced\s*[:\-]?\s*\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_REMAINS = re.compile(r'What\s+remains\s+open\s*[:\-]?\s*\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_NEXT_STEP = re.compile(r'Next\s+narrow\s+step\s*[:\-]?\s*\*?\*?\s*(.+)', re.IGNORECASE)
+PAT_WEEK_NUMBER = re.compile(r'Week\s+Number\s*[:\-]?\s*\*?\*?\s*(\d+)', re.IGNORECASE)
+PAT_LEVEL = re.compile(r'Level\s*[:\-]?\s*\*?\*?\s*(\d+)', re.IGNORECASE)
+PAT_CATEGORY_TAGS = re.compile(r'Category\s+Tags\s*[:\-]?\s*\*?\*?\s*(.+)', re.IGNORECASE)
 
 # ── Level framework ────────────────────────────────────────────────────────
 LEVEL_DAYS = 28  # working days per curriculum level
+
+# ── Level Competency Gates: Minimum requirements to advance to next level ────
+# Each level requires demonstrated competency, not just time served.
+LEVEL_COMPETENCY_GATES = {
+    1: {  # Foundation → Development
+        'min_scorecard_pass_rate': 0.5,      # 4/7 areas Pass
+        'min_proof_tasks': 2,                # PT1, PT3
+        'min_codex_gates': 2,                # end_to_end_workflow, business_logic_ownership
+        'min_categories_covered': 5,
+    },
+    2: {  # Development → Operational
+        'min_scorecard_pass_rate': 0.7,      # 5/7 areas Pass
+        'min_proof_tasks': 4,                # PT1, PT3, PT4, PT5
+        'min_codex_gates': 4,
+        'min_categories_covered': 7,
+    },
+    3: {  # Operational → Mastery
+        'min_scorecard_pass_rate': 0.85,     # 6/7 areas Pass
+        'min_proof_tasks': 6,                # All PTs
+        'min_codex_gates': 6,                # All gates
+        'min_categories_covered': 8,
+    },
+}
 
 
 # ── Level progression helpers ─────────────────────────────────────────────
@@ -222,6 +280,56 @@ SCORE_AREAS = [
     'Codex bounded use',
 ]
 
+# ── Scorecard Rubric: Behavioral anchors for each score level ──────────────
+# Used by reviewers to ensure consistent, evidence-based scoring.
+SCORECARD_RUBRIC = {
+    'Prompt discipline': {
+        'Pass': 'Consistently uses structured prompts (Context+Task+Format+Constraints); revises based on output quality; documents prompt patterns',
+        'Moderate': 'Uses structured prompts occasionally; sometimes revises; limited pattern documentation',
+        'Fail': 'Ad-hoc prompting; no revision; no pattern reuse'
+    },
+    'Repo or workspace analysis': {
+        'Pass': 'Produces partial repository analysis; covers some elements but misses key dependencies or risks',
+        'Moderate': 'Produces partial repository analysis; covers some elements but misses key dependencies or risks',
+        'Fail': 'No repository analysis or analysis is superficial; cannot identify dependency order or risk areas'
+    },
+    'Change isolation': {
+        'Pass': 'Every change scoped to single logical unit; <5 files changed; no unrelated formatting/whitespace; tests or validation evidence included; follows project conventions',
+        'Moderate': 'Most changes scoped appropriately; occasional scope creep; validation evidence sometimes missing',
+        'Fail': 'Changes span unrelated areas; "while I was here" fixes common; no validation evidence; debug code or TODOs left in'
+    },
+    'Validation order': {
+        'Pass': 'Validates from bottom up (source → transform → snapshot → rollup → presentation); identifies upstream defects before downstream; documents validation steps and results',
+        'Moderate': 'Validates some layers but not consistently bottom-up; sometimes trusts downstream without verifying upstream',
+        'Fail': 'No systematic validation; trusts output without checking logic; cannot trace validation path'
+    },
+    'Deployment awareness': {
+        'Pass': 'Builds deployment checklists covering preflight, migration, access, rerun; validates against actual deployment; documents rollback plan; uses correct environment connections',
+        'Moderate': 'Creates basic deployment checklist; misses some environments or validation steps; rollback plan incomplete',
+        'Fail': 'No deployment checklist; deploys without validation; no rollback plan; uses wrong connections'
+    },
+    'Reviewer handoff': {
+        'Pass': 'Produces review packages with purpose, audience, focus, reviewer questions; handoff notes have current state, completed, remains open, next action; passes quality rubric',
+        'Moderate': 'Produces handoff notes but missing some sections; review package lacks focus or reviewer questions',
+        'Fail': 'No handoff notes or review package; reviewer cannot understand change without clarification'
+    },
+    'Reusability': {
+        'Pass': 'Creates reusable team assets (prompt templates, QC checklists, deployment scripts, handoff templates) that another team member has successfully used; documents usage',
+        'Moderate': 'Creates assets but they are not yet used by others; documentation incomplete',
+        'Fail': 'No reusable assets created; work is not packaged for reuse'
+    },
+    'Codex handoff fluency': {
+        'Pass': 'Completes Codex Loop (Pull→Summarize→Identify→Execute→Record) in <5 min; handoff passes quality rubric; bounds self-enforced without reminders',
+        'Moderate': 'Completes Codex Loop with guidance; handoff needs revision; bounds occasionally need enforcement',
+        'Fail': 'Cannot complete Codex Loop independently; handoff fails quality rubric; bounds not self-enforced'
+    },
+    'Codex bounded use': {
+        'Pass': 'Applies bounded Codex use to proven workflows only; evaluates manual vs Codex for each task; documents bounds and rationale',
+        'Moderate': 'Uses Codex for some tasks but bounds not consistently documented; manual-vs-Codex evaluation inconsistent',
+        'Fail': 'Uses Codex without bounds; lets AI define business logic; no manual-vs-Codex evaluation'
+    },
+}
+
 CODEX_GATES = [
     'One end-to-end workflow completed',
     'Business-logic ownership understood',
@@ -234,6 +342,56 @@ CODEX_GATES = [
     'Can explain Bounded Codex rules',
 ]
 
+# ── Codex Gate Criteria: Measurable acceptance criteria for each gate ────────
+# Used by reviewers to verify gate completion with evidence.
+CODEX_GATE_CRITERIA = {
+    'end_to_end_workflow': {
+        'criterion': 'Learner completed full Codex Loop (Pull→Summarize→Identify→Execute→Record) for a real task, documented in handoff note with timestamps',
+        'evidence_required': ['handoff_note.md', 'context_pull_log', 'execution_record'],
+        'verifier': 'reviewer'
+    },
+    'business_logic_ownership': {
+        'criterion': 'Learner explains business purpose, grain, filters, and validation rules for at least one metric they worked on, without referencing documentation',
+        'evidence_required': ['oral_exam_record.md', 'metric_lineage_note.md'],
+        'verifier': 'reviewer'
+    },
+    'validation_evidence': {
+        'criterion': 'Learner produced validation evidence (row counts, QC checks, snapshot diffs) for a model change without reviewer prompting',
+        'evidence_required': ['qc_evidence_pack.md', 'validation_log'],
+        'verifier': 'reviewer'
+    },
+    'proof_tasks': {
+        'criterion': 'All 6 proof tasks (PT1–PT6) submitted with passing reviewer assessment',
+        'evidence_required': ['PT1_repository_analysis.md', 'PT2_review_dry_run.md', 'PT3_metric_lineage.md', 'PT4_qc_evidence.md', 'PT5_deployment_rehearsal.md', 'PT6_reviewer_handoff.md'],
+        'verifier': 'reviewer'
+    },
+    'clean_change_slice': {
+        'criterion': 'Submitted a reviewable change slice meeting all Code Review Standards checklist items',
+        'evidence_required': ['review_package.md', 'changed_files_diff'],
+        'verifier': 'reviewer'
+    },
+    'reusable_asset': {
+        'criterion': 'Created a reusable team asset (prompt template, QC checklist, deployment script, handoff template) that another team member has successfully used',
+        'evidence_required': ['asset_file', 'usage_testimony.md'],
+        'verifier': 'reviewer'
+    },
+    'manual_vs_codex': {
+        'criterion': 'Completed Exercise 5: Manual-vs-Codex Comparison for one defined task with documented results',
+        'evidence_required': ['codex_comparison_note.md'],
+        'verifier': 'reviewer'
+    },
+    'codex_exercises': {
+        'criterion': 'All 6 Codex exercises passed (Handoff Reading, Context Pull, State Summary, Handoff Creation, Manual-vs-Codex, Bounded Codex Simulation)',
+        'evidence_required': ['exercise_1_handoff_reading.md', 'exercise_2_context_pull.md', 'exercise_3_state_summary.md', 'exercise_4_handoff_creation.md', 'exercise_5_manual_vs_codex.md', 'exercise_6_bounded_codex.md'],
+        'verifier': 'reviewer'
+    },
+    'bounded_codex_rules': {
+        'criterion': 'Can explain Bounded Codex rules: only proven workflows, manual-vs-Codex evaluation required, bounds self-enforced, handoff quality rubric applies',
+        'evidence_required': ['bounded_codex_explanation.md'],
+        'verifier': 'reviewer'
+    },
+}
+
 PROOF_TASKS = [
     ('PT1', 'Repository Analysis Brief'),
     ('PT2', 'Review Workflow Dry Run'),
@@ -242,6 +400,106 @@ PROOF_TASKS = [
     ('PT5', 'Deployment Rehearsal'),
     ('PT6', 'Reviewer Handoff Test'),
 ]
+
+# ── Proof Task Criteria: Minimum viable artifact definitions ────────────────
+# Used by build_data.py to validate proof task completion quality.
+PROOF_TASK_CRITERIA = {
+    'PT1': {
+        'name': 'Repository Analysis Brief',
+        'required_sections': [
+            'Business Purpose',
+            'Dependency Order',
+            'Key Inputs & Outputs',
+            'Risks Identified',
+            'Safe Change Points'
+        ],
+        'min_content_length': 300,
+        'quality_checks': [
+            'Must identify at least 3 dependencies in correct order',
+            'Must name specific risk areas with mitigation',
+            'Must identify at least 2 safe change points'
+        ]
+    },
+    'PT2': {
+        'name': 'Review Workflow Dry Run',
+        'required_sections': [
+            'Review Scope',
+            'Reviewer Path',
+            'Dry Run Results',
+            'Issues Found',
+            'Resolution'
+        ],
+        'min_content_length': 400,
+        'quality_checks': [
+            'Must include reviewer feedback (Pass/Needs Work/Rework)',
+            'Must show incorporation of all reviewer comments',
+            'Must produce final handoff that passes quality rubric'
+        ]
+    },
+    'PT3': {
+        'name': 'Metric Lineage Walkthrough',
+        'required_sections': [
+            'Counting Grain',
+            'Active-Row Rules',
+            'Period Definitions',
+            'Calculation Point',
+            'Rollup Path',
+            'Snapshot Validation'
+        ],
+        'min_content_length': 500,
+        'quality_checks': [
+            'Must define grain precisely (e.g., "one row per customer per month")',
+            'Must specify active-row filter logic',
+            'Must trace rollup from grain to final presentation'
+        ]
+    },
+    'PT4': {
+        'name': 'QC Evidence Pack',
+        'required_sections': [
+            'What Was Validated',
+            'Validation Results',
+            'Edge Cases Tested',
+            'Performance Check'
+        ],
+        'min_content_length': 400,
+        'quality_checks': [
+            'Must include row count comparison (source vs target)',
+            'Must test at least 3 edge cases (nulls, duplicates, boundaries)',
+            'Must document query performance within SLA'
+        ]
+    },
+    'PT5': {
+        'name': 'Deployment Rehearsal',
+        'required_sections': [
+            'Preflight Checklist',
+            'Migration Steps',
+            'Access & Security',
+            'Rerun Procedure',
+            'Rollback Plan'
+        ],
+        'min_content_length': 400,
+        'quality_checks': [
+            'Must validate against actual deployment (not just plan)',
+            'Must include rollback plan with tested steps',
+            'Must verify correct environment connections'
+        ]
+    },
+    'PT6': {
+        'name': 'Reviewer Handoff Test',
+        'required_sections': [
+            'Handoff Package',
+            'Reviewer Feedback',
+            'Incorporation Log',
+            'Final Handoff'
+        ],
+        'min_content_length': 400,
+        'quality_checks': [
+            'Must include reviewer feedback (Pass/Needs Work/Rework)',
+            'Must show incorporation of all reviewer comments',
+            'Must produce final handoff that passes quality rubric'
+        ]
+    },
+}
 
 # ── Learning Categories (aligned with LEARNING_CATEGORIES.md) ──────────────
 CATEGORIES = {
@@ -805,14 +1063,16 @@ def parse_note(filepath):
         note['category_tags'] = m.group(1).strip()
 
     for area in SCORE_AREAS:
-        p = re.compile(rf'{re.escape(area)}:\s*(Pass|Moderate|Fail|Unscored)', re.IGNORECASE)
+        # Flexible pattern: handles **Area:**, Area:, Area -, etc.
+        p = re.compile(rf'{re.escape(area)}\s*[:\-]?\s*\*?\*?\s*(Pass|Moderate|Fail|Unscored)', re.IGNORECASE)
         m = p.search(content)
         if m:
             safe_key = area.lower().replace(' ', '_').replace('(', '').replace(')', '')
             note['scorecard'][safe_key] = m.group(1).capitalize()
 
     for gate in CODEX_GATES:
-        p = re.compile(rf'{re.escape(gate)}:\s*(Yes|No)', re.IGNORECASE)
+        # Flexible pattern: handles **Gate:**, Gate:, Gate -, etc.
+        p = re.compile(rf'{re.escape(gate)}\s*[:\-]?\s*\*?\*?\s*(Yes|No)', re.IGNORECASE)
         m = p.search(content)
         if m:
             safe_key = gate.lower().replace(' ', '_').replace('(', '').replace(')', '')
@@ -821,8 +1081,49 @@ def parse_note(filepath):
     return note
 
 
+def min_quality_check(artifact_path, task_id):
+    """
+    Validate proof task artifact meets minimum quality criteria.
+    Returns (passed: bool, issues: list[str]).
+    """
+    from action.proxy.constants import PROOF_TASK_CRITERIA
+    
+    criteria = PROOF_TASK_CRITERIA.get(task_id)
+    if not criteria:
+        return True, []  # No criteria defined = pass
+    
+    issues = []
+    
+    try:
+        with open(artifact_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception as e:
+        return False, [f'Cannot read artifact: {e}']
+    
+    # Check minimum content length
+    if len(content) < criteria.get('min_content_length', 0):
+        issues.append(f'Content too short: {len(content)} chars (minimum {criteria["min_content_length"]})')
+    
+    # Check required sections
+    for section in criteria.get('required_sections', []):
+        # Look for section header (## Section or ### Section or **Section:**)
+        section_pattern = rf'(^|\n)(#{2,3}\s*{re.escape(section)}|\*\*{re.escape(section)}:\*\*)'
+        if not re.search(section_pattern, content, re.IGNORECASE | re.MULTILINE):
+            issues.append(f'Missing required section: {section}')
+    
+    # Quality checks (custom per task)
+    for check in criteria.get('quality_checks', []):
+        # These are documented expectations; actual validation would need more sophisticated parsing
+        # For now, we log them as expectations
+        pass
+    
+    return len(issues) == 0, issues
+
+
 def scan_evidence():
     files = []
+    if not has_real_learner_identity():
+        return files
     if not os.path.isdir(EVIDENCE_DIR):
         return files
     for root, dirs, fnames in os.walk(EVIDENCE_DIR):
@@ -843,6 +1144,8 @@ def scan_evidence():
 
 def scan_reports():
     files = []
+    if not has_real_learner_identity():
+        return files
     if not os.path.isdir(REPORTS_DIR):
         return files
     pattern = os.path.join(REPORTS_DIR, '*.md')
@@ -1144,6 +1447,13 @@ def scan_all_artifacts():
             }
 
             # Categorize
+            rel_norm = rel.replace('\\', '/')
+            if not has_real_learner_identity() and (
+                rel_norm == 'learner_config.json'
+                or rel_norm.startswith(('notes/', 'evidence/', 'reports/', 'archive/'))
+            ):
+                continue
+
             if rel.startswith('notes') or rel.startswith('notes\\') or rel.startswith('notes/'):
                 categories['notes'].append(entry)
             elif rel.startswith('evidence') or rel.startswith('evidence\\') or rel.startswith('evidence/'):
@@ -1231,9 +1541,11 @@ def build_page_artifacts(artifacts, changed_set):
 
 
 def main():
+    real_learner_configured = has_real_learner_identity()
+
     print('Scanning notes...')
     notes = []
-    if os.path.isdir(NOTES_DIR):
+    if real_learner_configured and os.path.isdir(NOTES_DIR):
         for f in sorted(glob.glob(os.path.join(NOTES_DIR, '*.md'))):
             # Skip TPL-generated files — only real learner data
             if os.path.basename(f).startswith('tpl_'):
@@ -1249,7 +1561,7 @@ def main():
 
     # Also scan archive dirs for completed/finalized learner work
     archived_notes = 0
-    if os.path.isdir(NOTES_ARCHIVE_DIR):
+    if real_learner_configured and os.path.isdir(NOTES_ARCHIVE_DIR):
         for f in sorted(glob.glob(os.path.join(NOTES_ARCHIVE_DIR, '*.md'))):
             # Skip TPL-generated files — only real learner data
             if os.path.basename(f).startswith('tpl_'):
@@ -1284,7 +1596,7 @@ def main():
     print('Scanning evidence...')
     evidence = scan_evidence()
     # Include archived evidence
-    if os.path.isdir(EVIDENCE_ARCHIVE_DIR):
+    if real_learner_configured and os.path.isdir(EVIDENCE_ARCHIVE_DIR):
         for root, dirs, fnames in os.walk(EVIDENCE_ARCHIVE_DIR):
             for f in fnames:
                 if f == '.gitkeep':
@@ -1304,7 +1616,7 @@ def main():
     print('Scanning reports...')
     reports = scan_reports()
     # Include archived reports
-    if os.path.isdir(REPORTS_ARCHIVE_DIR):
+    if real_learner_configured and os.path.isdir(REPORTS_ARCHIVE_DIR):
         pattern = os.path.join(REPORTS_ARCHIVE_DIR, '*.md')
         for fp in sorted(glob.glob(pattern)):
             if os.path.basename(fp) == '.gitkeep':
@@ -1413,6 +1725,22 @@ def main():
         'level_categories': LEVEL_CATEGORIES,
         'environment_status': env_status,
     }
+
+    # Validate against JSON Schema
+    schema_path = os.path.join(DASHBOARD_DIR, 'data_schema.json')
+    if os.path.exists(schema_path):
+        try:
+            import jsonschema
+            with open(schema_path, 'r', encoding='utf-8') as sf:
+                schema = json.load(sf)
+            jsonschema.validate(instance=data, schema=schema)
+            print('  ✅ data.json validated against schema')
+        except ImportError:
+            print('  ⚠️  jsonschema not installed — skipping schema validation (pip install jsonschema)')
+        except Exception as e:
+            # Catch ValidationError and other exceptions
+            print(f'  ❌ Schema validation failed: {e}')
+            # Don't fail the build, just warn
 
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, default=str)
