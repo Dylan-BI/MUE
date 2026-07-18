@@ -1,14 +1,1 @@
-{
-  "test-artifact": [
-    {
-      "name": "Test Reviewer",
-      "rating": "👍 Pass",
-      "text": "Test review",
-      "category": "🤖 AI",
-      "id": "17843364034435505",
-      "timestamp": "2026-07-18T03:00:03.443244",
-      "version": 1,
-      "_source": "synced"
-    }
-  ]
-}
+{}

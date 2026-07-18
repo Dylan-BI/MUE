@@ -50,6 +50,9 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
+# Local structured logging
+from _log import log
+
 # ── Paths ──────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
@@ -66,6 +69,10 @@ _SERVER_BASE_URL = 'http://localhost:8080'
 # Access token — set at startup for secure remote access
 # When set, all requests must include ?t=<token> to access the dashboard/API
 SERVER_ACCESS_TOKEN = None
+
+# API Version
+API_VERSION = 'v1'
+API_VERSION_HEADER = 'X-API-Version'
 
 
 def _get_lan_ips():
@@ -309,12 +316,12 @@ def rebuild_data_json():
             errors='replace'
         )
         if result.returncode == 0:
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ✅ data.json rebuilt')
+            log('INFO', 'data.json rebuilt')
         else:
             err = result.stderr.strip().split('\n')[-1] if result.stderr else 'unknown'
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ⚠️ build failed: {err}')
+            log('WARNING', f'build failed: {err}')
     except Exception as e:
-        print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ build error: {e}')
+        log('ERROR', f'build error: {e}')
 
 
 def generate_id():
@@ -799,10 +806,10 @@ def _send_email(to_addr, subject, html_body):
 
 def send_daily_summaries():
     """Compile and send daily summaries to all opted-in reviewers + admin."""
-    print(f'  [{datetime.now().strftime("%H:%M:%S")}] 📬 Running daily summary...')
+    log('INFO', 'Running daily summary...')
     summary = _compile_daily_summary(hours=24)
     if summary['total_reviews'] == 0:
-        print(f'  [{datetime.now().strftime("%H:%M:%S")}] ℹ️  No reviews in the last 24h — skipping email')
+        log('INFO', 'No reviews in the last 24h — skipping email')
         return 0
 
     html_body = _build_summary_html(summary)
@@ -817,21 +824,21 @@ def send_daily_summaries():
         display = profile.get('displayName', username)
         ok, err = _send_email(email, f'📬 MUE Daily Summary — {summary["total_reviews"]} review(s), {summary["total_reviewers"]} reviewer(s)', html_body)
         if ok:
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ✅ Summary sent to {display} <{email}>')
+            log('INFO', f'Summary sent to {display} <{email}>')
             sent_count += 1
         else:
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ Failed to send to {display} <{email}>: {err}')
+            log('WARNING', f'Failed to send to {display} <{email}>: {err}')
 
     # Also send to admin (comprehensive assessment of all reviewer input)
     if ADMIN_EMAIL:
         ok, err = _send_email(ADMIN_EMAIL, f'📬 MUE Admin Daily Summary — {summary["total_reviews"]} review(s), {summary["total_reviewers"]} reviewer(s)', html_body)
         if ok:
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ✅ Admin summary sent to {ADMIN_EMAIL}')
+            log('INFO', f'Admin summary sent to {ADMIN_EMAIL}')
             sent_count += 1
         else:
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ Failed to send admin summary: {err}')
+            log('WARNING', f'Failed to send admin summary: {err}')
 
-    print(f'  [{datetime.now().strftime("%H:%M:%S")}] 📬 Daily summary complete — {sent_count} email(s) sent')
+    log('INFO', f'Daily summary complete — {sent_count} email(s) sent')
     return sent_count
 
 
@@ -864,10 +871,10 @@ def _start_tunnel(port, tool_path, tool_name):
     elif tool_name == 'ngrok':
         cmd = [tool_path, 'http', str(port)]
     else:
-        print(f'  ❌ Unknown tunnel tool: {tool_name}')
+        log('ERROR', f'Unknown tunnel tool: {tool_name}')
         return
 
-    print(f'  🌐 Starting {tool_name} tunnel...')
+    log('INFO', f'Starting {tool_name} tunnel...')
     try:
         proc = subprocess.Popen(
             cmd,
@@ -879,7 +886,7 @@ def _start_tunnel(port, tool_path, tool_name):
         url_found = False
         stdout = proc.stdout
         if not stdout:
-            print(f'  ❌ {tool_name} failed to start')
+            log('ERROR', f'{tool_name} failed to start')
             return
         for line in stdout:
             line = line.strip()
@@ -890,24 +897,22 @@ def _start_tunnel(port, tool_path, tool_name):
                 public_url = match.group(1)
                 url_found = True
                 go_url = f'{public_url}/go'
-                print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-                print(f'  🌍 PUBLIC URL:  {go_url}')
-                print(f'  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-                print(f'  Share this URL with reviewers on any network.')
-                print(f'  The tunnel stays open while the server is running.\n')
+                log('INFO', f'PUBLIC URL: {go_url}')
+                log('INFO', 'Share this URL with reviewers on any network.')
+                log('INFO', 'The tunnel stays open while the server is running.')
                 # Email notification
                 _tunnel_notify_url(TUNNEL_NOTIFY_EMAIL, public_url, tool_name)
         if not url_found:
-            print(f'  ⚠️  {tool_name} started but URL not captured. Check the terminal.')
+            log('WARNING', f'{tool_name} started but URL not captured. Check the terminal.')
         # Monitor tunnel process — notify if it dies
         proc.wait()
         if _scheduler_running:
-            print(f'  ⚠️  {tool_name} tunnel disconnected.')
+            log('WARNING', f'{tool_name} tunnel disconnected.')
             _tunnel_notify_down(TUNNEL_NOTIFY_EMAIL, tool_name)
     except FileNotFoundError:
-        print(f'  ❌ {tool_name} not found — install it from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
+        log('ERROR', f'{tool_name} not found — install it from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
     except Exception as e:
-        print(f'  ❌ Tunnel error: {e}')
+        log('ERROR', f'Tunnel error: {e}')
 
 
 def _tunnel_notify_url(to_addr, public_url, tool_name):
@@ -931,9 +936,9 @@ def _tunnel_notify_url(to_addr, public_url, tool_name):
   </div></body></html>'''
     ok, err = _send_email(to_addr, subject, body)
     if ok:
-        print(f'  📧 Tunnel notification sent to {to_addr}')
+        log('INFO', f'Tunnel notification sent to {to_addr}')
     else:
-        print(f'  ⚠️  Could not send tunnel email: {err}')
+        log('WARNING', f'Could not send tunnel email: {err}')
 
 
 def _tunnel_notify_down(to_addr, tool_name):
@@ -957,9 +962,9 @@ def _tunnel_notify_down(to_addr, tool_name):
   </div></body></html>'''
     ok, err = _send_email(to_addr, subject, body)
     if ok:
-        print(f'  📧 Tunnel-down notification sent to {to_addr}')
+        log('INFO', f'Tunnel-down notification sent to {to_addr}')
     else:
-        print(f'  ⚠️  Could not send tunnel-down email: {err}')
+        log('WARNING', f'Could not send tunnel-down email: {err}')
 
 
 # ── Daily Scheduler ──────────────────────────────────────────────────
@@ -975,7 +980,7 @@ def _daily_scheduler_loop():
         if target <= now:
             target += timedelta(days=1)
         wait_seconds = (target - now).total_seconds()
-        print(f'  [{datetime.now().strftime("%H:%M:%S")}] ⏰ Next daily summary at {target.strftime("%H:%M")} ({int(wait_seconds//3600)}h {int((wait_seconds%3600)//60)}m)')
+        log('INFO', f'Next daily summary at {target.strftime("%H:%M")} ({int(wait_seconds//3600)}h {int((wait_seconds%3600)//60)}m)')
         # Sleep in small increments so we can stop cleanly
         slept = 0
         while slept < wait_seconds and _scheduler_running:
@@ -1396,17 +1401,17 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                     break
             if existing_owner:
                 self._send_json(409, {'error': f'username @{username} is already claimed by another reviewer'})
-                print(f'  🚫 Profile create denied: @{requester} tried to claim @{username} (taken by @{existing_owner})')
+                log('WARNING', f'Profile create denied: @{requester} tried to claim @{username} (taken by @{existing_owner})')
                 return
             # Check if requester already has a different profile
             if requester and requester != username and requester in profiles:
                 self._send_json(409, {'error': f'@{requester} already has a profile — edit your existing profile or contact an admin'})
-                print(f'  🚫 Profile create denied: @{requester} already has profile @{requester}')
+                log('WARNING', f'Profile create denied: @{requester} already has profile @{requester}')
                 return
 
         if not is_new and not is_owner and not is_admin:
             self._send_json(403, {'error': 'access denied — only the profile owner or an admin can edit this profile'})
-            print(f'  🚫 Profile save denied: @{requester} tried to edit @{username}')
+            log('WARNING', f'Profile save denied: @{requester} tried to edit @{username}')
             return
 
         profiles[username] = {
@@ -1423,7 +1428,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         log_activity(username, action,
                      f'{"Created" if is_new else "Updated"} profile as {display_name or username}',
                      {'requester': requester})
-        print(f'  👤 Profile saved: {display_name} (@{username}) by @{requester}')
+        log('INFO', f'Profile saved: {display_name} (@{username}) by @{requester}')
         self._send_json(200, {'ok': True, 'profile': profiles[username]})
 
     # ── Activity Log Handlers ────────────────────────────────────────
@@ -1477,10 +1482,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             display = profile.get('displayName', username)
             ok, err = _send_email(email, f'📬 MUE Daily Summary — {summary["total_reviews"]} review(s), {summary["total_reviewers"]} reviewer(s)', html_body)
             if ok:
-                print(f'  [{datetime.now().strftime("%H:%M:%S")}] ✅ Summary sent to {display} <{email}>')
+                log('INFO', f'Summary sent to {display} <{email}>')
                 sent += 1
             else:
-                print(f'  [{datetime.now().strftime("%H:%M:%S")}] ❌ Failed to send to {display} <{email}>: {err}')
+                log('WARNING', f'Failed to send to {display} <{email}>: {err}')
         self._send_json(200, {'ok': True, 'sent': sent, 'reviews': summary['total_reviews'], 'reviewers': summary['total_reviewers']})
 
     def _handle_tpl_generate(self):
@@ -1500,7 +1505,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         evidence = _generate_tpl_evidence()
         # Rebuild data.json
         rebuild_data_json()
-        print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧪 TPL data generated: {len(notes)} notes, {len(evidence)} evidence files')
+        log('INFO', f'TPL data generated: {len(notes)} notes, {len(evidence)} evidence files')
         self._send_json(200, {
             'ok': True,
             'notes': len(notes),
@@ -1519,7 +1524,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             return
         removed = _cleanup_tpl_data()
         rebuild_data_json()
-        print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧪 TPL cleanup: {removed} files removed')
+        log('INFO', f'TPL cleanup: {removed} files removed')
         self._send_json(200, {'ok': True, 'removed': removed})
 
     def _handle_tpr_cleanup(self):
@@ -1532,10 +1537,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             return
         result = _cleanup_tpr_test_artifacts()
         rebuild_data_json()
-        print(f'  [{datetime.now().strftime("%H:%M:%S")}] 🧹 TPR/TPL test cleanup: '
-              f'{result["reviews_removed"]} review(s), '
-              f'{result["activities_removed"]} activity log(s), '
-              f'profile={result["profile_removed"]}')
+        log('INFO', f'TPR/TPL test cleanup: {result["reviews_removed"]} review(s), {result["activities_removed"]} activity log(s), profile={result["profile_removed"]}')
         self._send_json(200, {'ok': True, **result})
 
     def _check_tpl_auth(self):
@@ -1547,14 +1549,14 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         """
         if not TPL_SECRET:
             self._send_json(403, {'error': 'TPL disabled — configure --tpl-secret to run test learner data operations'})
-            print(f'  🚫 TPL auth denied: no TPL secret configured')
+            log('WARNING', 'TPL auth denied: no TPL secret configured')
             return False
 
         tpl_secret = self.headers.get('X-TPL-Secret', '')
         if tpl_secret == TPL_SECRET:
             return True
         self._send_json(403, {'error': 'invalid or missing TPL secret — learners cannot influence generative data'})
-        print(f'  🚫 TPL auth denied: X-TPL-Secret did not match configured secret')
+        log('WARNING', 'TPL auth denied: X-TPL-Secret did not match configured secret')
         return False
 
     def _handle_get_reviews(self):
@@ -1593,7 +1595,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 return
             ok, err = _claim_lock(artifact_id, review_id, name)
             if ok:
-                print(f'  🔒 Lock claimed: {name} editing {review_id[:12]}...')
+                log('INFO', f'Lock claimed: {name} editing {review_id[:12]}...')
                 self._send_json(200, {'ok': True})
             else:
                 self._send_json(409, {'error': err})
@@ -1603,7 +1605,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 return
             released = _release_lock(artifact_id, review_id, name)
             if released:
-                print(f'  🔓 Lock released: {name} on {review_id[:12]}...')
+                log('INFO', f'Lock released: {name} on {review_id[:12]}...')
             self._send_json(200, {'ok': True, 'released': released})
         elif action == 'check':
             lock = _check_lock(artifact_id, review_id)
@@ -1652,6 +1654,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             clients = len(_connected_clients)
         self._send_json(200, {
             'status': 'ok',
+            'api_version': API_VERSION,
             'reviews': total,
             'artifacts': len(reviews),
             'connected_clients': clients,
@@ -1708,7 +1711,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         all_reviews[artifact_id].append(review)
         save_reviews(all_reviews)
 
-        print(f'  📝 Review added by {review["name"]} on {artifact_id}')
+        log('INFO', f'Review added by {review["name"]} on {artifact_id}')
         rebuild_data_json()
         log_activity(review.get('name', ''), 'review_submitted',
                      f'Reviewed {artifact_id} — {review.get("rating", "No rating")}',
@@ -1768,7 +1771,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         review['version'] = review.get('version', 0) + 1
         save_reviews(all_reviews)
 
-        print(f'  ✏️ Review {review_id} updated by {review.get("name", "?")}')
+        log('INFO', f'Review {review_id} updated by {review.get("name", "?")}')
         rebuild_data_json()
         log_activity(review.get('name', ''), 'review_edited',
                      f'Edited review on {artifact_id}',
@@ -1805,7 +1808,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         is_admin = requester in ADMIN_USERS
         if not is_owner and not is_admin:
             self._send_json(403, {'error': 'access denied — only the profile owner or an admin can delete this profile'})
-            print(f'  🚫 Profile delete denied: @{requester} tried to delete @{username}')
+            log('WARNING', f'Profile delete denied: @{requester} tried to delete @{username}')
             return
 
         # Remove profile
@@ -1825,7 +1828,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                      f'Deleted profile @{username}' + (f' (removed {removed_activities} activity logs)' if removed_activities else ''),
                      {'deletedUsername': username, 'removedActivities': removed_activities})
 
-        print(f'  🗑️ Profile deleted: @{username} by @{requester} ({removed_activities} activity logs removed)')
+        log('INFO', f'Profile deleted: @{username} by @{requester} ({removed_activities} activity logs removed)')
         self._send_json(200, {'ok': True, 'removedActivities': removed_activities})
 
     def _handle_delete_review(self):
@@ -1856,7 +1859,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             del all_reviews[artifact_id]
 
         save_reviews(all_reviews)
-        print(f'  🗑️ Review {review_id} deleted from {artifact_id}')
+        log('INFO', f'Review {review_id} deleted from {artifact_id}')
         rebuild_data_json()
         log_activity('', 'review_deleted',
                      f'Deleted review from {artifact_id}',
@@ -1925,6 +1928,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
+        self.send_header(API_VERSION_HEADER, API_VERSION)
         self.end_headers()
         self.wfile.write(body)
 
@@ -1933,7 +1937,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         # Skip noisy static file logs
         msg = format % args
         if '/api/' in msg or 'Error' in msg:
-            print(f'  [{datetime.now().strftime("%H:%M:%S")}] {msg}')
+            log('DEBUG', msg)
 
 
 class ThreadedHTTPServer(HTTPServer):
@@ -2021,14 +2025,14 @@ def main():
     # Validate environment early
     ok, warnings, errors = _validate_environment()
     for w in warnings:
-        print(f'   ⚠️  {w}')
+        log('WARNING', w)
     for e in errors:
-        print(f'   ❌ {e}')
+        log('ERROR', e)
     if errors:
-        print('\n❌ Startup aborted due to configuration errors.')
+        log('ERROR', 'Startup aborted due to configuration errors.')
         sys.exit(1)
     if warnings:
-        print()  # Add spacing after warnings
+        log('INFO', 'Startup warnings shown above')
 
     # Apply CLI overrides to SMTP config
     if args.smtp_host: SMTP_HOST = args.smtp_host
@@ -2060,39 +2064,36 @@ def main():
     REVIEWS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     # Run initial build
-    print(f'\n🖥️  MUE Review Server')
-    print(f'   Reviews:   {REVIEWS_PATH}')
-    print()
+    log('INFO', 'MUE Review Server')
+    log('INFO', f'Reviews: {REVIEWS_PATH}')
 
     rebuild_data_json()
-    print()
 
     # Test-summary mode: send now and exit
     if args.test_summary:
-        print('📬 Test mode — sending daily summary now...')
+        log('INFO', 'Test mode — sending daily summary now...')
         count = send_daily_summaries()
-        print(f'Done — {count} email(s) sent.')
+        log('INFO', f'Done — {count} email(s) sent.')
         return
 
     # Print SMTP status
     if SMTP_HOST:
         env_tag = ' (.env)' if ENV_FILE.exists() and not os.environ.get('MUE_SMTP_HOST') else ''
-        print(f'   📧 SMTP: {SMTP_HOST}:{SMTP_PORT} (from: {SMTP_FROM}){env_tag}')
-        print(f'   📬 Daily summary at {DAILY_SUMMARY_HOUR:02d}:{DAILY_SUMMARY_MINUTE:02d}')
+        log('INFO', f'SMTP: {SMTP_HOST}:{SMTP_PORT} (from: {SMTP_FROM}){env_tag}')
+        log('INFO', f'Daily summary at {DAILY_SUMMARY_HOUR:02d}:{DAILY_SUMMARY_MINUTE:02d}')
     else:
-        print('   📧 SMTP: not configured (set MUE_SMTP_HOST or --smtp-host)')
-        print('   📬 Daily summaries: disabled (no SMTP)')
+        log('WARNING', 'SMTP: not configured (set MUE_SMTP_HOST or --smtp-host)')
+        log('WARNING', 'Daily summaries: disabled (no SMTP)')
     # Print TPL secret status
     if TPL_SECRET:
-        print(f'   🧪 TPL secret: configured (required for generative data operations)')
+        log('INFO', 'TPL secret: configured (required for generative data operations)')
     else:
-        print(f'   🧪 TPL secret: not set (any token holder can generate TPL data)')
+        log('WARNING', 'TPL secret: not set (any token holder can generate TPL data)')
     # Print access token status
     if SERVER_ACCESS_TOKEN:
-        print(f'   🔐 Access token: {SERVER_ACCESS_TOKEN}')
+        log('INFO', f'Access token: {SERVER_ACCESS_TOKEN}')
     else:
-        print(f'   🔐 Access token: disabled (--no-token)')
-    print()
+        log('INFO', 'Access token: disabled (--no-token)')
 
     server = ThreadedHTTPServer((args.host, args.port), ReviewHandler)
 
@@ -2108,28 +2109,27 @@ def main():
             tunnel_thread = threading.Thread(target=_start_tunnel, args=(args.port, tunnel_info[1], tunnel_info[0]), daemon=True)
             tunnel_thread.start()
         else:
-            print('   ⚠️  --tunnel requested but no tunnel tool found.')
-            print('   Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
-            print('   Or install ngrok:     https://ngrok.com/download')
-            print()
+            log('WARNING', '--tunnel requested but no tunnel tool found.')
+            log('WARNING', 'Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
+            log('WARNING', 'Or install ngrok:     https://ngrok.com/download')
 
     try:
         listen_addr = args.host if args.host != '0.0.0.0' else 'all interfaces'
-        print(f'🚀 Listening on http://{listen_addr}:{args.port}')
+        log('INFO', f'Listening on http://{listen_addr}:{args.port}')
         if not args.tunnel:
             if lan_ips:
                 go_url = f'http://{lan_ips[0]}:{args.port}/go'
-                print(f'   🔒 Share this URL:  {go_url}')
+                log('INFO', f'Share this URL: {go_url}')
                 if SERVER_ACCESS_TOKEN:
-                    print(f'   (Auto-redirects to dashboard — token passed server-side)')
+                    log('INFO', 'Auto-redirects to dashboard — token passed server-side')
             else:
-                print(f'   ⚠️  No LAN IP detected — use localhost:{args.port}/go')
-        print(f'   Press Ctrl+C to stop.\n')
+                log('WARNING', f'No LAN IP detected — use localhost:{args.port}/go')
+        log('INFO', 'Press Ctrl+C to stop.')
         server.serve_forever()
     except KeyboardInterrupt:
         global _scheduler_running
         _scheduler_running = False
-        print('\n🛑 Server stopped.')
+        log('INFO', 'Server stopped.')
         server.server_close()
 
 

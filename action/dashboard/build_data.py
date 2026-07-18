@@ -1416,7 +1416,7 @@ def compute_summary(notes):
                 datetime.strptime(cfg_date, '%Y-%m-%d')  # validate format
                 curriculum_start_date = cfg_date
                 _start_source = 'learner_config'
-                print(f'  📅 Using learner-configured start date (override): {curriculum_start_date}')
+                log('INFO', f'Using learner-configured start date (override): {curriculum_start_date}')
         except (json.JSONDecodeError, ValueError, OSError) as e:
             print(f'  ⚠️  Warning: could not read learner_config.json: {e}')
 
@@ -1424,7 +1424,7 @@ def compute_summary(notes):
     if not curriculum_start_date and earliest_artifact:
         curriculum_start_date = earliest_artifact
         _start_source = 'auto_detected_from_artifacts'
-        print(f'  📅 Dynamic start date from earliest learner artifact: {curriculum_start_date}')
+        log('INFO', f'Dynamic start date from earliest learner artifact: {curriculum_start_date}')
 
     # 3) Fall back to Level 1 note detection
     if not curriculum_start_date:
@@ -1432,7 +1432,7 @@ def compute_summary(notes):
         if l1_info.get('start_date'):
             curriculum_start_date = l1_info['start_date']
             _start_source = 'auto_detected_from_level_1_notes'
-            print(f'  📅 Fallback start date from Level 1 notes: {curriculum_start_date}')
+            log('INFO', f'Fallback start date from Level 1 notes: {curriculum_start_date}')
 
     # If we have a config override, propagate it into level_progression
     if _start_source == 'learner_config' and curriculum_start_date:
@@ -1567,7 +1567,7 @@ def scan_all_artifacts():
         rel_dir = os.path.relpath(root, ACTION_DIR)
 
         for f in sorted(fnames):
-            if f == '.gitkeep' or f.endswith('.pyc'):
+            if f == '.gitkeep' or f.endswith('.pyc') or f.startswith('tpl_'):
                 continue
             fp = os.path.join(root, f)
             rel = os.path.relpath(fp, ACTION_DIR)
