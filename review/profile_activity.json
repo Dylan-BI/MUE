@@ -41,5 +41,11 @@
     "action": "session_started",
     "detail": "Signed in as Test Reviewer",
     "timestamp": "2026-07-18T15:00:14.207914"
+  },
+  {
+    "username": "test_reviewer",
+    "action": "session_started",
+    "detail": "Signed in as Test Reviewer",
+    "timestamp": "2026-07-18T15:40:41.542661"
   }
 ]

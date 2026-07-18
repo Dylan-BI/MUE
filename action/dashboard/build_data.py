@@ -1567,7 +1567,7 @@ def scan_all_artifacts():
         rel_dir = os.path.relpath(root, ACTION_DIR)
 
         for f in sorted(fnames):
-            if f == '.gitkeep' or f.endswith('.pyc') or f.startswith('tpl_'):
+            if f == '.gitkeep' or f.endswith('.pyc') or f.startswith('tpl_') or f.startswith('test_'):
                 continue
             fp = os.path.join(root, f)
             rel = os.path.relpath(fp, ACTION_DIR)
