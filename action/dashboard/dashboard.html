@@ -3022,8 +3022,10 @@ function renderAll() {
       '<div class="card"><h3>📖 Full Curriculum — All 4 Levels</h3>' +
       renderFullCurriculumOverview() +
       '</div>' +
-      srcCritHtml
+      srcCritHtml +
+      '<div id="curriculumContent"></div>'
     );
+    document.getElementById('curriculumContent').innerHTML = renderCurriculumReviewContent();
     addPage('reviewers-guide', renderReviewersGuide());
     // Update sidebar to show empty state info
     const sidebarInfo = document.getElementById('sidebarInfo');
@@ -3541,8 +3543,10 @@ function renderAll() {
     '<div><strong>✦ Skills</strong><br><span style="font-size:11px;color:var(--text-muted)">' + skillFulfilled + '/' + skillTotal + ' demonstrated</span></div></div>' +
     '</div>' +
     '<div style="margin-top:4px;font-size:11px;color:var(--text-muted)">' + catFulfilled + '/' + catTotal + ' categories engaged · ' + skillFulfilled + '/' + skillTotal + ' skills demonstrated</div></div>' +
-    '<div id="curriculumContent">' + renderCurriculumReviewContent() + '</div>'
+    '<div id="curriculumContent"></div>'
   );
+  // Populate curriculumContent after addPage to avoid huge inline string in addPage call
+  document.getElementById('curriculumContent').innerHTML = renderCurriculumReviewContent();
 
   // ── PAGE 9: ALL ARTIFACTS (with review, agent status, sync status, version tracking) ──
   const arts = DATA.artifacts||{};
