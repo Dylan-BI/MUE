@@ -614,6 +614,18 @@
   .pm-admin-access { display: none; margin-top: 10px; text-align: center; }
   .pm-admin-access button { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
   .pm-admin-access button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,92,231,.3); }
+  /* ── Admin Sign-In (Sign In tab) ── */
+  .pm-admin-signin { margin-top: 16px; text-align: center; }
+  .pm-admin-divider { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 11px; color: rgba(255,255,255,.3); }
+  .pm-admin-divider::before, .pm-admin-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.08); }
+  .pm-admin-signin-btn { width: 100%; padding: 14px 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(108,92,231,.3); border-radius: 12px; color: #e0dfff; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .pm-admin-signin-btn:hover { border-color: rgba(108,92,231,.6); background: linear-gradient(135deg, #1e1e36, #1a2a4e); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(108,92,231,.2); }
+  .pm-admin-signin-hint { font-size: 10px; color: rgba(255,255,255,.25); margin-top: 8px; line-height: 1.4; }
+  /* ── Admin Monitor Card ── */
+  .admin-monitor-card { border-left: 4px solid #6c5ce7 !important; }
+  .admin-monitor-card .metric-row { grid-template-columns: repeat(auto-fill,minmax(150px,1fr)) !important; }
+  .admin-monitor-card .metric .value { font-size: 14px; }
+  .admin-monitor-card .metric .label { font-size: 10px; }
   /* Modal activity history panel */
   .pm-activity { margin-top: 12px; border-top: 1px solid rgba(255,255,255,.06); padding-top: 10px; }
   .pm-activity .pa-header { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.5); margin-bottom: 6px; }
@@ -1110,6 +1122,11 @@
           <div class="pm-recover-results" id="pmRecoverResults"></div>
           <div style="text-align:center;margin-top:8px"><a onclick="hideProfileRecovery()" style="font-size:11px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline">← Back to sign in</a></div>
         </div>
+        <div class="pm-admin-signin" id="pmAdminSignin">
+          <div class="pm-admin-divider"><span>or</span></div>
+          <button class="pm-admin-signin-btn" onclick="_adminBypass()">🔐 Sign in as Dashboard Admin</button>
+          <div class="pm-admin-signin-hint">Local-only profile — not visible to other reviewers. Used to monitor and verify dashboard operation.</div>
+        </div>
       </div>
       <!-- Sign Up Tab: create new profile -->
       <div class="pm-tab-panel" id="pmPanelSignup">
@@ -1144,7 +1161,7 @@
           <span class="pm-delete-hint">Permanently removes your profile</span>
         </div>
       </div>
-      <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">🔑 Admin Access (jane_doe)</button></div>
+      <div class="pm-admin-access" id="pmAdminAccess"><button onclick="_adminBypass()">� Dashboard Admin</button></div>
       <!-- Per-profile activity history (visible when editing existing profile) -->
       <div id="pmActivityHistory" class="pm-activity" style="display:none"></div>
     </div>
@@ -2833,7 +2850,7 @@ function renderAll() {
 
     document.getElementById('main').innerHTML = '';
     // Data-dependent pages → show empty state message
-    addPage('overview','<h2>📋 Third-Party Review Overview</h2><p class="subtitle">MUE training summary — learner-completed artifact tracking, change monitoring, and review hub.</p>' + emptyMsg);
+    addPage('overview','<h2>📋 Third-Party Review Overview</h2><p class="subtitle">MUE training summary — learner-completed artifact tracking, change monitoring, and review hub.</p>' + emptyMsg + (isAdminUser() ? renderAdminMonitorPanel() : ''));
     addPage('daily','<h2>📅 Daily Progress</h2><p class="subtitle">Timeline of each training day — "What I learned" / "Next step" reflections, per-day scorecard chips, primary track tags, evidence artifacts, and note file previews.</p>' + emptyMsg);
     addPage('scorecard','<h2>🏆 Scorecard Tracker</h2><p class="subtitle">Score-chip history for each of the 9 competency areas — stacked Pass/Moderate/Fail entries with improvement trend and Fail warnings.</p>' + emptyMsg);
     addPage('proof-tasks','<h2>✅ Proof Task Tracker</h2><p class="subtitle">Checklist of 6 required proof tasks — completion checkboxes, day evidence found, per-task review, and overall progress bar.</p>' + emptyMsg);
@@ -2936,7 +2953,9 @@ function renderAll() {
     '<div class="card"><h3>🎯 Track Distribution</h3><div class="chart-container"><canvas id="chartTracks"></canvas></div><div class="track-legend" id="trackLegend"></div></div>' +
     '<div class="card"><h3>💬 Program-Level Review</h3>' + renderReviewSection('overview_review', 'Program Overview', 'MUE Program - Overall', 'overview') + '</div>' +
     '<div class="card"><h3>🔗 Quick Links</h3><p><a class="link-icon" href="https://github.com/Dylan-BI/MUE/blob/main/source/4-Week%20Onboarding%20Map.md" target="_blank">📖 4-Week Onboarding Map</a></p>' +
-    '<p><a class="link-icon" href="https://github.com/Dylan-BI/MUE/tree/main/source" target="_blank">📂 Source Criteria Folder</a> (' + srcCrit.length + ' reference files)</p></div>');
+    '<p><a class="link-icon" href="https://github.com/Dylan-BI/MUE/tree/main/source" target="_blank">📂 Source Criteria Folder</a> (' + srcCrit.length + ' reference files)</p></div>' +
+    // ── Admin Dashboard Monitoring Panel ──
+    (isAdminUser() ? renderAdminMonitorPanel() : ''));
   const dayNums = notes.filter(n=>n.day_number).map(n=>n.day_number);
   const grid = document.getElementById('dayGrid');
   for (let d=1; d<=28; d++) { const c=document.createElement('div'); c.className='day-cell '+(dayNums.includes(d)?'done':'pending'); c.textContent=d; grid.appendChild(c); }
@@ -3479,8 +3498,9 @@ function selectRating(aid, idx) {
 
 /* ── Reviewer Profile System ── */
 const PROFILE_KEY = 'mue_reviewer_profile';
-const ADMIN_USERS = ['jane_doe', 'dylan_bi'];  // exempt from mandatory profile
+const ADMIN_USERS = ['jane_doe', 'dylan_bi', 'admin'];  // exempt from mandatory profile
 const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
+const ADMIN_LOCAL_PROFILE_KEY = 'mue_admin_local_profile';
 const TPR_USERNAME = 'tpr_bot';    // Test Proxy Reviewer — invisible automated tester
 const TPL_USERNAME = 'tpl_bot';    // Test Proxy Learner — generates dummy learner data for data-flow testing
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
@@ -3488,8 +3508,16 @@ let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, upda
 function isAdminUser() {
   const p = getProfile();
   if (p && ADMIN_USERS.includes(p.username)) return true;
+  // Also check for local-only admin profile (not synced to server)
+  try { const local = localStorage.getItem(ADMIN_LOCAL_PROFILE_KEY); if (local) { const lp = JSON.parse(local); if (lp && ADMIN_USERS.includes(lp.username)) return true; } } catch {}
   try { const b = localStorage.getItem(ADMIN_BYPASS_KEY); if (b && ADMIN_USERS.includes(b)) return true; } catch {}
   return false;
+}
+
+function getAdminProfile() {
+  // Return admin profile (local-only) if set
+  try { const local = localStorage.getItem(ADMIN_LOCAL_PROFILE_KEY); if (local) return JSON.parse(local); } catch {}
+  return null;
 }
 
 function isTestProxy() {
@@ -3900,11 +3928,30 @@ function renderTPRResults() {
 function isProfileMandatory() {
   return !isAdminUser() && !getProfile();
 }
-function _adminBypass() {
-  try { localStorage.setItem(ADMIN_BYPASS_KEY, 'jane_doe'); } catch {}
-  document.getElementById('profileModal').classList.remove('open');
+function _adminBypass(username) {
+  const uname = (username || document.getElementById('pm_username')?.value || '').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  const displayName = document.getElementById('pm_displayname')?.value?.trim() || 'Dashboard Admin';
+  const finalUname = uname || 'admin';
+  // Create a local-only admin profile (never synced to server)
+  const adminProfile = {
+    username: finalUname,
+    displayName: displayName,
+    email: '',
+    dailySummary: false,
+    createdAt: new Date().toISOString(),
+    localOnly: true  // flag: never sync to server
+  };
+  try {
+    localStorage.setItem(ADMIN_LOCAL_PROFILE_KEY, JSON.stringify(adminProfile));
+    localStorage.setItem(ADMIN_BYPASS_KEY, finalUname);
+  } catch {}
+  // Also set as active profile
+  setProfile(adminProfile);
+  document.getElementById('profileModal')?.classList.remove('open');
   renderSidebarProfile();
-  showToast('Admin access granted — profile optional', 'success', 'Admin');
+  renderPresencePanel();
+  showToast('Signed in as ' + displayName + ' (@' + finalUname + ') — local admin, not visible to other reviewers', 'success', '🔐 Admin');
+  logProfileActivity(finalUname, 'session_started', 'Admin signed in as ' + displayName);
 }
 
 function getProfile() {
@@ -4279,6 +4326,21 @@ async function saveProfile() {
     }
   }
   const profile = { username, displayName, email, dailySummary, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
+  // Check if this is a local-only profile (admin bypass) — if so, skip server sync
+  const localProfile = localStorage.getItem(ADMIN_LOCAL_PROFILE_KEY);
+  let isLocalOnly = false;
+  if (localProfile) { try { const lp = JSON.parse(localProfile); isLocalOnly = lp.localOnly === true && lp.username === username; } catch(e) {} }
+  if (isLocalOnly) {
+    profile.localOnly = true;
+    setProfile(profile);
+    closeProfileModal();
+    renderSidebarProfile();
+    renderPresencePanel();
+    sendPresenceHeartbeat();
+    showToast('Profile saved locally — admin profile is not synced to server', 'info', 'Admin Profile');
+    logProfileActivity(username, isEditing ? 'profile_updated' : 'profile_created', (isEditing ? 'Updated' : 'Created') + ' admin profile as ' + displayName + ' (@' + username + ')');
+    return;
+  }
   setProfile(profile);
   // Sync to server so profile is accessible from any device
   const synced = await serverSaveProfile(profile);
@@ -6086,6 +6148,36 @@ function renderLearnerFulfillmentInfographic() {
  * so new instructors (educators, professors, teachers, and experienced BI professionals) can navigate, understand level progression, review artifacts,
  * use instructor mode, sync changes, and interpret learner data.
  */
+
+/**
+ * Render the admin-only dashboard monitoring panel — shows operational status
+ * of the build pipeline, data flow, server connectivity, and quick actions.
+ */
+function renderAdminMonitorPanel() {
+  const s = DATA.summary || {};
+  const notes = DATA.notes || [];
+  const evidence = DATA.evidence || [];
+  const srcCrit = DATA.source_criteria || [];
+  const rtc = s.ready_to_check || 0;
+  const adminProfile = getAdminProfile() || getProfile() || {};
+  return '<div class="card admin-monitor-card" style="border:1px solid rgba(108,92,231,.3);background:var(--bg-accent-subtle)">' +
+    '<h3 style="display:flex;align-items:center;gap:8px">🔐 Dashboard Administration <span style="font-size:11px;background:rgba(108,92,231,.15);padding:2px 10px;border-radius:4px;color:var(--accent);font-weight:400">admin-only</span></h3>' +
+    '<p class="caption" style="margin:0 0 12px">Monitor and verify dashboard operation. This panel is only visible to you (' + escHtml(adminProfile.displayName || 'Admin') + ').</p>' +
+    '<div class="metric-row" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">' +
+    '<div class="metric" style="background:var(--bg-metric-blue)"><div class="value" style="font-size:16px">' + (DATA.generated ? new Date(DATA.generated).toLocaleTimeString() : '—') + '</div><div class="label">🕐 data.json Generated</div><div class="sublabel">' + (DATA.generated ? new Date(DATA.generated).toLocaleDateString() : 'never') + '</div></div>' +
+    '<div class="metric" style="background:' + (notes.length > 0 ? 'var(--bg-metric-green)' : 'var(--bg-metric-yellow)') + '"><div class="value">' + notes.length + '</div><div class="label">📝 Learner Notes</div><div class="sublabel">' + (notes.length > 0 ? 'data present' : 'awaiting input') + '</div></div>' +
+    '<div class="metric" style="background:' + (evidence.length > 0 ? 'var(--bg-metric-green)' : 'var(--bg-metric-yellow)') + '"><div class="value">' + evidence.length + '</div><div class="label">📁 Evidence Files</div><div class="sublabel">' + (evidence.length > 0 ? 'data present' : 'awaiting input') + '</div></div>' +
+    '<div class="metric" style="background:' + (rtc > 0 ? 'var(--bg-metric-green)' : 'var(--bg-muted)') + '"><div class="value">' + (rtc || 0) + '</div><div class="label">✅ Synced to review/</div><div class="sublabel">files ready for assessment</div></div>' +
+    '<div class="metric" style="background:var(--bg-muted)"><div class="value" style="font-size:13px">' + escHtml((DATA.version||{}).commit || '—') + '</div><div class="label">📌 Build Commit</div><div class="sublabel">' + ((DATA.version||{}).timestamp ? new Date(DATA.version.timestamp).toLocaleString() : '—') + '</div></div>' +
+    '<div class="metric" style="background:' + (REVIEW_SERVER ? 'var(--bg-metric-green)' : 'var(--bg-metric-red)') + '"><div class="value" style="font-size:13px">' + (REVIEW_SERVER ? '✅ Connected' : '❌ Offline') + '</div><div class="label">🔌 Review Server</div><div class="sublabel">' + (REVIEW_SERVER ? escHtml(REVIEW_SERVER) : 'not configured') + '</div></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;align-items:center">' +
+    '<button class="primary" style="padding:8px 16px;font-size:12px" onclick="location.reload()">🔄 Refresh Dashboard</button>' +
+    '<button style="padding:8px 16px;font-size:12px;background:var(--bg-muted);border:1px solid var(--border-color);border-radius:8px;cursor:pointer" onclick="promptServerUrl()">🔌 Configure Server</button>' +
+    '<span style="font-size:11px;color:var(--text-muted)">🔐 Local-only profile — not shared with server or visible to other reviewers</span>' +
+    '</div></div>';
+}
+
 function renderReviewersGuide() {
   const hasData = DATA && DATA.summary && (DATA.summary.total_days || 0) > 0;
   const prog = getLevelProgression();
