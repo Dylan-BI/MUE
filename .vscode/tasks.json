@@ -41,17 +41,6 @@
       "presentation": { "reveal": "never", "close": true }
     },
     {
-      "label": "litellm: proxy server (gpt-4o-mini)",
-      "type": "shell",
-      "command": ".venv\\Scripts\\litellm.exe",
-      "args": ["--model", "openai/gpt-4o-mini", "--port", "8000"],
-      "options": { "cwd": "${workspaceFolder}" },
-      "runOptions": { "runOn": "folderOpen" },
-      "problemMatcher": [],
-      "isBackground": true,
-      "presentation": { "reveal": "always", "panel": "dedicated" }
-    },
-    {
       "label": "review server: start (multi-reviewer collaboration)",
       "type": "shell",
       "command": "python",
