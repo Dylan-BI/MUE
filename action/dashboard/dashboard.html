@@ -1899,8 +1899,8 @@ function renderPresencePanel() {
     }
     return;
   }
-  // Sort: online first, then by name (exclude TPL)
-  const sorted = [...REVIEWER_PRESENCE].filter(r => r.name !== TPR_USERNAME).sort((a, b) => {
+  // Sort: online first, then by name (exclude test/bot profiles)
+  const sorted = [...REVIEWER_PRESENCE].filter(r => !isHiddenUsername(r.name)).sort((a, b) => {
     if (a.online !== b.online) return b.online - a.online;
     return a.name.localeCompare(b.name);
   });
@@ -2146,7 +2146,7 @@ function getMergedReviews(aid) {
   const localRev = local[aid] || [];
   const syncedRev = synced[aid] || [];
   const serverRev = SERVER_REVIEWS[aid] || [];
-  const _isRealReview = r => r.name !== TPR_USERNAME && r.role !== 'Test Proxy';
+  const _isRealReview = r => !isHiddenUsername(r.name) && r.role !== 'Test Proxy';
   // Deduplicate by review ID: server > synced > local
   const merged = [];
   const seen = new Set();
@@ -3503,6 +3503,8 @@ const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
 const ADMIN_LOCAL_PROFILE_KEY = 'mue_admin_local_profile';
 const TPR_USERNAME = 'tpr_bot';    // Test Proxy Reviewer — invisible automated tester
 const TPL_USERNAME = 'tpl_bot';    // Test Proxy Learner — generates dummy learner data for data-flow testing
+const HIDDEN_USERNAMES = new Set([TPR_USERNAME, TPL_USERNAME, 'test_reviewer']); // profiles hidden from dashboard UI
+function isHiddenUsername(u) { return HIDDEN_USERNAMES.has(u); }
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
 
 function isAdminUser() {
@@ -4141,7 +4143,7 @@ function _switchProfileTab(tab) {
 function _renderSigninList() {
   const container = document.getElementById('pm_signin_list');
   if (!container) return;
-  const profiles = Object.values(SERVER_PROFILES).filter(p => p.username !== TPR_USERNAME);
+  const profiles = Object.values(SERVER_PROFILES).filter(p => !isHiddenUsername(p.username));
   if (profiles.length === 0) {
     container.innerHTML = '<div class="pm-signin-empty"><div class="pm-signin-empty-icon">👤</div>No reviewer profiles yet.<br>Create your profile in the <strong>New Account</strong> tab.</div>';
     return;
@@ -4186,7 +4188,7 @@ function recoverProfile() {
   if (!email) { emailInput.style.borderColor = 'var(--danger-hue)'; return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
   emailInput.style.borderColor = '';
-  const matches = Object.values(SERVER_PROFILES).filter(p => (p.email || '').toLowerCase() === email && p.username !== TPR_USERNAME);
+  const matches = Object.values(SERVER_PROFILES).filter(p => (p.email || '').toLowerCase() === email && !isHiddenUsername(p.username));
   if (matches.length === 0) {
     resultsDiv.innerHTML = '<div class="pm-recover-no-match">No profiles found with that email address.</div>';
     resultsDiv.style.display = 'block';
