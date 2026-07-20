@@ -1059,6 +1059,7 @@
     <div id="sidebarInfo">Loading…</div>
     <div class="meta" id="sidebarMeta"></div>
     <div class="meta" id="autoRefreshStatus">⏱ Auto-sync inactive</div>
+    <div class="meta" id="pendingSyncStatus" style="display:none"><span>📤 Pending sync: <span id="pendingSyncBadge" style="display:none;background:var(--warning-hue);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px">0</span></span></div>
     <div class="meta" id="syncStatusMeta"><span>⏳ Sync: waiting for data…</span></div>
     <div class="meta" id="agentChangesMeta"></div>
     <div id="sidebarCurriculumBar" style="margin:6px 0;padding:6px 8px;background:var(--bg-muted);border-radius:6px;font-size:11px;display:none">
@@ -2109,6 +2110,56 @@ function saveReview(artifactPath, review) {
 }
 function getAllReviews() { return getReviews(); }
 
+/* ── Pending Reviews Queue (auto-sync when server returns) ── */
+const PENDING_REVIEWS_KEY = 'mue_pending_reviews';
+function getPendingReviews() { try { return JSON.parse(localStorage.getItem(PENDING_REVIEWS_KEY)) || []; } catch { return []; } }
+function addPendingReview(aid, review) {
+  const pending = getPendingReviews();
+  pending.push({ aid, review, queuedAt: new Date().toISOString() });
+  localStorage.setItem(PENDING_REVIEWS_KEY, JSON.stringify(pending));
+  _updatePendingBadge();
+  return pending;
+}
+function removePendingReview(index) {
+  const pending = getPendingReviews();
+  pending.splice(index, 1);
+  localStorage.setItem(PENDING_REVIEWS_KEY, JSON.stringify(pending));
+  _updatePendingBadge();
+  return pending;
+}
+async function syncPendingReviews() {
+  if (!REVIEW_SERVER) return 0;
+  const pending = getPendingReviews();
+  if (!pending.length) return 0;
+  let synced = 0;
+  // Process in reverse to maintain order on failure
+  for (let i = pending.length - 1; i >= 0; i--) {
+    const { aid, review } = pending[i];
+    try {
+      const result = await serverAddReview(aid, review);
+      if (result) { removePendingReview(i); synced++; }
+    } catch (e) {}
+  }
+  if (synced > 0) {
+    showToast(synced + ' pending review' + (synced > 1 ? 's' : '') + ' synced to server', 'success', 'Auto-Synced');
+    renderAll();
+  }
+  return synced;
+}
+function _updatePendingBadge() {
+  const badge = document.getElementById('pendingSyncBadge');
+  const container = document.getElementById('pendingSyncStatus');
+  if (!badge) return;
+  const count = getPendingReviews().length;
+  if (count > 0) {
+    badge.textContent = count; badge.style.display = 'inline-flex';
+    if (container) container.style.display = '';
+  } else {
+    badge.style.display = 'none';
+    if (container) container.style.display = 'none';
+  }
+}
+
 /* ── Reviewer Statistics ── */
 function getReviewerStats() {
   const all = getReviews();
@@ -2369,6 +2420,8 @@ function startAutoRefresh() {
   if (serverPollInterval) clearInterval(serverPollInterval);
   serverPollInterval = setInterval(async () => {
     if (!REVIEW_SERVER) { detectReviewServer(); return; }
+    // Auto-sync any pending reviews from offline sessions
+    await syncPendingReviews();
     const prevReviews = JSON.stringify(SERVER_REVIEWS);
     const prevLocks = JSON.stringify(ACTIVE_LOCKS);
     await serverFetchReviews();
@@ -4457,10 +4510,10 @@ async function submitReview(aid, type, label, filename) {
   if (REVIEW_SERVER) {
     const result = await serverAddReview(aid, review);
     if (result) { showToast('Review shared with all reviewers', 'success', 'Review Shared'); }
-    else { saveReview(aid, review); showToast('Review saved locally (server unavailable)', 'warning', 'Local Only'); }
+    else { saveReview(aid, review); addPendingReview(aid, review); showToast('Review saved locally — will auto-sync when server is available', 'warning', 'Queued for Sync'); }
   } else {
-    saveReview(aid, review);
-    showToast('Review submitted for ' + label, 'success', 'Review Saved');
+    saveReview(aid, review); addPendingReview(aid, review);
+    showToast('Review saved locally — will auto-sync when server is available', 'info', 'Queued for Sync');
   }
   logProfileActivity(getReviewerUsername() || name, 'review_submitted', 'Reviewed ' + label + ' (' + type + ') — ' + rating, {artifactId: aid, rating});
   const list = document.getElementById('rl_'+aid) || document.getElementById('ril_'+aid);
@@ -5847,6 +5900,8 @@ function clearAllReviews() {
   if (!confirm('Delete ALL local reviews? This cannot be undone.')) return;
   localStorage.removeItem(REVIEWS_KEY);
   localStorage.removeItem(SCORE_OVERRIDES_KEY);
+  localStorage.removeItem(PENDING_REVIEWS_KEY);
+  _updatePendingBadge();
   const active = document.querySelector('.nav a.active');
   if (active) showPage(active.dataset.page);
 }
@@ -6477,6 +6532,7 @@ document.addEventListener('click', function(e) {
    INIT
    ═══════════════════════════════════════════════════════════════════════════ */
 loadData();
+_updatePendingBadge();
 </script>
 </body>
 </html>
