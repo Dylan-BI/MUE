@@ -4035,7 +4035,17 @@ async function serverFetchProfiles() {
   if (!REVIEW_SERVER) return {};
   try {
     const resp = await _serverFetch(REVIEW_SERVER + '/api/profiles?_cb=' + Date.now(), {signal: AbortSignal.timeout(2000)});
-    if (resp.ok) { SERVER_PROFILES = await resp.json(); return SERVER_PROFILES; }
+    if (resp.ok) {
+      const raw = await resp.json();
+      // SECURITY: keep email in data (needed for profile recovery) but NEVER render it in UI
+      // Server-side stripping should be added in the next review_server.py update
+      SERVER_PROFILES = {};
+      for (const [k, v] of Object.entries(raw)) {
+        if (isHiddenUsername(k)) continue;
+        SERVER_PROFILES[k] = v;
+      }
+      return SERVER_PROFILES;
+    }
   } catch (e) {}
   return {};
 }
@@ -4175,6 +4185,61 @@ function setReviewerName(n) {
 function getReviewerUsername() { const p = getProfile(); return p ? p.username || '' : ''; }
 
 function getReviewerDisplayName() { const p = getProfile(); return p ? p.displayName || '' : ''; }
+
+/* ── Reviewer Profile Card (inter-profile exchange) ── */
+function showReviewerProfile(usernameOrDisplayName) {
+  // Find profile by username key or displayName match
+  let profile = null;
+  for (const [k, v] of Object.entries(SERVER_PROFILES)) {
+    if (k === usernameOrDisplayName || (v.displayName || '').toLowerCase().replace(/\\s+/g,'_') === usernameOrDisplayName) {
+      profile = v; break;
+    }
+  }
+  // Also check local reviews for name-based match
+  const allReviews = getMergedReviews ? {} : getReviews();
+  let reviewStats = null;
+  const stats = getReviewerStats();
+  for (const [name, s] of Object.entries(stats)) {
+    if (name.toLowerCase().replace(/\\s+/g,'_') === usernameOrDisplayName || name.toLowerCase() === usernameOrDisplayName) {
+      reviewStats = s; break;
+    }
+  }
+  const displayName = profile ? profile.displayName : (reviewStats ? reviewStats.name : usernameOrDisplayName);
+  const role = profile ? profile.role : '';
+  const joined = profile && profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '';
+  const initials = displayName.split(/\\s+/).map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const mix = _reviewerColorMix(usernameOrDisplayName);
+  let h = '<div style="padding:20px;max-width:400px">';
+  h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">';
+  h += '<div style="width:48px;height:48px;border-radius:50%;background:'+mix.gradient+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;box-shadow:0 4px 12px rgba(0,0,0,.2)">'+escHtml(initials)+'</div>';
+  h += '<div><div style="font-size:16px;font-weight:700">'+escHtml(displayName)+'</div>';
+  if (role) h += '<div style="font-size:12px;color:var(--text-muted)">'+escHtml(role)+'</div>';
+  if (joined) h += '<div style="font-size:11px;color:var(--text-muted)">Joined '+joined+'</div>';
+  h += '</div></div>';
+  if (reviewStats) {
+    h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
+    h += '<div style="text-align:center;padding:8px;background:var(--bg-muted);border-radius:8px"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+reviewStats.total+'</div><div style="font-size:10px;color:var(--text-muted)">Reviews</div></div>';
+    h += '<div style="text-align:center;padding:8px;background:var(--bg-muted);border-radius:8px"><div style="font-size:20px;font-weight:700;color:var(--success)">'+reviewStats.active+'</div><div style="font-size:10px;color:var(--text-muted)">Active</div></div>';
+    h += '<div style=\"text-align:center;padding:8px;background:var(--bg-muted);border-radius:8px\"><div style=\"font-size:20px;font-weight:700;color:var(--info)\">'+reviewStats.artifactCount+'</div><div style=\"font-size:10px;color:var(--text-muted)\">Artifacts</div></div>';
+    h += '</div>';
+    const ratingBreakdown = Object.entries(reviewStats.ratings).map(([r,c]) => '<span style=\"display:inline-block;margin-right:8px\">'+escHtml(r)+': <strong>'+c+'</strong></span>').join('');
+    if (ratingBreakdown) h += '<div style=\"font-size:12px;color:var(--text-secondary);margin-bottom:8px\">'+ratingBreakdown+'</div>';
+    h += '<div style=\"font-size:11px;color:var(--text-muted);border-top:1px solid var(--border-light);padding-top:8px\">Reviewed: '+reviewStats.artifacts.slice(0,5).join(', ')+(reviewStats.artifacts.length>5?' +'+(reviewStats.artifacts.length-5)+' more':'')+'</div>';
+    h += '<div style=\"font-size:10px;color:var(--text-light);margin-top:4px\">Last active: '+new Date(reviewStats.lastReview).toLocaleDateString()+'</div>';
+  } else if (!profile) {
+    h += '<div style=\"font-size:13px;color:var(--text-muted);padding:12px 0\">No reviews or profile data found for this reviewer.</div>';
+  } else {
+    h += '<div style=\"font-size:13px;color:var(--text-muted);padding:12px 0\">Profile registered — no reviews submitted yet.</div>';
+  }
+  h += '</div>';
+  // Show as a centered overlay
+  let overlay = document.getElementById('reviewerProfileOverlay');
+  if (!overlay) { overlay = document.createElement('div'); overlay.id = 'reviewerProfileOverlay'; document.body.appendChild(overlay); }
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.innerHTML = '<div style="background:var(--bg-card);border:1px solid var(--border-light);border-radius:12px;padding:0;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);cursor:default" onclick="event.stopPropagation()">' + h + '<div style=\"text-align:right;padding:0 20px 16px\"><button onclick=\"closeReviewerProfile()\" style=\"padding:6px 16px;border:1px solid var(--border-light);border-radius:6px;background:var(--bg-muted);color:var(--text-primary);cursor:pointer;font-size:12px\">Close</button></div></div>';
+  overlay.onclick = closeReviewerProfile;
+}
+function closeReviewerProfile() { const o = document.getElementById('reviewerProfileOverlay'); if (o) o.remove(); }
 
 /* ── Profile Modal ── */
 function _switchProfileTab(tab) {
@@ -4685,7 +4750,9 @@ function renderReviewList(aid) {
     const typeBadge = r.type ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-muted);padding:1px 5px;border-radius:4px;margin-left:2px">'+escHtml(r.type)+'</span>' : '';
     const _catMap = Object.fromEntries(_reviewCatOpts.map(c=>[c.key,c]));
     const catBadge = r.category && _catMap[r.category] ? '<span style="font-size:9px;background:var(--bg-muted);color:var(--text-primary);padding:1px 5px;border-radius:4px;margin-left:4px;border:1px solid var(--border-color)">'+_catMap[r.category].tag+' '+_catMap[r.category].label+'</span>' : '';
-    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name"><span class="r-avatar" style="background:'+rMix.gradient+'">'+escHtml(rInitials)+'</span>'+escHtml(r.name)+sourceBadge+roleBadge+typeBadge+catBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
+    // Clickable reviewer name — opens profile card
+    const reviewerLink = '<span class="reviewer-name-link" onclick="showReviewerProfile(\''+escHtml(r.name.toLowerCase().replace(/\s+/g,'_'))+'\')" title="View profile of '+escHtml(r.name)+'" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px">'+escHtml(r.name)+'</span>';
+    h += '<div class="review-item'+cancelClass+'" id="rv_'+aid+'_'+r.id+'"><div class="r-header"><span class="r-name"><span class="r-avatar" style="background:'+rMix.gradient+'">'+escHtml(rInitials)+'</span>'+reviewerLink+sourceBadge+roleBadge+typeBadge+catBadge+cancelledBadge+editLockBadge+'</span><span class="r-rating" style="background:'+rc+'">'+escHtml(r.rating)+'</span></div><div class="r-text">'+escHtml(r.text)+'</div><div class="r-date">'+d.toLocaleDateString()+' '+d.toLocaleTimeString()+editedTag+actionsHtml+'</div></div>';
   });
   // Add sync count info
   const syncedAll = getSyncedReviews();
