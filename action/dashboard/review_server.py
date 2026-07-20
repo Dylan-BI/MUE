@@ -43,7 +43,7 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from http.server import HTTPServer, SimpleHTTPRequestHandler
@@ -137,6 +137,15 @@ SMTP_USE_TLS = os.environ.get('MUE_SMTP_TLS', 'true').lower() == 'true'
 DAILY_SUMMARY_HOUR = int(os.environ.get('MUE_SUMMARY_HOUR', '6'))  # 6 AM default
 ADMIN_EMAIL = os.environ.get('MUE_ADMIN_EMAIL', 'dylan@bicyclebi.com')  # receives all reviewer input
 DAILY_SUMMARY_MINUTE = int(os.environ.get('MUE_SUMMARY_MINUTE', '0'))
+
+# Timezone support for per-reviewer daily summaries
+COMMON_TIMEZONES = [
+    'Pacific/Midway', 'Pacific/Honolulu', 'America/Anchorage', 'America/Los_Angeles',
+    'America/Denver', 'America/Chicago', 'America/New_York', 'America/Sao_Paulo',
+    'Atlantic/Reykjavik', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
+    'Europe/Athens', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok',
+    'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'
+]
 
 
 # ── State ──────────────────────────────────────────────────────────────
@@ -746,7 +755,7 @@ def _build_summary_html(summary):
   <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
     <div style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:24px;color:#fff">
       <h1 style="margin:0;font-size:20px">📬 MUE Daily Review Summary</h1>
-      <p style="margin:6px 0 0;opacity:.85;font-size:13px">{period} · Generated {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
+      <p style="margin:6px 0 0;opacity:.85;font-size:13px">{period} · Generated {datetime.now().strftime("%Y-%m-%d %H:%M")} · Local timezone: {datetime.now().astimezone().tzname() if hasattr(datetime.now(), 'astimezone') else 'N/A'}</p>
     </div>
     <div style="padding:20px 24px">
       <h2 style="font-size:15px;color:#333;margin:0 0 12px">📊 Overview</h2>
@@ -815,6 +824,7 @@ def send_daily_summaries():
     html_body = _build_summary_html(summary)
     profiles = load_profiles()
     sent_count = 0
+    sent_usernames = set()  # Track who we've sent to avoid duplicates
 
     # Send to opted-in reviewers
     for username, profile in profiles.items():
@@ -826,11 +836,12 @@ def send_daily_summaries():
         if ok:
             log('INFO', f'Summary sent to {display} <{email}>')
             sent_count += 1
+            sent_usernames.add(username)
         else:
             log('WARNING', f'Failed to send to {display} <{email}>: {err}')
 
-    # Also send to admin (comprehensive assessment of all reviewer input)
-    if ADMIN_EMAIL:
+    # Also send to admin (comprehensive assessment of all reviewer input) — but only if admin wasn't already sent
+    if ADMIN_EMAIL and 'admin' not in sent_usernames:
         ok, err = _send_email(ADMIN_EMAIL, f'📬 MUE Admin Daily Summary — {summary["total_reviews"]} review(s), {summary["total_reviewers"]} reviewer(s)', html_body)
         if ok:
             log('INFO', f'Admin summary sent to {ADMIN_EMAIL}')
@@ -1024,22 +1035,142 @@ def _tunnel_notify_down(to_addr, tool_name, reason='unknown'):
 _scheduler_running = True
 
 
-def _daily_scheduler_loop():
-    """Background thread that fires daily summaries at the configured hour."""
-    while _scheduler_running:
-        now = datetime.now()
-        target = now.replace(hour=DAILY_SUMMARY_HOUR, minute=DAILY_SUMMARY_MINUTE, second=0, microsecond=0)
-        if target <= now:
+def _get_timezone_offset(tz_name):
+    """Get UTC offset in hours for a timezone name. Returns 0 if unknown."""
+    try:
+        from zoneinfo import ZoneInfo
+        tz_obj = ZoneInfo(tz_name)
+        now_utc = datetime.now(timezone.utc)
+        now_local = now_utc.astimezone(tz_obj)
+        offset_td = now_local.utcoffset()
+        if offset_td is None:
+            return 0
+        offset = offset_td.total_seconds() / 3600
+        return offset
+    except Exception:
+        return 0  # fallback to UTC
+
+
+def _is_reviewer_summary_time(profile):
+    """Check if it's 06:00 AM in the reviewer's timezone."""
+    tz_name = profile.get('timezone', '')
+    if not tz_name:
+        return False  # no timezone set, skip
+    
+    try:
+        from zoneinfo import ZoneInfo
+        tz_obj = ZoneInfo(tz_name)
+        now_utc = datetime.now(timezone.utc)
+        now_local = now_utc.astimezone(tz_obj)
+        
+        return (now_local.hour == DAILY_SUMMARY_HOUR and 
+                now_local.minute == DAILY_SUMMARY_MINUTE)
+    except Exception:
+        return False
+
+
+def _get_next_summary_time(profile):
+    """Get the next summary time for a reviewer in their timezone."""
+    tz_name = profile.get('timezone', '')
+    if not tz_name:
+        return None
+    
+    try:
+        from zoneinfo import ZoneInfo
+        tz_obj = ZoneInfo(tz_name)
+        now_utc = datetime.now(timezone.utc)
+        now_local = now_utc.astimezone(tz_obj)
+        
+        target = now_local.replace(hour=DAILY_SUMMARY_HOUR, minute=DAILY_SUMMARY_MINUTE, second=0, microsecond=0)
+        if target <= now_local:
             target += timedelta(days=1)
-        wait_seconds = (target - now).total_seconds()
-        log('INFO', f'Next daily summary at {target.strftime("%H:%M")} ({int(wait_seconds//3600)}h {int((wait_seconds%3600)//60)}m)')
-        # Sleep in small increments so we can stop cleanly
-        slept = 0
-        while slept < wait_seconds and _scheduler_running:
-            time.sleep(min(30, wait_seconds - slept))
-            slept += 30
-        if _scheduler_running:
-            send_daily_summaries()
+        return target
+    except Exception:
+        return None
+
+
+def _daily_scheduler_loop():
+    """Background thread that fires daily summaries at 06:00 AM in each reviewer's timezone."""
+    # Track when each reviewer was last sent a summary to avoid duplicates
+    last_sent = {}  # {username: date}
+    
+    # Check every minute for timezone-appropriate summaries
+    while _scheduler_running:
+        now_utc = datetime.now(timezone.utc)
+        today = now_utc.date()
+        
+        # Load profiles and check each reviewer's timezone
+        profiles = load_profiles()
+        sent_this_cycle = False
+        
+        for username, profile in profiles.items():
+            if not profile.get('dailySummary') or not profile.get('email'):
+                continue
+            
+            tz_name = profile.get('timezone', '')
+            if not tz_name:
+                continue  # no timezone set, skip
+            
+            # Check if we already sent today for this reviewer
+            if last_sent.get(username) == today:
+                continue
+            
+            # Check if it's 06:00 AM in their timezone
+            if _is_reviewer_summary_time(profile):
+                log('INFO', f'It\'s 06:00 AM in {profile.get("displayName", username)}\'s timezone ({tz_name})')
+                # Send summary to this specific reviewer
+                _send_summary_to_reviewer(username, profile)
+                last_sent[username] = today
+                sent_this_cycle = True
+        
+        # Also check admin (use server timezone or first available timezone)
+        if ADMIN_EMAIL and last_sent.get('admin') != today:
+            # Find admin profile or use server time
+            admin_profile = profiles.get('admin', {})
+            if admin_profile.get('timezone'):
+                if _is_reviewer_summary_time(admin_profile):
+                    log('INFO', f'Admin summary time (timezone: {admin_profile["timezone"]})')
+                    _send_summary_to_reviewer('admin', {'email': ADMIN_EMAIL, 'displayName': 'Admin', 'timezone': admin_profile.get('timezone', '')})
+                    last_sent['admin'] = today
+                    sent_this_cycle = True
+            else:
+                # Fallback: send at server time if no timezone set
+                now_server = datetime.now()
+                if now_server.hour == DAILY_SUMMARY_HOUR and now_server.minute == DAILY_SUMMARY_MINUTE:
+                    log('INFO', f'Admin summary time (server timezone)')
+                    _send_summary_to_reviewer('admin', {'email': ADMIN_EMAIL, 'displayName': 'Admin', 'timezone': ''})
+                    last_sent['admin'] = today
+                    sent_this_cycle = True
+        
+        if sent_this_cycle:
+            log('INFO', f'Daily summary cycle complete — sent to {len([k for k,v in last_sent.items() if v == today])} recipient(s)')
+        
+        # Sleep for 60 seconds between checks
+        for _ in range(60):
+            if not _scheduler_running:
+                break
+            time.sleep(1)
+
+
+def _send_summary_to_reviewer(username, profile):
+    """Send daily summary to a specific reviewer."""
+    summary = _compile_daily_summary(hours=24)
+    if summary['total_reviews'] == 0:
+        return
+    
+    html_body = _build_summary_html(summary)
+    email = profile.get('email')
+    display = profile.get('displayName', username)
+    tz_name = profile.get('timezone', '').replace('_', ' ')
+    
+    # Add timezone note to subject if timezone is set
+    tz_note = f' (🕐 {tz_name})' if tz_name else ''
+    
+    ok, err = _send_email(email, f'📬 MUE Daily Summary{tz_note} — {summary["total_reviews"]} review(s), {summary["total_reviewers"]} reviewer(s)', html_body)
+    if ok:
+        log('INFO', f'Daily summary sent to {display} <{email}> (tz: {tz_name or "server default"})')
+    else:
+        log('WARNING', f'Failed to send to {display} <{email}>: {err}')
 
 
 # ── Test Proxy Learner (TPL) — dummy generative data for data-flow testing ──
@@ -1471,6 +1602,7 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             'displayName': display_name or username,
             'email': body.get('email', '').strip(),
             'dailySummary': bool(body.get('dailySummary', False)),
+            'timezone': body.get('timezone', '').strip(),
             'role': body.get('role', '').strip() or '',
             'createdAt': body.get('createdAt', datetime.now().isoformat()),
             'updatedAt': datetime.now().isoformat()

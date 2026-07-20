@@ -1154,6 +1154,13 @@
             <div class="pm-toggle-desc">Get a daily email with who reviewed what, ratings, and progress</div>
           </div>
         </label>
+        <div id="pmTimezoneGroup" class="pm-field">
+          <label>Timezone <span style="color:rgba(255,255,255,.35)">(for daily summary timing)</span></label>
+          <select id="pm_timezone" style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:13px;">
+            <option value="">— Select your timezone —</option>
+          </select>
+          <div class="pm-hint">Daily summaries are sent at 06:00 AM in your local timezone</div>
+        </div>
         <div class="pm-actions">
           <button class="pm-save" onclick="saveProfile()">✅ Create & Sign In</button>
         </div>
@@ -1389,6 +1396,19 @@ function checkEnvironment() {
   
   const overlay = document.getElementById('envOverlay');
   if (overlay) overlay.classList.add('open');
+}
+
+function _loadTimezoneOptions(select) {
+  const COMMON_TZS = [
+    'Pacific/Midway','Pacific/Honolulu','America/Anchorage','America/Los_Angeles',
+    'America/Denver','America/Chicago','America/New_York','America/Sao_Paulo',
+    'Atlantic/Reykjavik','Europe/London','Europe/Paris','Europe/Berlin',
+    'Europe/Athens','Asia/Dubai','Asia/Kolkata','Asia/Bangkok',
+    'Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'
+  ];
+  COMMON_TZS.forEach(tz => { const o = document.createElement('option'); o.value = tz; o.textContent = tz.replace(/_/g,' '); select.appendChild(o); });
+  // Try to auto-detect user timezone
+  try { const auto = Intl.DateTimeFormat().resolvedOptions().timeZone; if (auto && !COMMON_TZS.includes(auto)) { const o = document.createElement('option'); o.value = auto; o.textContent = auto.replace(/_/g,' ') + ' (detected)'; select.insertBefore(o, select.children[1]); select.value = auto; } else if (auto) { select.value = auto; } } catch(e) {}
 }
 
 function _previewProfileAvatar() {
@@ -4443,8 +4463,11 @@ function openProfileModal(edit) {
   }
   if (existing && !edit) { modal.classList.add('open'); return; } // first-visit only
   const isEditing = !!existing;
-  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = !!existing.dailySummary; }
-  else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; }
+  // Timezone select
+  const tzSelect = document.getElementById('pm_timezone');
+  if (tzSelect && !tzSelect._optionsLoaded) { _loadTimezoneOptions(tzSelect); tzSelect._optionsLoaded = true; }
+  if (existing) { uInput.value = existing.username || ''; dInput.value = existing.displayName || ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = !!existing.dailySummary; if (tzSelect) tzSelect.value = existing.timezone || ''; }
+  else { uInput.value = ''; dInput.value = ''; if (eInput) eInput.value = ''; if (dsInput) dsInput.checked = false; if (tzSelect) tzSelect.value = ''; }
   // Email group is always visible (create + edit)
   const emailGroup = document.getElementById('pmEmailGroup');
   if (emailGroup) emailGroup.style.display = '';
@@ -4500,7 +4523,7 @@ function _quickLogin(username) {
     showToast('Access denied — you can only sign in as yourself', 'warning', 'Restricted');
     return;
   }
-  const profile = { username: p.username, displayName: p.displayName, email: p.email || '', dailySummary: !!p.dailySummary, createdAt: p.createdAt };
+  const profile = { username: p.username, displayName: p.displayName, email: p.email || '', dailySummary: !!p.dailySummary, timezone: p.timezone || '', createdAt: p.createdAt };
   setProfile(profile);
   closeProfileModal();
   renderSidebarProfile();
@@ -4542,7 +4565,9 @@ async function saveProfile() {
       }
     }
   }
-  const profile = { username, displayName, email, dailySummary, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
+  const tzSelect = document.getElementById('pm_timezone');
+  const timezone = tzSelect ? tzSelect.value : '';
+  const profile = { username, displayName, email, dailySummary, timezone, createdAt: (getProfile() || {}).createdAt || new Date().toISOString() };
   // Check if this is a local-only profile (admin bypass) — if so, skip server sync
   const localProfile = localStorage.getItem(ADMIN_LOCAL_PROFILE_KEY);
   let isLocalOnly = false;
@@ -4604,12 +4629,13 @@ function renderSidebarProfile() {
   const tprBtn = admin ? '<button class="theme-btn" onclick="activateTPR()" title="Run automated dashboard tests" style="margin-top:6px;width:100%;font-size:11px;justify-content:center">🧪 Run TPR Tests</button>' : '';
   const tplBtn = admin ? '<button class="theme-btn" onclick="activateTPL()" title="Generate dummy learner data for data-flow testing" style="margin-top:4px;width:100%;font-size:11px;justify-content:center">📚 Generate TPL Data</button><button class="theme-btn" onclick="deactivateTPL()" title="Remove TPL dummy data and restore clean state" style="margin-top:4px;width:100%;font-size:11px;justify-content:center;background:rgba(220,53,69,.15);color:#ff6b6b">🗑️ Cleanup TPL Data</button>' : '';
   const emailBadge = p.email ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="' + escHtml(p.email) + (p.dailySummary ? ' — Daily summary ON' : '') + '">' + (p.dailySummary ? '📬' : '✉️') + '</span>' : '';
+  const tzBadge = p.timezone ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="Daily summary at 06:00 ' + escHtml(p.timezone.replace(/_/g,' ')) + '">🕐 ' + escHtml(p.timezone.split('/').pop().replace(/_/g,' ')) + '</span>' : '';
   const emailLine = p.email
     ? '<div class="sp-email" onclick="event.stopPropagation();openProfileModal(true)" title="Click to edit email">✉️ ' + escHtml(p.email) + '</div>'
     : '<div class="sp-email sp-email-missing" onclick="event.stopPropagation();openProfileModal(true)" title="Add your email in Edit Profile">➕ Add email</div>';
   container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="' + (admin ? 'Admin — click to edit any profile' : 'Click to edit your profile') + '">' +
     '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
-    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + '</div>' +
+    '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + tzBadge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div>' +
     emailLine + '</div>' +
     editBtn + '</div></div>' + tprBtn + tplBtn;
