@@ -59,5 +59,11 @@
     "action": "session_started",
     "detail": "Signed in as Test Reviewer",
     "timestamp": "2026-07-20T13:45:24.968173"
+  },
+  {
+    "username": "admin",
+    "action": "session_started",
+    "detail": "Admin signed in as Dashboard Admin",
+    "timestamp": "2026-07-20T15:23:15.562980"
   }
 ]

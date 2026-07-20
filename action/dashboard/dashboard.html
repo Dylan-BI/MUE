@@ -2160,6 +2160,87 @@ function _updatePendingBadge() {
   }
 }
 
+/* ── Curriculum Reviews (reviewer feedback on curriculum content) ── */
+const CURRICULUM_REVIEWS_KEY = 'mue_curriculum_reviews';
+function getCurriculumReviews() { try { return JSON.parse(localStorage.getItem(CURRICULUM_REVIEWS_KEY)) || {}; } catch { return {}; } }
+function saveCurriculumReview(categoryId, review) {
+  const all = getCurriculumReviews();
+  const key = categoryId || '_overall';
+  if (!all[key]) all[key] = [];
+  // Check if this reviewer already reviewed this category — update instead of duplicate
+  const existing = all[key].findIndex(r => r.name === review.name);
+  if (existing >= 0) { all[key][existing] = { ...all[key][existing], ...review, timestamp: new Date().toISOString() }; }
+  else { review.timestamp = new Date().toISOString(); review.id = Date.now() + Math.random().toString(36).slice(2,6); all[key].push(review); }
+  localStorage.setItem(CURRICULUM_REVIEWS_KEY, JSON.stringify(all));
+  return all;
+}
+function deleteCurriculumReview(categoryId, reviewId) {
+  const all = getCurriculumReviews();
+  const key = categoryId || '_overall';
+  if (all[key]) { all[key] = all[key].filter(r => r.id !== reviewId); if (!all[key].length) delete all[key]; }
+  localStorage.setItem(CURRICULUM_REVIEWS_KEY, JSON.stringify(all));
+}
+function _renderCurriculumReviewForm(categoryId) {
+  const name = getReviewerName() || '';
+  const btnId = 'cr_btn_' + (categoryId || 'overall');
+  const textareaId = 'cr_ta_' + (categoryId || 'overall');
+  const ratingId = 'cr_rt_' + (categoryId || 'overall');
+  return '<div style="margin-top:8px;padding:8px 10px;background:var(--bg-muted);border-radius:8px;border:1px solid var(--border-light)">' +
+    '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">' +
+    ['Pass','Moderate','Rework','Suggestion'].map(r => '<button class="rating-btn cr-rating-btn" data-rating="' + r + '" onclick="this.parentElement.querySelectorAll(\'.cr-rating-btn\').forEach(b=>b.classList.remove(\'selected\'));this.classList.add(\'selected\')" style="font-size:10px;padding:2px 8px;border:1px solid var(--border-light);border-radius:4px;background:var(--bg-card);cursor:pointer">' + r + '</button>').join('') +
+    '</div>' +
+    '<textarea id="' + textareaId + '" placeholder="Your feedback on this curriculum area…" style="width:100%;min-height:48px;border:1px solid var(--border-input);border-radius:6px;padding:6px 8px;font-size:11px;resize:vertical;background:var(--bg-card);color:var(--text-primary);font-family:inherit"></textarea>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">' +
+    '<span style="font-size:10px;color:var(--text-muted)">' + (name ? 'Posting as ' + escHtml(name) : 'Set your profile name first') + '</span>' +
+    '<button id="' + btnId + '" onclick="_submitCurriculumReview(\'' + escHtml(categoryId || '') + '\')" style="padding:4px 12px;border:none;border-radius:6px;background:var(--accent);color:#fff;font-size:11px;cursor:pointer">💬 Submit</button>' +
+    '</div></div>';
+}
+function _submitCurriculumReview(categoryId) {
+  const name = getReviewerName();
+  if (!name) { showToast('Set your reviewer profile name first', 'warning', 'Name Required'); openProfileModal(); return; }
+  const ta = document.getElementById('cr_ta_' + (categoryId || 'overall'));
+  const text = ta ? ta.value.trim() : '';
+  if (!text) { showToast('Write some feedback before submitting', 'warning', 'Empty Comment'); return; }
+  const ratingBtn = document.querySelector('#cr_ta_' + (categoryId || 'overall') + ' ~ .rating-btn.selected, #cr_rt_' + (categoryId || 'overall') + ' .rating-btn.selected') ||
+    document.querySelector('[id^="cr_ta_' + (categoryId || 'overall') + '"]')?.parentElement?.querySelector('.cr-rating-btn.selected');
+  // Find rating by traversing DOM
+  let rating = 'No rating';
+  const form = ta?.closest('[style*="background:var(--bg-muted)"]') || ta?.parentElement?.parentElement;
+  if (form) { const sel = form.querySelector('.cr-rating-btn.selected'); if (sel) rating = sel.getAttribute('data-rating'); }
+  const review = { name, text, rating, role: 'Instructor' };
+  saveCurriculumReview(categoryId, review);
+  showToast('Curriculum review saved' + (categoryId ? ' for ' + categoryId : ' (overall)'), 'success', 'Review Saved');
+  logProfileActivity(getReviewerUsername() || name, 'curriculum_review', 'Reviewed curriculum: ' + (categoryId || 'overall'), { categoryId, rating });
+  // Re-render the review list for this category
+  _refreshCurriculumReviews(categoryId);
+}
+function _refreshCurriculumReviews(categoryId) {
+  const containerId = 'cr_list_' + (categoryId || 'overall');
+  const container = document.getElementById(containerId);
+  if (container) container.innerHTML = _renderCurriculumReviewList(categoryId);
+}
+function _renderCurriculumReviewList(categoryId) {
+  const all = getCurriculumReviews();
+  const key = categoryId || '_overall';
+  const reviews = all[key] || [];
+  if (!reviews.length) return '<div style="font-size:11px;color:var(--text-muted);padding:4px 0">No reviews yet — be the first to leave feedback.</div>';
+  let h = '';
+  reviews.slice().reverse().forEach(r => {
+    const mix = _reviewerColorMix(r.name.toLowerCase().replace(/\s+/g, '_'));
+    const initials = (r.name || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const rc = (r.rating || '').includes('Pass') ? '#198754' : (r.rating || '').includes('Rework') ? '#dc3545' : (r.rating || '').includes('Suggestion') ? '#6c5ce7' : '#ffc107';
+    const isAuthor = getReviewerName() === r.name;
+    const deleteBtn = isAuthor ? ' <span style="font-size:10px;color:var(--danger);cursor:pointer;margin-left:6px" onclick="deleteCurriculumReview(\'' + escHtml(categoryId || '') + '\',\'' + r.id + '\');_refreshCurriculumReviews(\'' + escHtml(categoryId || '') + '\')">🗑️</span>' : '';
+    h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-top:1px solid var(--border-light)">' +
+      '<div style="width:24px;height:24px;border-radius:50%;background:' + mix.gradient + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">' + escHtml(initials) + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600">' + escHtml(r.name) + ' <span style="display:inline-block;font-size:9px;padding:1px 6px;border-radius:4px;background:' + rc + ';color:#fff;margin-left:4px">' + escHtml(r.rating || 'No rating') + '</span>' + deleteBtn + '</div>' +
+      '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;white-space:pre-wrap;word-break:break-word">' + escHtml(r.text) + '</div>' +
+      '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">' + new Date(r.timestamp).toLocaleDateString() + ' ' + new Date(r.timestamp).toLocaleTimeString() + '</div>' +
+      '</div></div>';
+  });
+  return h;
+}
+
 /* ── Reviewer Statistics ── */
 function getReviewerStats() {
   const all = getReviews();
@@ -2726,6 +2807,12 @@ function renderCurriculumReviewContent() {
           catFiles.map(f => '<span style="display:inline-block;font-size:10px;font-family:monospace;background:var(--bg-metric-blue);color:var(--text-code);padding:2px 8px;border-radius:4px;border:1px solid var(--border-light)">📄 ' + escHtml(f.path) + '</span>').join('') +
           '</div>' :
           '<div style="font-size:11px;color:#aaa;font-style:italic">No source criteria files mapped yet</div>') +
+        // ── Category-level curriculum review ──
+        '<div style="margin-top:8px;border-top:1px solid var(--border-light);padding-top:8px">' +
+        '<span style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:600" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">💬 Instructor Review ▸</span>' +
+        '<div id="cr_form_' + cat.id + '" style="display:none">' + _renderCurriculumReviewForm(cat.id) + '</div>' +
+        '<div id="cr_list_' + cat.id + '">' + _renderCurriculumReviewList(cat.id) + '</div>' +
+        '</div>' +
         '</div>';
     }).join('') +
     '</div></div>';
@@ -2764,6 +2851,12 @@ function renderCurriculumReviewContent() {
     return days[d.getDay()] + ' ' + months[d.getMonth()] + ' ' + d.getDate();
   };
   const isSameDate = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  // ── Overall Curriculum Review ──
+  html += '<div class="card"><h3>📝 Overall Curriculum Review</h3><p class="caption">Leave feedback on the full curriculum — structure, pacing, assessment alignment, and overall effectiveness. All reviewer feedback is stored locally and synced when the server is available.</p>' +
+    _renderCurriculumReviewForm('') +
+    '<div id="cr_list_overall">' + _renderCurriculumReviewList('') + '</div></div>';
+
   html += '<div class="card"><h3>📆 Curriculum Calendar</h3><p class="caption">' +
     (startDt ? 'Curriculum started ' + fmtDate(startDt) + ' — ' : '') +
     '28 working days mapped to a Mon–Fri calendar grid. Each cell represents one training day; green cells indicate days where the learner submitted a note. The highlighted cell marks today. Weekends are shown in muted grey.</p>' +
@@ -5634,7 +5727,7 @@ function renderThirdPartyReview(reviewData, changedFiles) {
       '<span style="background:var(--warning);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">8</span>' +
       '<strong style="font-size:13px">📚 Curriculum Review</strong>' +
       '<span style="font-size:10px;color:var(--text-light)">Complete framework explorer</span></div>' +
-      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Complete curriculum framework explorer — learner fulfillment infographic (notes, evidence, scorecard, proof tasks, Codex gates), full 4-level curriculum reference with weekly category schedule and calendar strips, Curriculum Target Progress rings (categories + skills engaged), level-specific skills summary grid, per-category deep-dive with skill coverage rings and source file mappings, Source Criteria Index table with category tags, and 28-day curriculum calendar.' +
+      '<div style="font-size:11px;color:var(--text-muted);line-height:1.6"><strong>Shows:</strong> Complete curriculum framework explorer — learner fulfillment infographic (notes, evidence, scorecard, proof tasks, Codex gates), full 4-level curriculum reference with weekly category schedule and calendar strips, Curriculum Target Progress rings (categories + skills engaged), level-specific skills summary grid, per-category deep-dive with skill coverage rings and source file mappings, instructor review forms on each category, Source Criteria Index table with category tags, overall curriculum review section, and 28-day curriculum calendar.' +
       '<br><strong>Instructor focus:</strong> Your most comprehensive view of the entire training program. Use the 🌱🌿🌳🏆 level selector to match the learner\'s proficiency tier. Verify all 8 categories have activity at the active level. Check that skill targets align with artifact quality. The fulfillment infographic shows submission rates at a glance; the calendar highlights which training days are complete vs pending.</div></div>' +
       // Page 9
       '<div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:8px 12px">' +
@@ -5968,6 +6061,7 @@ function clearAllReviews() {
   localStorage.removeItem(REVIEWS_KEY);
   localStorage.removeItem(SCORE_OVERRIDES_KEY);
   localStorage.removeItem(PENDING_REVIEWS_KEY);
+  localStorage.removeItem(CURRICULUM_REVIEWS_KEY);
   _updatePendingBadge();
   const active = document.querySelector('.nav a.active');
   if (active) showPage(active.dataset.page);
