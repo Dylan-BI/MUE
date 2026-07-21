@@ -164,6 +164,7 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
     """Wrap body content in the full HTML page layout."""
     nav_items = [
         ('/', 'Home', active_nav == 'home'),
+        ('/guide', 'Guide', active_nav == 'guide'),
         ('/curriculum', 'Curriculum', active_nav == 'curriculum'),
         ('/notes', 'Notes', active_nav == 'notes'),
         ('/evidence', 'Evidence', active_nav == 'evidence'),
@@ -211,6 +212,291 @@ def _day_progress_bar(current: int, total: int = 28) -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 # Page Handlers
 # ═══════════════════════════════════════════════════════════════════════════
+
+def _page_guide() -> str:
+    """Render the learner guide — what, how, when, where."""
+    body = f'''
+<div class="card">
+  <h2 style="font-size:22px;margin-bottom:12px;">🧭 Learner Guide</h2>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:20px;">
+    Everything you need to know about working through the MUE curriculum —
+    <strong>what</strong> to do, <strong>how</strong> to do it,
+    <strong>when</strong> to do it, and <strong>where</strong> to find things.
+  </p>
+</div>
+
+<!-- ──── WHAT ──── -->
+<div class="card">
+  <h2 style="font-size:18px;margin-bottom:8px;">📌 What</h2>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:12px;">
+    <strong>MUE</strong> (Model-Understanding-Evidence) is a 28-day Business Intelligence
+    onboarding curriculum. Each day you will:
+  </p>
+  <ul style="font-size:14px;color:#4b5563;padding-left:20px;margin-bottom:12px;line-height:1.8;">
+    <li>📖 <strong>Read</strong> the day&rsquo;s focus topic and understand the learning objective</li>
+    <li>✍️ <strong>Reflect</strong> on what you learned and what evidence you produced</li>
+    <li>📎 <strong>Create</strong> the required artifact (markdown doc, screenshot, CSV, etc.)</li>
+    <li>✅ <strong>Score</strong> your work using the scorecard and Codex gates</li>
+    <li>📬 <strong>Submit</strong> for feedback when you&rsquo;re ready</li>
+  </ul>
+  <p style="font-size:14px;color:#4b5563;">
+    The curriculum covers: AI prompt crafting &bull; Codex workflow &bull; Pyramid operations &bull;
+    BI judgment &bull; data lineage &bull; change isolation &bull; deployment checklists &bull;
+    delivery handoffs &bull; team standups &bull; retention reviews &bull; reusable assets.
+  </p>
+</div>
+
+<!-- ──── HOW ──── -->
+<div class="card">
+  <h2 style="font-size:18px;margin-bottom:8px;">⚙️ How</h2>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">🏠 Dashboard (Home)</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Your starting point each day. Shows your current day, today&rsquo;s focus topic,
+    a progress bar, and any <em>Catch Up</em> items for incomplete prior days.
+    Use the <strong>Work Ahead</strong> section to preview future days.
+  </p>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">📚 Curriculum</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    A grid of all 28 days. Click any day card to open its <strong>Day Workspace</strong> —
+    a consolidated page with instructions, the note editor, scorecard, gates, and
+    evidence upload. Filter by week using the buttons at the top.
+  </p>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">📝 Daily Reflection (Note Editor)</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Each day you fill out a <strong>Daily Reflection</strong> note with these fields:
+  </p>
+  <ul style="font-size:14px;color:#4b5563;padding-left:20px;margin-bottom:8px;line-height:1.8;">
+    <li><strong>What I learned today</strong> &mdash; key takeaways, prompt structures, techniques</li>
+    <li><strong>What evidence I produced</strong> &mdash; artifacts created, outputs generated</li>
+    <li><strong>What remains open</strong> &mdash; unresolved questions or tasks</li>
+    <li><strong>Next narrow step</strong> &mdash; your immediate action item</li>
+    <li><strong>Scorecard</strong> &mdash; self-assess each of the 9 competency areas (Pass / Moderate / Fail / Unscored)</li>
+    <li><strong>Codex Gates</strong> &mdash; confirm you&rsquo;ve followed each Codex acceleration gate</li>
+  </ul>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    The note fields show <strong>dynamic hints</strong> based on the day&rsquo;s tags
+    (AI, Codex, Pyramid, etc.). Use the <strong>👁️ Preview</strong> button to see
+    a live markdown render of your writing. Text areas <strong>auto-resize</strong>
+    as you type. Click <strong>Save Note</strong> when finished.
+  </p>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">📎 Evidence &amp; Artifacts</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Every day has a <strong>required artifact</strong> (shown in the day workspace).
+    Supported formats:
+  </p>
+  <ul style="font-size:14px;color:#4b5563;padding-left:20px;margin-bottom:8px;line-height:1.8;">
+    <li>📝 <strong>Markdown</strong> (.md) &mdash; use the <strong>📄 Use Template</strong> button to pre-fill a template</li>
+    <li>🖼️ <strong>Screenshot</strong> (.png, .jpg) &mdash; use the <strong>📸 Screenshot Guide</strong> for best practices</li>
+    <li>📊 <strong>CSV / Data</strong> (.csv, .txt) &mdash; upload raw data files</li>
+    <li>📄 <strong>PDF</strong> &mdash; upload reference documents</li>
+  </ul>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Upload files via the drag-and-drop zone at the bottom of each day workspace,
+    or use the standalone <strong>Evidence</strong> page from the navigation bar.
+  </p>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">📬 Feedback</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    After completing a day&rsquo;s work, you can request or view <strong>reviewer feedback</strong>
+    on the Feedback page. Each review artifact shows comments, a quality score, and
+    reviewer Q&amp;A. Use the <strong>Ask a Question</strong> button to start a
+    conversation with your reviewer.
+  </p>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">📊 Progress</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    The Progress page gives you an overview of your completion status across all 28 days:
+    which days have notes, which have evidence, your scorecard trends, and Codex gate
+    compliance. It also shows your classification progression over time.
+  </p>
+</div>
+
+<!-- ──── WHEN ──── -->
+<div class="card">
+  <h2 style="font-size:18px;margin-bottom:8px;">📅 When</h2>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">Daily Workflow</h3>
+  <ol style="font-size:14px;color:#4b5563;padding-left:20px;margin-bottom:12px;line-height:1.8;">
+    <li>Start at the <strong>Dashboard</strong> to see what day you&rsquo;re on</li>
+    <li>Click <strong>Work on Day N</strong> or navigate via <strong>Curriculum</strong></li>
+    <li>Read the <strong>Requirements for Today</strong> and check each item as you complete it</li>
+    <li>Write your <strong>Daily Reflection</strong> note</li>
+    <li>Create and upload the <strong>required artifact</strong></li>
+    <li>Self-assess using the <strong>Scorecard</strong> and <strong>Codex Gates</strong></li>
+    <li>Click <strong>Save Note</strong> to persist your work</li>
+  </ol>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">Weekly Milestones</h3>
+  <table style="width:100%;font-size:14px;color:#4b5563;border-collapse:collapse;margin-bottom:12px;">
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">Week</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">Theme</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">Focus</th>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">1</td>
+      <td style="padding:6px 8px;">🏗️ Foundation</td>
+      <td style="padding:6px 8px;">AI modes, prompt crafting, Codex Loop, change isolation, model lineage, operations checklist</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">2</td>
+      <td style="padding:6px 8px;">🔗 Data Foundation</td>
+      <td style="padding:6px 8px;">Hierarchy &amp; structure, data dictionary, SCD logic, peer review, certification prep</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">3</td>
+      <td style="padding:6px 8px;">📊 BI Delivery</td>
+      <td style="padding:6px 8px;">Delivery checklist, deployment, handoff, retention review, reusable assets</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">4</td>
+      <td style="padding:6px 8px;">🧠 BI Judgment</td>
+      <td style="padding:6px 8px;">Advanced judgment, compliance, audit, capability review, Codex acceleration readiness</td>
+    </tr>
+  </table>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">Working Ahead</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    You can <strong>preview or start working on any day</strong> at any time.
+    Future days appear in the <strong>🔮 Work Ahead</strong> section on the dashboard.
+    The note editor will automatically use the correct calendar date for that
+    curriculum day.
+  </p>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">Catching Up</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Days you&rsquo;ve missed appear in the <strong>⏰ Catch Up</strong> section on
+    the dashboard. Click <strong>✏️ Catch Up</strong> to jump directly to that
+    day&rsquo;s workspace. You can complete past days in any order.
+  </p>
+</div>
+
+<!-- ──── WHERE ──── -->
+<div class="card">
+  <h2 style="font-size:18px;margin-bottom:8px;">📍 Where</h2>
+
+  <table style="width:100%;font-size:14px;color:#4b5563;border-collapse:collapse;margin-bottom:12px;">
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">Page</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">URL</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">What You&rsquo;ll Find</th>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">🏠 Home</td>
+      <td style="padding:6px 8px;"><code>/</code></td>
+      <td style="padding:6px 8px;">Dashboard with today&rsquo;s focus, progress bar, catch-up &amp; work-ahead sections</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">🧭 Guide</td>
+      <td style="padding:6px 8px;"><code>/guide</code></td>
+      <td style="padding:6px 8px;">This page — full learner orientation</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">📚 Curriculum</td>
+      <td style="padding:6px 8px;"><code>/curriculum</code></td>
+      <td style="padding:6px 8px;">28-day grid, filterable by week, click to open a day workspace</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">📝 Notes</td>
+      <td style="padding:6px 8px;"><code>/notes</code></td>
+      <td style="padding:6px 8px;">List of all your daily reflection notes, sorted by date</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">📎 Evidence</td>
+      <td style="padding:6px 8px;"><code>/evidence</code></td>
+      <td style="padding:6px 8px;">All uploaded artifacts, filterable, with preview and delete</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">📬 Feedback</td>
+      <td style="padding:6px 8px;"><code>/feedback</code></td>
+      <td style="padding:6px 8px;">Reviewer comments, quality scores, Q&amp;A threads</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">📊 Progress</td>
+      <td style="padding:6px 8px;"><code>/progress</code></td>
+      <td style="padding:6px 8px;">Completion overview, scorecard trends, classification progression</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">📖 Day Workspace</td>
+      <td style="padding:6px 8px;"><code>/day/{{n}}</code></td>
+      <td style="padding:6px 8px;">Consolidated page for a specific day: requirements, note editor, scorecard, gates, evidence upload</td>
+    </tr>
+  </table>
+
+  <h3 style="font-size:15px;margin:16px 0 8px;">File Locations</h3>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Your work is saved as plain files in the <code>action/</code> directory:
+  </p>
+  <table style="width:100%;font-size:14px;color:#4b5563;border-collapse:collapse;margin-bottom:12px;">
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">Content</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">Folder</th>
+      <th style="padding:6px 8px;text-align:left;font-weight:600;">File Naming</th>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">Daily notes</td>
+      <td style="padding:6px 8px;"><code>action/notes/</code></td>
+      <td style="padding:6px 8px;"><code>YYYY-MM-DD.md</code></td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">Evidence / artifacts</td>
+      <td style="padding:6px 8px;"><code>action/evidence/</code></td>
+      <td style="padding:6px 8px;">Day- or proof-task prefixed filenames</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">Reports</td>
+      <td style="padding:6px 8px;"><code>action/reports/</code></td>
+      <td style="padding:6px 8px;">Weekly or periodic summary reports</td>
+    </tr>
+    <tr style="border-bottom:1px solid #e5e7eb;">
+      <td style="padding:6px 8px;">Learner config</td>
+      <td style="padding:6px 8px;"><code>action/</code></td>
+      <td style="padding:6px 8px;"><code>learner_config.json</code></td>
+    </tr>
+  </table>
+</div>
+
+<!-- ──── TIPS ──── -->
+<div class="card">
+  <h2 style="font-size:18px;margin-bottom:8px;">💡 Tips &amp; Best Practices</h2>
+  <ul style="font-size:14px;color:#4b5563;padding-left:20px;line-height:1.8;">
+    <li><strong>Save often</strong> &mdash; your note is only persisted when you click Save Note</li>
+    <li><strong>Use the preview</strong> &mdash; the 👁️ Preview button shows how your markdown will look when rendered</li>
+    <li><strong>Follow the hints</strong> &mdash; dynamic help text adapts to each day&rsquo;s topic tags</li>
+    <li><strong>Score honestly</strong> &mdash; the scorecard helps you track growth; &ldquo;Fail&rdquo; is a learning signal, not a penalty</li>
+    <li><strong>Work ahead</strong> &mdash; future days are accessible any time from the Work Ahead section or Curriculum grid</li>
+    <li><strong>Use templates</strong> &mdash; the 📄 Use Template button pre-fills a structured markdown template for .md artifacts</li>
+    <li><strong>Take screenshots</strong> &mdash; for image artifacts, use Snipping Tool (Win+Shift+S) and upload via the day workspace</li>
+    <li><strong>Ask questions</strong> &mdash; use the Feedback page Q&amp;A to discuss review comments with your reviewer</li>
+  </ul>
+</div>
+
+<!-- ──── KEYBOARD SHORTCUTS ──── -->
+<div class="card">
+  <h2 style="font-size:18px;margin-bottom:8px;">⌨️ Quick Reference</h2>
+  <p style="font-size:14px;color:#4b5563;margin-bottom:8px;">
+    Your learning journey at a glance:
+  </p>
+  <div style="font-size:14px;color:#4b5563;padding:12px;background:#f9fafb;border-radius:6px;line-height:1.8;">
+    <strong>1.</strong> Login via your unique URL<br>
+    <strong>2.</strong> Dashboard shows where you are<br>
+    <strong>3.</strong> Open today&rsquo;s day workspace<br>
+    <strong>4.</strong> Review requirements &amp; checkbox each one<br>
+    <strong>5.</strong> Write your reflection + create the artifact<br>
+    <strong>6.</strong> Self-score &amp; check Codex gates<br>
+    <strong>7.</strong> Save → repeat next day<br>
+    <strong>8.</strong> Check Feedback when reviewers respond<br>
+    <strong>9.</strong> Track your Progress weekly<br>
+    <strong>10.</strong> Celebrate completing all 28 days! 🎉
+  </div>
+</div>
+'''
+    return _html_page('Learner Guide', body, 'guide')
+
 
 def _page_dashboard() -> str:
     """Render the dashboard/home page."""
@@ -320,6 +606,9 @@ def _page_dashboard() -> str:
 
 {catchup_section}
 
+<!-- ── Upcoming / Future Days ────────────────────────────── -->
+{_upcoming_section(day_num)}
+
 <div class="card">
   <h2>📅 Quick Actions</h2>
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -329,6 +618,39 @@ def _page_dashboard() -> str:
 </div>
 '''
     return _html_page('Dashboard', body, 'home')
+
+
+def _upcoming_section(current_day: int) -> str:
+    """Render a small 'Work Ahead' section showing future days."""
+    future_days = []
+    for d in range(current_day + 1, min(current_day + 6, 29)):  # show next 5 days
+        info = CURRICULUM.get(d, {})
+        if info:
+            info['_day_num'] = d
+            future_days.append(info)
+    if not future_days:
+        return ''
+    rows = ''
+    for d_info in future_days:
+        d_num = d_info['_day_num']
+        focus_short = d_info.get('focus', '')[:60]
+        rows += f'''<div class="note-list-item">
+  <div>
+    <div class="note-date">Day {d_num}</div>
+    <div style="font-size:12px;color:#6b7280;">{focus_short}</div>
+  </div>
+  <div class="note-actions">
+    <a href="/day/{d_num}" class="btn btn-outline btn-sm">👁️ Preview</a>
+  </div>
+</div>'''
+    return f'''
+<div class="card" style="border-left:3px solid #8b5cf6;">
+  <h2>🔮 Work Ahead — Upcoming Days</h2>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">
+    You can preview or start working on future days at any time.
+  </p>
+  {rows}
+</div>'''
 
 
 def _page_curriculum(week_filter: int = 0) -> str:
@@ -427,6 +749,8 @@ def _page_day_workspace(day_number: int) -> str:
     has_ret = any('🧠 Ret' in t or 'Ret' in t for t in tags)
 
     today_str = date.today().isoformat()
+    # Calculate the correct calendar date for this curriculum day
+    day_date = _learner._day_to_date(day_number).isoformat()
 
     # ── Check completion / load existing note ──────────────────────────
     is_complete = False
@@ -700,7 +1024,7 @@ def _page_day_workspace(day_number: int) -> str:
     <div class="form-row">
       <div class="form-group">
         <label>Date</label>
-        <input type="date" name="date" value="{existing_note_date or today_str}" readonly>
+        <input type="date" name="date" value="{existing_note_date or day_date}" readonly>
       </div>
       <div class="form-group">
         <label>Day Number</label>
@@ -844,11 +1168,11 @@ function renderMarkdown(text) {{
     .replace(/^\\d+\\. (.+)$/gm, '<li>$1</li>')
     .replace(/\\[(.+?)\\]\\((.+?)\\)/g, '<a href="$2" target="_blank">$1</a>')
     .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-  html = html.replace(/((?:<li>.*?<\/li>\n?)+)/g, '<ul>$1</ul>');
-  html = html.replace(/((?:<blockquote>.*?<\/blockquote>\n?)+)/g, '<blockquote>$1</blockquote>');
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = '<p>' + html + '</p>';
-  html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/((?:<li>.*?<\\/li>\\n?)+)/g, '<ul>$1</ul>');
+  html = html.replace(/((?:<blockquote>.*?<\\/blockquote>\\n?)+)/g, '<blockquote>$1</blockquote>');
+  html = html.replace(/\\n\\n/g, '<\\/p><p>');
+  html = '<p>' + html + '<\\/p>';
+  html = html.replace(/<p><\\/p>/g, '');
   return html;
 }}
 
@@ -891,8 +1215,8 @@ function useTemplate(filename, dayNum) {{
   var ext = filename.split('.').pop().toLowerCase();
   var templates = {{
     'md': function(name) {{
-      var title = name.replace(/\.md$/i, '').replace(/_/g, ' ').replace(/\b\w/g, function(c){{return c.toUpperCase();}});
-      return '# ' + title + '\n\n## Purpose\n\n<!-- Briefly describe the purpose of this artifact -->\n\n## Details\n\n<!-- Add your work details here -->\n\n## Checklist\n\n- [ ] Item 1\n- [ ] Item 2\n- [ ] Item 3\n\n## Notes\n\n<!-- Any additional notes -->\n';
+      var title = name.replace(/\\.md$/i, '').replace(/_/g, ' ').replace(/\\b\\w/g, function(c){{return c.toUpperCase();}});
+      return '# ' + title + '\\n\\n## Purpose\\n\\n<!-- Briefly describe the purpose of this artifact -->\\n\\n## Details\\n\\n<!-- Add your work details here -->\\n\\n## Checklist\\n\\n- [ ] Item 1\\n- [ ] Item 2\\n- [ ] Item 3\\n\\n## Notes\\n\\n<!-- Any additional notes -->\\n';
     }}
   }};
   var tplFn = templates[ext];
@@ -2776,6 +3100,8 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             edit_mode = 'edit' in qs
             return self._send_html(_page_evidence_view(filename, edit_mode))
         # Phase 4 page routes
+        if path == '/guide':
+            return self._send_html(_page_guide())
         if path == '/feedback':
             return self._send_html(_page_feedback_list())
         if path.startswith('/feedback/'):

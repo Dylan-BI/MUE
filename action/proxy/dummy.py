@@ -23,7 +23,11 @@ from action.proxy.sync import sync_to_archive, sync_evidence_to_archive
 
 
 # ── Directory paths ──────────────────────────────────────────────────────────
+# DummyLearner writes to action/test-data/ by default to keep test data
+# isolated from the real learner workspace (action/notes/, action/evidence/).
+# The MUE Learner web interface (WebLearner / server.py) never reads test-data.
 ACTION_DIR = Path(__file__).resolve().parent.parent  # action/
+TEST_DATA_DIR = ACTION_DIR / 'test-data'
 NOTES_DIR = ACTION_DIR / 'notes'
 EVIDENCE_DIR = ACTION_DIR / 'evidence'
 REPORTS_DIR = ACTION_DIR / 'reports'
@@ -171,10 +175,15 @@ class DummyLearner(LearnerProxy):
     """
 
     def __init__(self, action_dir: Optional[Path] = None):
-        self.action_dir = action_dir or ACTION_DIR
+        self.action_dir = action_dir or TEST_DATA_DIR
         self.notes_dir = self.action_dir / 'notes'
         self.evidence_dir = self.action_dir / 'evidence'
         self.reports_dir = self.action_dir / 'reports'
+
+        # Warn if writing to the live learner directory (not test-data)
+        if self.action_dir.resolve() == ACTION_DIR.resolve():
+            print('  ⚠️  DummyLearner writing directly to action/ — test data will be visible in the MUE Learner UI!')
+            print(f'  💡  Use action/test-data/ instead: DummyLearner(action_dir=Path("action/test-data"))')
         self.config = self._load_config()
         self.start_date = self._resolve_start_date()
 

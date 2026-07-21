@@ -83,5 +83,11 @@
     "action": "session_started",
     "detail": "Admin signed in as Dashboard Admin",
     "timestamp": "2026-07-20T20:47:58.141684"
+  },
+  {
+    "username": "admin",
+    "action": "session_started",
+    "detail": "Admin signed in as Dashboard Admin",
+    "timestamp": "2026-07-21T13:04:08.252795"
   }
 ]

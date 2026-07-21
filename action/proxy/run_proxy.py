@@ -36,6 +36,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+# ── Test data is stored in action/test-data/ to keep it isolated
+#    from the real learner workspace (action/notes/, action/evidence/).
+#    The MUE Learner web interface never reads from test-data.
+TEST_DATA_DIR = REPO_ROOT / 'action' / 'test-data'
+
 from action.proxy.dummy import DummyLearner
 
 
@@ -198,7 +203,7 @@ def main():
                        help='Generate all 28 days with weekly reports and archive')
 
     args = parser.parse_args()
-    learner = DummyLearner()
+    learner = DummyLearner(action_dir=TEST_DATA_DIR)
 
     print(f'🎓 Dummy Learner Proxy — {learner.get_name()}')
     print(f'📅 Start date: {learner.start_date.isoformat()}\n')
