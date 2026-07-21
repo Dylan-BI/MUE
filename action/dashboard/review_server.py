@@ -310,7 +310,7 @@ def log_activity(username, action, detail, metadata=None):
 
 
 def rebuild_data_json():
-    """Run build_data.py to regenerate data.json."""
+    """Run build_data.py to regenerate data.json, then sync action/ to review/."""
     try:
         env = os.environ.copy()
         env['PYTHONIOENCODING'] = 'utf-8'
@@ -326,6 +326,26 @@ def rebuild_data_json():
         )
         if result.returncode == 0:
             log('INFO', 'data.json rebuilt')
+            # Auto-sync action/ → review/ after rebuild
+            sync_script = REPO_ROOT / 'review' / 'scripts' / 'sync-from-action.py'
+            if sync_script.exists():
+                sync_result = subprocess.run(
+                    [sys.executable, str(sync_script)],
+                    cwd=str(REPO_ROOT),
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    env=env,
+                    encoding='utf-8',
+                    errors='replace'
+                )
+                if sync_result.returncode == 0:
+                    synced = [l for l in sync_result.stdout.strip().split('\n') if l.strip()]
+                    if synced:
+                        log('INFO', f"synced to review/: {synced[-1]}")
+                else:
+                    err = sync_result.stderr.strip().split('\n')[-1] if sync_result.stderr else 'unknown'
+                    log('WARNING', f'sync failed: {err}')
         else:
             err = result.stderr.strip().split('\n')[-1] if result.stderr else 'unknown'
             log('WARNING', f'build failed: {err}')

@@ -49,6 +49,7 @@ REPORTS_DIR = ACTION_DIR / 'reports'
 ARCHIVE_DIR = ACTION_DIR / 'archive'
 CONFIG_PATH = ACTION_DIR / 'learner_config.json'
 BUILD_SCRIPT = ACTION_DIR.parent / 'action' / 'dashboard' / 'build_data.py'
+SYNC_SCRIPT = ACTION_DIR.parent / 'review' / 'scripts' / 'sync-from-action.py'
 
 
 class WebLearner(LearnerProxy):
@@ -231,6 +232,7 @@ class WebLearner(LearnerProxy):
 
         print(f'  ✅ Saved note: {note_path.name} (Day {day_number})')
         self._trigger_build()
+        self._trigger_sync()
         return note_path
 
     def generate_evidence(self, day_number: int, evidence_type: str) -> Path:
@@ -272,6 +274,7 @@ class WebLearner(LearnerProxy):
 
         print(f'  ✅ Saved evidence: {evidence_path.name} (Day {day_number})')
         self._trigger_build()
+        self._trigger_sync()
         return evidence_path
 
     def generate_weekly_report(self, week: int) -> Path:
@@ -327,6 +330,7 @@ class WebLearner(LearnerProxy):
 
         print(f'  ✅ Generated report: {report_path.name}')
         self._trigger_build()
+        self._trigger_sync()
         return report_path
 
     def archive_completed(self, days_range: tuple[int, int]) -> list[Path]:
@@ -343,6 +347,7 @@ class WebLearner(LearnerProxy):
         archived += sync_evidence_to_archive(self.action_dir, days_range)
         if archived:
             self._trigger_build()
+            self._trigger_sync()
         return archived
 
     # ── Internal helpers ──────────────────────────────────────────────────
@@ -448,12 +453,17 @@ class WebLearner(LearnerProxy):
         try:
             build_script = self.action_dir / 'dashboard' / 'build_data.py'
             if build_script.exists():
+                env = os.environ.copy()
+                env['PYTHONIOENCODING'] = 'utf-8'
                 result = subprocess.run(
                     [sys.executable, str(build_script)],
                     cwd=self.action_dir.parent,
                     capture_output=True,
                     text=True,
                     timeout=30,
+                    env=env,
+                    encoding='utf-8',
+                    errors='replace',
                 )
                 if result.returncode == 0:
                     print(f'  🔄 Dashboard data rebuilt')
@@ -462,6 +472,35 @@ class WebLearner(LearnerProxy):
                     print(f'  ⚠️ build_data.py: {err}')
         except Exception as e:
             print(f'  ⚠️ Could not trigger build: {e}')
+
+    def _trigger_sync(self) -> None:
+        """Run sync-from-action.py to push learner work to review/."""
+        if not self.auto_build:
+            return
+        try:
+            sync_script = self.action_dir.parent / 'review' / 'scripts' / 'sync-from-action.py'
+            if sync_script.exists():
+                env = os.environ.copy()
+                env['PYTHONIOENCODING'] = 'utf-8'
+                result = subprocess.run(
+                    [sys.executable, str(sync_script)],
+                    cwd=self.action_dir.parent,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    env=env,
+                    encoding='utf-8',
+                    errors='replace',
+                )
+                if result.returncode == 0:
+                    lines = [l for l in result.stdout.strip().split('\n') if l.strip()]
+                    last = lines[-1] if lines else 'Done'
+                    print(f'  🔄 Synced to review/: {last}')
+                else:
+                    err = result.stderr.strip().split('\n')[-1] if result.stderr else 'unknown'
+                    print(f'  ⚠️ sync-from-action.py: {err}')
+        except Exception as e:
+            print(f'  ⚠️ Could not trigger sync: {e}')
 
     # ── Web UI helpers (used by Phases 2+) ────────────────────────────────
 

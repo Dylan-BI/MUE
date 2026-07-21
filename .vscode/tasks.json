@@ -2,17 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "auto-sync: rebuild data.json on learner data change",
-      "type": "shell",
-      "command": "python",
-      "args": ["action/dashboard/build_data.py"],
-      "options": { "cwd": "${workspaceFolder}" },
-      "runOptions": { "runOn": "folderOpen" },
-      "problemMatcher": [],
-      "presentation": { "reveal": "silent", "close": true }
-    },
-    {
-      "label": "auto-sync: rebuild data.json (manual)",
+      "label": "manual: rebuild data.json",
       "type": "shell",
       "command": "python",
       "args": ["action/dashboard/build_data.py"],
@@ -21,7 +11,7 @@
       "presentation": { "reveal": "silent", "close": true }
     },
     {
-      "label": "auto-sync: sync action/ to review/",
+      "label": "manual: sync action/ to review/",
       "type": "shell",
       "command": "python",
       "args": ["review/scripts/sync-from-action.py"],
@@ -30,26 +20,24 @@
       "presentation": { "reveal": "silent", "close": true }
     },
     {
-      "label": "auto-sync: watch learner data",
+      "label": "manual: start review server",
       "type": "shell",
       "command": "python",
-      "args": ["action/dashboard/watch_and_build.py"],
+      "args": ["action/dashboard/review_server.py", "--port", "8080", "--host", "127.0.0.1"],
       "options": { "cwd": "${workspaceFolder}" },
-      "runOptions": { "runOn": "folderOpen", "panel": "dedicated" },
       "problemMatcher": [],
       "isBackground": true,
       "presentation": { "reveal": "never", "close": true }
     },
     {
-      "label": "review server: start (multi-reviewer collaboration)",
+      "label": "manual: start review server (with tunnel)",
       "type": "shell",
       "command": "python",
-      "args": ["action/dashboard/review_server.py", "--port", "8080", "--host", "127.0.0.1", "--tunnel"],
+      "args": ["action/dashboard/review_server.py", "--port", "8080", "--host", "0.0.0.0", "--tunnel"],
       "options": { "cwd": "${workspaceFolder}" },
-      "runOptions": { "runOn": "folderOpen" },
       "problemMatcher": [],
       "isBackground": true,
-      "presentation": { "reveal": "always", "panel": "dedicated" }
+      "presentation": { "reveal": "never", "close": true }
     }
   ]
 }
