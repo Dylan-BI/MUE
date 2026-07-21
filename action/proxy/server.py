@@ -1,0 +1,2877 @@
+#!/usr/bin/env python3
+"""
+action/proxy/server.py
+Learner Web Interface — Phase 2: Core UI (daily note editor + curriculum viewer).
+
+Serves the learner's interactive web UI using only Python stdlib.
+Pattern matched to action/dashboard/review_server.py for consistency.
+
+Usage:
+    python action/proxy/server.py [--port 5000] [--host 127.0.0.1]
+
+Pages:
+    GET  /                     → Dashboard / home (learner status, today's task)
+    GET  /curriculum           → Full 28-day curriculum viewer
+    GET  /notes                → List all notes
+    GET  /notes/new?day=N      → Note editor for day N
+    GET  /notes/{date}         → View / edit an existing note
+
+API:
+    GET  /api/status           → Learner status + current day info
+    GET  /api/curriculum       → Full 28-day schedule as JSON
+    GET  /api/notes            → List all notes as JSON
+    GET  /api/notes/{date}     → Get a specific note as JSON
+    POST /api/notes            → Create / update a note
+    POST /api/rebuild          → Trigger build_data.py
+
+Architecture:
+    ┌─────────────────────────────────────┐
+    │  server.py (this file)              │
+    │  http.server + AJAX endpoints       │
+    │  HTML string templates              │
+    ├─────────────────────────────────────┤
+    │  WebLearner (web_interface.py)      │
+    │  Content staging → file I/O         │
+    ├─────────────────────────────────────┤
+    │  build_data.py → data.json → dash   │
+    └─────────────────────────────────────┘
+"""
+import argparse
+import json
+import os
+import re
+import smtplib
+import subprocess
+import sys
+import threading
+import time
+from datetime import date, datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+from urllib.parse import urlparse, parse_qs
+
+# Ensure the repo root is on sys.path so action.proxy imports work
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from action.proxy.web_interface import WebLearner
+from action.proxy.curriculum import CURRICULUM, get_classification, get_primary_track, get_level_for_day
+from action.proxy.constants import PROOF_TASKS, PROOF_TASK_CRITERIA
+from action.proxy.feedback import (
+    get_feedback_for_learner, get_unread_feedback, mark_seen, mark_all_seen,
+    get_qa_thread, add_qa_entry,
+    get_level_progress, get_reviewer_display,
+    create_revision, get_revision_history,
+    compile_learner_daily_summary,
+    load_reviews, load_profiles,
+)
+
+# ── Paths ──────────────────────────────────────────────────────────────────
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROXY_DIR = SCRIPT_DIR
+REPO_ROOT = SCRIPT_DIR.parent.parent
+ACTION_DIR = REPO_ROOT / 'action'
+NOTES_DIR = ACTION_DIR / 'notes'
+EVIDENCE_DIR = ACTION_DIR / 'evidence'
+BUILD_SCRIPT = ACTION_DIR / 'dashboard' / 'build_data.py'
+STATIC_DIR = SCRIPT_DIR / 'web_static'
+
+# ── Security helpers ──────────────────────────────────────────────────────
+def _safe_filename(name: str, allowed_dir: Path) -> str:
+    """
+    Sanitize a user-supplied filename to prevent path traversal.
+    Returns the cleaned filename (basename only) or raises ValueError.
+    """
+    from pathlib import PurePath
+    # Decode URL encoding
+    from urllib.parse import unquote
+    name = unquote(name)
+    # Get just the filename, strip any directory components
+    clean = PurePath(name).name
+    if not clean:
+        raise ValueError('Empty filename')
+    # Reject hidden paths with ..
+    if '..' in clean or clean.startswith('.'):
+        raise ValueError('Invalid filename')
+    # Resolve and verify it's within the allowed directory
+    resolved = (allowed_dir / clean).resolve()
+    if not str(resolved).startswith(str(allowed_dir.resolve())):
+        raise ValueError('Path traversal detected')
+    return clean
+
+
+# ── Learner instance (shared across requests) ──────────────────────────────
+_learner = WebLearner(action_dir=ACTION_DIR, auto_build=True)
+
+# ── .env file loader ───────────────────────────────────────────────────────
+def _load_env_file(path: Path) -> None:
+    """Load a .env file into os.environ (does not overwrite existing vars)."""
+    if not path.exists():
+        return
+    with open(path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+# Load proxy .env before reading email config
+_load_env_file(PROXY_DIR / '.env')
+
+# ── Email configuration (from env vars / .env) ───────────────────────────────
+SMTP_HOST = os.environ.get('MUE_SMTP_HOST', '')
+SMTP_PORT = int(os.environ.get('MUE_SMTP_PORT', '587'))
+SMTP_USER = os.environ.get('MUE_SMTP_USER', '')
+SMTP_PASS = os.environ.get('MUE_SMTP_PASS', '')
+SMTP_FROM = os.environ.get('MUE_SMTP_FROM', SMTP_USER or 'mue-learner@localhost')
+SMTP_USE_TLS = os.environ.get('MUE_SMTP_TLS', 'true').lower() == 'true'
+LEARNER_EMAIL = os.environ.get('MUE_LEARNER_EMAIL', '')
+DAILY_SUMMARY_HOUR = int(os.environ.get('MUE_SUMMARY_HOUR', '6'))
+DAILY_SUMMARY_MINUTE = int(os.environ.get('MUE_SUMMARY_MINUTE', '0'))
+SUMMARY_ENABLED = os.environ.get('MUE_LEARNER_SUMMARY', 'false').lower() == 'true'
+
+# Email scheduler state
+_scheduler_running = False
+_scheduler_thread = None
+
+# ── Week names ──────────────────────────────────────────────────────────────
+WEEK_NAMES = {1: 'Foundation', 2: 'Application', 3: 'Integration', 4: 'Graduation'}
+
+# ── Classification colours ──────────────────────────────────────────────────
+CLASS_COLOURS = {
+    'Foundational': '#f59e0b',
+    'Developing': '#3b82f6',
+    'Operational': '#10b981',
+    'Ready For Codex Acceleration': '#8b5cf6',
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# HTML Template Helpers
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _html_page(title: str, body: str, active_nav: str = '') -> str:
+    """Wrap body content in the full HTML page layout."""
+    nav_items = [
+        ('/', 'Home', active_nav == 'home'),
+        ('/curriculum', 'Curriculum', active_nav == 'curriculum'),
+        ('/notes', 'Notes', active_nav == 'notes'),
+        ('/evidence', 'Evidence', active_nav == 'evidence'),
+        ('/feedback', 'Feedback', active_nav == 'feedback'),
+        ('/progress', 'Progress', active_nav == 'progress'),
+    ]
+    nav_links = ''.join(
+        f'<a href="{href}"{" class=\"active\"" if active else ""}>{label}</a>'
+        for href, label, active in nav_items
+    )
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{title} — MUE Learner</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div class="logo"><span>MUE</span> Learner</div>
+  <nav>{nav_links}</nav>
+</header>
+<div class="container">
+{body}
+</div>
+<div id="toast" class="toast"></div>
+<script>
+function showToast(msg, type) {{
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(function() {{ t.className = 'toast'; }}, 3000);
+}}
+</script>
+</body>
+</html>'''
+
+
+def _day_progress_bar(current: int, total: int = 28) -> str:
+    pct = round(current / total * 100)
+    return f'''<div class="progress-bar"><div class="fill" style="width:{pct}%"></div></div>
+<div style="font-size:12px;color:#6b7280;text-align:center;">Day {current} of {total}</div>'''
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Page Handlers
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _page_dashboard() -> str:
+    """Render the dashboard/home page."""
+    today_str = date.today().isoformat()
+    day_num = _learner.get_curriculum_day(today_str)
+    if day_num is None:
+        day_num = 1  # fallback for weekends
+
+    entry = _learner.get_curriculum_day_info(day_num)
+    classification = get_classification(day_num)
+    primary_track = get_primary_track(day_num)
+    level = get_level_for_day(day_num)
+    week_num = (day_num - 1) // 7 + 1
+    focus = entry.get('focus', '')
+    required_artifact = entry.get('required_artifact', '')
+    tags = entry.get('tags', [])
+    tag_html = ' '.join(f'<span>{t}</span>' for t in tags)
+
+    notes_count = len(_learner.list_notes())
+    evidence_count = len(_learner.list_evidence())
+
+    colour = CLASS_COLOURS.get(classification, '#6b7280')
+
+        # ── Build list of incomplete prior days ─────────────────────────────
+    existing_notes = {n.stem for n in _learner.list_notes()}  # {'2026-07-21', ...}
+    incomplete_prior = []
+    for d in range(1, day_num):
+        day_info = CURRICULUM.get(d, {})
+        day_info['_day_num'] = d
+        # Check if any existing note maps to this curriculum day
+        has_note = False
+        for note_stem in existing_notes:
+            try:
+                nd = _learner.get_curriculum_day(note_stem)
+                if nd == d:
+                    has_note = True
+                    break
+            except Exception:
+                continue
+        if not has_note:
+            incomplete_prior.append(day_info)
+
+    catchup_rows = ''
+    if incomplete_prior:
+        for d_info in incomplete_prior[:10]:  # limit to 10 to avoid clutter
+            d_num = d_info['_day_num']
+            focus_short = d_info.get('focus', '')[:60]
+            catchup_rows += f'''<div class="note-list-item">
+  <div>
+    <div class="note-date">Day {d_num}</div>
+    <div style="font-size:12px;color:#6b7280;">{focus_short}</div>
+  </div>
+  <div class="note-actions">
+    <a href="/day/{d_num}" class="btn btn-outline btn-sm">✏️ Catch Up</a>
+  </div>
+</div>'''
+        catchup_section = f'''
+<div class="card" style="border-left:3px solid #f59e0b;">
+  <h2>⏰ Catch Up — {len(incomplete_prior)} incomplete day(s)</h2>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">
+    You haven't written notes for these prior days yet.
+  </p>
+  {catchup_rows}
+  {f'<p style="font-size:12px;color:#6b7280;text-align:center;">… and {len(incomplete_prior) - 10} more</p>' if len(incomplete_prior) > 10 else ''}
+</div>'''
+    else:
+        catchup_section = ''
+
+    body = f'''
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">Day {day_num}</div>
+    <div class="stat-label">Current Day</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">Week {week_num}</div>
+    <div class="stat-label">{WEEK_NAMES.get(week_num, '')}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{notes_count}</div>
+    <div class="stat-label">Notes</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{evidence_count}</div>
+    <div class="stat-label">Evidence Files</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📋 Today — Day {day_num}</h2>
+  <div style="margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:18px;font-weight:600;">{focus}</span>
+      <span style="font-size:13px;padding:3px 10px;border-radius:12px;background:{colour}20;color:{colour};font-weight:600;">{classification}</span>
+    </div>
+    <div class="day-tags" style="margin-top:6px;">{tag_html}</div>
+  </div>
+  <div style="font-size:14px;color:#6b7280;margin-bottom:12px;">
+    Track: <strong>{primary_track}</strong> · Level: <strong>{level}</strong>
+  </div>
+  {_day_progress_bar(day_num)}
+  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="/day/{day_num}" class="btn btn-primary">✏️ Work on Day {day_num}</a>
+    <a href="/curriculum" class="btn btn-outline">📖 View Curriculum</a>
+  </div>
+</div>
+
+{catchup_section}
+
+<div class="card">
+  <h2>📅 Quick Actions</h2>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="/notes" class="btn btn-outline btn-sm">📝 All Notes</a>
+    <a href="/curriculum" class="btn btn-outline btn-sm">📚 Full Schedule</a>
+  </div>
+</div>
+'''
+    return _html_page('Dashboard', body, 'home')
+
+
+def _page_curriculum(week_filter: int = 0) -> str:
+    """Render the full 28-day curriculum viewer."""
+    week_buttons = '<div class="week-filter">'
+    week_buttons += f'<button class="{"active" if week_filter == 0 else ""}" onclick="location.href=\'/curriculum\'">All</button>'
+    for w in range(1, 5):
+        cls = 'active' if week_filter == w else ''
+        week_buttons += f'<button class="{cls}" onclick="location.href=\'/curriculum?week={w}\'">Week {w}</button>'
+    week_buttons += '</div>'
+
+    today_str = date.today().isoformat()
+    current_day = _learner.get_curriculum_day(today_str)
+
+    # Build a set of curriculum day numbers that already have notes
+    completed_days = set()
+    for note_path in _learner.list_notes():
+        nd = _learner._extract_day_from_note(note_path)
+        if nd:
+            completed_days.add(nd)
+
+    cards = []
+    for day_num in range(1, 29):
+        entry = CURRICULUM.get(day_num, {})
+        entry_week = entry.get('week', (day_num - 1) // 7 + 1)
+        if week_filter and entry_week != week_filter:
+            continue
+
+        focus = entry.get('focus', '')
+        tags = entry.get('tags', [])
+        required_artifact = entry.get('required_artifact', '')
+        proof_task = entry.get('proof_task', '')
+        tag_html = ' '.join(f'<span>{t}</span>' for t in tags)
+        is_current = 'current' if day_num == current_day else ''
+        is_complete = day_num in completed_days
+        is_past = current_day is not None and day_num < current_day
+        past_class = 'past' if is_past and not is_complete else ''
+        badge = '✅' if is_complete else ('⏳' if is_past else '')
+        pt_html = f'<div style="font-size:12px;color:#8b5cf6;margin-top:4px;">🔖 {proof_task}</div>' if proof_task else ''
+
+        evidence_desc = (entry.get('evidence_description', '') or '')[:120]
+        if len(entry.get('evidence_description', '')) > 120:
+            evidence_desc += '…'
+        cards.append(f'''
+<div class="day-card {is_current} {past_class}" onclick="location.href='/day/{day_num}'">
+  <div class="day-header">
+    <span class="day-number">Day {day_num}</span>
+    <span class="day-week">Week {entry_week} — {WEEK_NAMES.get(entry_week, '')}</span>
+    {f'<span style="font-size:16px;">{badge}</span>' if badge else ''}
+  </div>
+  <div class="day-focus">{focus}</div>
+  <div style="font-size:12px;color:#6b7280;margin:4px 0;">{evidence_desc}</div>
+  <div class="day-tags">{tag_html}</div>
+  {pt_html}
+  <div class="day-artifact">{required_artifact}</div>
+</div>''')
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📚 Full Curriculum — 28 Days</h2>
+{week_buttons}
+<div class="curriculum-grid">
+{''.join(cards)}
+</div>
+<p style="font-size:12px;color:#6b7280;text-align:center;margin-top:12px;">
+  ✅ = complete · ⏳ = past due · Click a day card for full requirements
+</p>
+'''
+    return _html_page('Curriculum', body, 'curriculum')
+
+
+def _page_day_workspace(day_number: int) -> str:
+    """Consolidated day workspace — instructions, note editor, scorecard, gates, and evidence all on one page."""
+    entry = CURRICULUM.get(day_number)
+    if not entry:
+        return _html_page('Not Found', f'<div class="card"><h2>❌ Day {day_number} not found</h2><a href="/curriculum" class="btn btn-outline">← Back</a></div>', 'curriculum')
+
+    week = entry.get('week', (day_number - 1) // 7 + 1)
+    theme = entry.get('theme', WEEK_NAMES.get(week, ''))
+    focus = entry.get('focus', '')
+    evidence_desc = entry.get('evidence_description', '')
+    required_artifact = entry.get('required_artifact', '')
+    proof_task = entry.get('proof_task', '')
+    tags = entry.get('tags', [])
+    tag_html = ' '.join(f'<span>{t}</span>' for t in tags)
+    classification = get_classification(day_number)
+    track = get_primary_track(day_number)
+    level = get_level_for_day(day_number)
+    colour = CLASS_COLOURS.get(classification, '#6b7280')
+    has_codex = any('⚡ Codex' in t or 'Codex' in t for t in tags)
+    has_ai = any('🤖 AI' in t or 'AI' in t for t in tags)
+    has_pyr = any('🏗️ Pyr' in t or 'Pyr' in t for t in tags)
+    has_team = any('💬 Team' in t or 'Team' in t for t in tags)
+    has_data = any('🔗 Data' in t or 'Data' in t for t in tags)
+    has_del = any('📦 Del' in t or 'Del' in t for t in tags)
+    has_bi = any('📊 BI' in t or 'BI' in t for t in tags)
+    has_ret = any('🧠 Ret' in t or 'Ret' in t for t in tags)
+
+    today_str = date.today().isoformat()
+
+    # ── Check completion / load existing note ──────────────────────────
+    is_complete = False
+    existing_note_data = None
+    existing_note_date = None
+    for note_path in _learner.list_notes():
+        nd = _learner._extract_day_from_note(note_path)
+        if nd == day_number:
+            is_complete = True
+            existing_note_date = note_path.stem
+            try:
+                raw = note_path.read_text(encoding='utf-8')
+                ndata = {}
+                def _es(heading):
+                    pat = rf'## {heading}:\s*\n(.*?)(?:\n## |\Z)'
+                    m = re.search(pat, raw, re.DOTALL)
+                    return m.group(1).strip() if m else ''
+                ndata = {
+                    'what_learned': _es('What I learned'),
+                    'evidence_produced': _es('Evidence produced'),
+                    'what_remains': _es('What remains'),
+                    'next_step': _es('Next step'),
+                }
+                ndata['scorecard'] = {}
+                sc_match = re.search(r'\*\*Scorecard:\*\*(.*?)(?:\n## |\Z)', raw, re.DOTALL)
+                if sc_match:
+                    for line in sc_match.group(1).strip().split('\n'):
+                        parts = line.split(':', 1)
+                        if len(parts) == 2:
+                            ndata['scorecard'][parts[0].strip()] = parts[1].strip()
+                ndata['codex_gate'] = {}
+                cg_match = re.search(r'\*\*Codex Gates:\*\*(.*?)(?:\n## |\Z)', raw, re.DOTALL)
+                if cg_match:
+                    for line in cg_match.group(1).strip().split('\n'):
+                        parts = line.split(':', 1)
+                        if len(parts) == 2:
+                            ndata['codex_gate'][parts[0].strip()] = parts[1].strip()
+                existing_note_data = ndata
+            except Exception:
+                pass
+            break
+
+    # ── Evidence for this day ─────────────────────────────────────────
+    day_evidence = []
+    for f in sorted(EVIDENCE_DIR.glob('*.*'), reverse=True):
+        d = _extract_day_from_filename(f.name)
+        if d == day_number or (f.name.startswith(f'Day{day_number}') or f.name.startswith(f'Day_{day_number}')):
+            pt_id = _extract_pt_id(f.name)
+            size_kb = round(f.stat().st_size / 1024, 1) if f.stat().st_size else 0
+            day_evidence.append({'filename': f.name, 'pt_id': pt_id, 'size_kb': size_kb})
+        if f.stem == existing_note_date:
+            pt_id = _extract_pt_id(f.name)
+            size_kb = round(f.stat().st_size / 1024, 1) if f.stat().st_size else 0
+            if not any(e['filename'] == f.name for e in day_evidence):
+                day_evidence.append({'filename': f.name, 'pt_id': pt_id, 'size_kb': size_kb})
+
+    evidence_rows = ''
+    if day_evidence:
+        for ev in day_evidence:
+            pt_badge = f'<span class="pt-badge">{ev["pt_id"]}</span>' if ev['pt_id'] else ''
+            evidence_rows += f'''<div class="note-list-item">
+  <div>
+    <div class="note-date" style="font-size:13px;">{ev['filename']}</div>
+    <div style="font-size:11px;color:#6b7280;display:flex;gap:6px;align-items:center;margin-top:2px;">
+      {pt_badge}<span>{ev['size_kb']} KB</span>
+    </div>
+  </div>
+  <div class="note-actions">
+    <a href="/evidence/{ev['filename']}" class="btn btn-outline btn-sm">View</a>
+    <button class="btn btn-outline btn-sm" onclick="deleteEvidenceDay({day_number},'{ev['filename']}')">🗑️</button>
+  </div>
+</div>'''
+    else:
+        evidence_rows = '<p style="font-size:13px;color:#6b7280;padding:8px 0;">No evidence uploaded for this day yet.</p>'
+
+    # ── Scorecard toggles ─────────────────────────────────────────────
+    scorecard_areas = _learner.get_scorecard_areas()
+    scorecard_html = ''
+    for area in scorecard_areas:
+        val = existing_note_data.get('scorecard', {}).get(area, 'Unscored') if existing_note_data else 'Unscored'
+        scorecard_html += f'''<div class="toggle-item">
+  <span>{area}</span>
+  <select name="scorecard_{area}">
+    <option {"selected" if val=="Pass" else ""}>Pass</option>
+    <option {"selected" if val=="Moderate" else ""}>Moderate</option>
+    <option {"selected" if val=="Fail" else ""}>Fail</option>
+    <option {"selected" if val=="Unscored" else ""}>Unscored</option>
+  </select>
+</div>'''
+
+    # ── Codex gate toggles ────────────────────────────────────────────
+    codex_gates = _learner.get_codex_gates_list()
+    gate_html = ''
+    for gate in codex_gates:
+        val = existing_note_data.get('codex_gate', {}).get(gate, 'No') if existing_note_data else 'No'
+        gate_html += f'''<div class="toggle-item">
+  <span>{gate}</span>
+  <select name="codexgate_{gate}">
+    <option {"selected" if val=="Yes" else ""}>Yes</option>
+    <option {"selected" if val=="No" else ""}>No</option>
+  </select>
+</div>'''
+
+    # Pre-fill note fields
+    wl = existing_note_data.get('what_learned', '') if existing_note_data else ''
+    ep = existing_note_data.get('evidence_produced', '') if existing_note_data else ''
+    wr = existing_note_data.get('what_remains', '') if existing_note_data else ''
+    ns = existing_note_data.get('next_step', '') if existing_note_data else ''
+    note_save_label = 'Update Note' if existing_note_date else 'Save Note'
+    note_saved_status = f'<span style="font-size:13px;color:#059669;">✅ Saved — <a href="/notes/{existing_note_date}" style="font-size:13px;">view note</a></span>' if existing_note_date else ''
+
+    # ── Dynamic field placeholders based on day tags ──────────────────
+    wl_ph = 'Describe what you learned today…'
+    ep_ph = 'Describe the evidence you produced…'
+    wr_ph = 'What is still unresolved?'
+    ns_ph = 'What is your immediate next action?'
+    wl_help = ''
+    ep_help = ''
+    if has_ai:
+        wl_help = '💡 Include the prompt structure you used (Context + Task + Format + Constraints)'
+        ep_ph = 'List the prompts you crafted and their outputs…'
+    if has_codex:
+        wl_help = ('💡 Include your Codex Loop steps: Pull → Summarize → Identify → Execute → Record' if not wl_help else wl_help + '; also note Codex Loop steps')
+        ep_ph = 'Document your Codex exercise results, before/after comparisons…'
+    if has_pyr:
+        wl_help = ('💡 Reference specific Pyramid operations or model interactions' if not wl_help else wl_help + '; reference Pyramid operations')
+    if has_data:
+        wl_help = ('💡 Note the data layers and transformations you worked with' if not wl_help else wl_help + '; document data transformations')
+    if has_del:
+        ep_ph = 'Describe the delivery artifacts produced (checklists, handoffs, deployments)…'
+    if has_bi:
+        wl_help = ('💡 Focus on BI-judgment decisions and validation reasoning' if not wl_help else wl_help + '; capture BI-judgment decisions')
+    if has_team:
+        ns_ph = 'What is your next step for team sync or handoff?'
+    if has_ret:
+        wl_help = ('💡 Note what research or review findings you uncovered' if not wl_help else wl_help + '; capture research findings')
+
+    # ── Requirement checklist ─────────────────────────────────────────
+    def _parse_checklist(text: str) -> list:
+        items = []
+        # Split on common delimiters: +, -, •, numbered lists, or sentence endings with clear action items
+        for sep in ['\n', ',', ' + ']:
+            if sep in text:
+                candidates = text.split(sep)
+                if len(candidates) >= 2:
+                    for c in candidates:
+                        c = c.strip().strip('+').strip('-').strip('•').strip()
+                        if c and len(c) > 8:
+                            items.append(c)
+                    if items:
+                        break
+        if not items or len(items) < 2:
+            items = [text]
+        return items[:8]  # max 8 items
+
+    checklist_items = _parse_checklist(evidence_desc)
+    checklist_html = ''
+    if len(checklist_items) > 1:
+        checklist_html = '<ul class="req-checklist" id="reqChecklist">'
+        for item in checklist_items:
+            safe_item = item.replace("'", "&#39;").replace('"', '&quot;')
+            checklist_html += f'<li onclick="toggleReq(this)"><input type="checkbox"><span>{safe_item}</span></li>'
+        checklist_html += '</ul>'
+
+    # ── Artifact format badge ─────────────────────────────────────────
+    artifact_ext = required_artifact.rsplit('.', 1)[-1].lower() if '.' in required_artifact else ''
+    ext_labels = {'md': '📝 Markdown', 'png': '🖼️ Screenshot', 'jpg': '🖼️ Image', 'jpeg': '🖼️ Image', 'pdf': '📄 PDF', 'csv': '📊 CSV', 'txt': '📄 Text'}
+    format_badge = f'<span class="artifact-format">{ext_labels.get(artifact_ext, "📄 File")}</span>' if artifact_ext else ''
+
+    # ── Template button logic ─────────────────────────────────────────
+    template_btn = ''
+    if artifact_ext == 'md':
+        template_btn = f'<button type="button" class="btn btn-outline btn-sm" onclick="useTemplate(\'{required_artifact}\', {day_number})">📄 Use Template</button>'
+    elif artifact_ext in ('png', 'jpg', 'jpeg'):
+        template_btn = f'<button type="button" class="btn btn-outline btn-sm" onclick="showScreenshotGuide()">📸 Screenshot Guide</button>'
+
+    # ── Proof task details ────────────────────────────────────────────
+    pt_info = ''
+    if proof_task and proof_task in PROOF_TASKS:
+        pt = PROOF_TASKS[proof_task]
+        criteria = PROOF_TASK_CRITERIA.get(proof_task, {})
+        sections = criteria.get('required_sections', [])
+        checks = criteria.get('quality_checks', [])
+        sections_html = ''.join(f'<li>{s}</li>' for s in sections)
+        checks_html = ''.join(f'<li>{c}</li>' for c in checks)
+        pt_info = f'''
+<div class="card" style="border-left:3px solid #8b5cf6;">
+  <h3>🔖 {proof_task}: {pt.get('name', '')}</h3>
+  <p style="font-size:13px;color:#6b7280;">Due by Day {pt.get('due_day', '?')} · Level {pt.get('level', '?')}</p>
+  <details style="margin-top:8px;">
+    <summary style="font-size:13px;cursor:pointer;font-weight:600;">Required Sections & Quality Checks</summary>
+    <h4 style="margin-top:8px;font-size:13px;">Required Sections</h4>
+    <ul>{sections_html}</ul>
+    <h4 style="margin-top:8px;font-size:13px;">Quality Checks</h4>
+    <ul>{checks_html}</ul>
+  </details>
+  <div style="margin-top:8px;">
+    <a href="/evidence/new?pt={proof_task}&day={pt.get('due_day', day_number)}" class="btn btn-primary btn-sm">Create {proof_task} Evidence</a>
+  </div>
+</div>'''
+
+    # ── Navigation ────────────────────────────────────────────────────
+    prev_link = f'<a href="/day/{day_number - 1}" class="btn btn-outline btn-sm">◀ Day {day_number - 1}</a>' if day_number > 1 else '<span class="btn btn-outline btn-sm" style="opacity:0.4;cursor:default;">◀ Day 1</span>'
+    next_link = f'<a href="/day/{day_number + 1}" class="btn btn-outline btn-sm">Day {day_number + 1} ▶</a>' if day_number < 28 else '<span class="btn btn-outline btn-sm" style="opacity:0.4;cursor:default;">Day 28 ▶</span>'
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📖 Day {day_number}: {focus}</h2>
+
+<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+  {prev_link}
+  {next_link}
+  <span style="flex:1;"></span>
+  <a href="/curriculum" class="btn btn-outline btn-sm">← All Days</a>
+</div>
+
+<!-- ════════════════ DAY HEADER ════════════════ -->
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h3 style="margin:0;">{focus}</h3>
+      <p style="font-size:13px;color:#6b7280;margin:4px 0;">
+        Week {week} — {theme} · {tag_html}
+      </p>
+    </div>
+    <div style="text-align:right;">
+      <span style="font-size:13px;padding:3px 10px;border-radius:12px;background:{colour}20;color:{colour};font-weight:600;">{classification}</span>
+      <div style="font-size:12px;color:#6b7280;margin-top:4px;">Level {level} · {track}</div>
+      {f'<div style="font-size:16px;margin-top:4px;">✅ Complete</div>' if is_complete else f'<div style="font-size:16px;margin-top:4px;">⏳ Pending</div>'}
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ REQUIREMENTS ════════════════ -->
+<div class="card">
+  <details open>
+    <summary style="font-size:16px;font-weight:600;cursor:pointer;">📋 Requirements for Today</summary>
+    <div style="font-size:14px;line-height:1.7;margin-top:8px;">
+      {evidence_desc}
+    </div>
+    {checklist_html}
+  </details>
+</div>
+
+<!-- ════════════════ REQUIRED ARTIFACT ════════════════ -->
+<div class="card">
+  <h3 style="display:flex;justify-content:space-between;align-items:center;">
+    <span>📎 Required Artifact</span>
+    {format_badge}
+  </h3>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:8px;">
+    <code style="font-size:14px;background:#f3f4f6;padding:6px 12px;border-radius:4px;">{required_artifact}</code>
+    <div style="display:flex;gap:6px;">
+      {template_btn}
+      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('evidenceUploadInput').click()">📎 Upload Artifact</button>
+      <a href="/notes/new?day={day_number}" class="btn btn-outline btn-sm">✏️ Full Note Page</a>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ PROOF TASK ════════════════ -->
+{pt_info}
+
+<!-- ════════════════ DAILY NOTE EDITOR ════════════════ -->
+<div class="card" id="noteSection">
+  <h2 style="display:flex;justify-content:space-between;align-items:center;">
+    <span>📝 Daily Reflection</span>
+    {note_saved_status}
+  </h2>
+
+  <form id="dayNoteForm" onsubmit="return saveDayNote(event, {day_number})">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="date" value="{existing_note_date or today_str}" readonly>
+      </div>
+      <div class="form-group">
+        <label>Day Number</label>
+        <input type="number" name="day_number" value="{day_number}" readonly>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Classification</label>
+        <select name="classification">
+          <option {"selected" if classification=="Foundational" else ""}>Foundational</option>
+          <option {"selected" if classification=="Developing" else ""}>Developing</option>
+          <option {"selected" if classification=="Operational" else ""}>Operational</option>
+          <option {"selected" if classification=="Ready For Codex Acceleration" else ""}>Ready For Codex Acceleration</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Primary Track</label>
+        <select name="primary_track">
+          <option {"selected" if track=="Pyramid operations" else ""}>Pyramid operations</option>
+          <option {"selected" if track=="Codex productivity" else ""}>Codex productivity</option>
+          <option {"selected" if track=="BI judgment" else ""}>BI judgment</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Level</label>
+        <select name="level">
+          <option {"selected" if level==1 else ""}>1</option>
+          <option {"selected" if level==2 else ""}>2</option>
+          <option {"selected" if level==3 else ""}>3</option>
+          <option {"selected" if level==4 else ""}>4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Week Number</label>
+        <input type="number" name="week_number" value="{week}" readonly>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>What I learned today</label>
+      <div style="display:flex;gap:6px;margin-bottom:4px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="togglePreview(this, 'what_learned')">👁️ Preview</button>
+        {f'<span class="field-help">{wl_help}</span>' if wl_help else ''}
+      </div>
+      <textarea class="note-field" name="what_learned" placeholder="{wl_ph}" oninput="autoResize(this)">{wl}</textarea>
+      <div class="md-preview" id="preview_what_learned"></div>
+    </div>
+    <div class="form-group">
+      <label>What evidence I produced</label>
+      <div style="display:flex;gap:6px;margin-bottom:4px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="togglePreview(this, 'evidence_produced')">👁️ Preview</button>
+      </div>
+      <textarea class="note-field" name="evidence_produced" placeholder="{ep_ph}" oninput="autoResize(this)">{ep}</textarea>
+      <div class="md-preview" id="preview_evidence_produced"></div>
+    </div>
+    <div class="form-group">
+      <label>What remains open</label>
+      <div style="display:flex;gap:6px;margin-bottom:4px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="togglePreview(this, 'what_remains')">👁️ Preview</button>
+      </div>
+      <textarea class="note-field" name="what_remains" placeholder="{wr_ph}" oninput="autoResize(this)">{wr}</textarea>
+      <div class="md-preview" id="preview_what_remains"></div>
+    </div>
+    <div class="form-group">
+      <label>Next narrow step</label>
+      <div style="display:flex;gap:6px;margin-bottom:4px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="togglePreview(this, 'next_step')">👁️ Preview</button>
+      </div>
+      <textarea class="note-field" name="next_step" placeholder="{ns_ph}" oninput="autoResize(this)">{ns}</textarea>
+      <div class="md-preview" id="preview_next_step"></div>
+    </div>
+
+    <!-- Scorecard -->
+    <details style="margin-top:12px;">
+      <summary style="font-size:14px;font-weight:600;cursor:pointer;">📊 Scorecard</summary>
+      <p style="font-size:12px;color:#6b7280;margin:8px 0;">Rate your competency in each area for this day.</p>
+      <div class="toggle-grid">{scorecard_html}</div>
+    </details>
+
+    <!-- Codex Gates -->
+    <details style="margin-top:8px;">
+      <summary style="font-size:14px;font-weight:600;cursor:pointer;">🚦 Codex Gates</summary>
+      <p style="font-size:12px;color:#6b7280;margin:8px 0;">Mark which Codex gates you have passed.</p>
+      <div class="toggle-grid">{gate_html}</div>
+    </details>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button type="submit" class="btn btn-primary">{note_save_label}</button>
+      <span style="font-size:12px;color:#6b7280;align-self:center;">
+        {f'Last saved: {existing_note_date}' if existing_note_date else 'Not yet saved'}
+      </span>
+    </div>
+  </form>
+</div>
+
+<!-- ════════════════ EVIDENCE FOR THIS DAY ════════════════ -->
+<div class="card">
+  <h2>📎 Evidence for Day {day_number}</h2>
+
+  <!-- Inline upload -->
+  <div style="margin-bottom:12px;">
+    <div class="upload-zone" onclick="document.getElementById('evidenceUploadInput').click()">
+      <div class="icon">📤</div>
+      <p>Click to upload a file as evidence for Day {day_number}</p>
+      <p style="font-size:11px;color:#9ca3af;">Supported: .md, .txt, .csv, .png, .pdf, .jpg</p>
+    </div>
+    <input type="file" id="evidenceUploadInput" style="display:none;" accept=".md,.txt,.csv,.png,.pdf,.jpg" onchange="uploadDayEvidence(event, {day_number})">
+    <div id="uploadStatus" style="margin-top:6px;font-size:13px;"></div>
+  </div>
+
+  <!-- Existing evidence list -->
+  <div id="dayEvidenceList">
+    {evidence_rows}
+  </div>
+</div>
+
+<!-- ════════════════ BOTTOM NAV ════════════════ -->
+<div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;align-items:center;">
+  {prev_link}
+  {next_link}
+  <span style="flex:1;"></span>
+  <a href="/curriculum" class="btn btn-outline">← Back to All Days</a>
+</div>
+
+<script>
+// ── Markdown renderer ──────────────────────────────────────────
+function renderMarkdown(text) {{
+  if (!text) return '';
+  var html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')
+    .replace(/\\*(.+?)\\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/^\\d+\\. (.+)$/gm, '<li>$1</li>')
+    .replace(/\\[(.+?)\\]\\((.+?)\\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  html = html.replace(/((?:<li>.*?<\/li>\n?)+)/g, '<ul>$1</ul>');
+  html = html.replace(/((?:<blockquote>.*?<\/blockquote>\n?)+)/g, '<blockquote>$1</blockquote>');
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+  html = html.replace(/<p><\/p>/g, '');
+  return html;
+}}
+
+// ── Markdown preview toggle ────────────────────────────────────
+function togglePreview(btn, fieldName) {{
+  var ta = document.getElementsByName(fieldName)[0];
+  if (!ta) return;
+  var preview = document.getElementById('preview_' + fieldName);
+  if (!preview) return;
+  if (preview.classList.contains('visible')) {{
+    preview.classList.remove('visible');
+    preview.innerHTML = '';
+    btn.textContent = '👁️ Preview';
+    ta.style.display = '';
+  }} else {{
+    preview.innerHTML = renderMarkdown(ta.value);
+    preview.classList.add('visible');
+    ta.style.display = 'none';
+    btn.textContent = '✏️ Edit';
+  }}
+}}
+
+// ── Auto-resize textareas ──────────────────────────────────────
+function autoResize(el) {{
+  el.style.height = 'auto';
+  el.style.height = Math.max(80, el.scrollHeight) + 'px';
+}}
+
+// ── Requirement checklist toggle ───────────────────────────────
+function toggleReq(li) {{
+  var cb = li.querySelector('input[type="checkbox"]');
+  if (cb) {{
+    cb.checked = !cb.checked;
+    li.classList.toggle('checked', cb.checked);
+  }}
+}}
+
+// ── Template fill for markdown artifacts ───────────────────────
+function useTemplate(filename, dayNum) {{
+  var ext = filename.split('.').pop().toLowerCase();
+  var templates = {{
+    'md': function(name) {{
+      var title = name.replace(/\.md$/i, '').replace(/_/g, ' ').replace(/\b\w/g, function(c){{return c.toUpperCase();}});
+      return '# ' + title + '\n\n## Purpose\n\n<!-- Briefly describe the purpose of this artifact -->\n\n## Details\n\n<!-- Add your work details here -->\n\n## Checklist\n\n- [ ] Item 1\n- [ ] Item 2\n- [ ] Item 3\n\n## Notes\n\n<!-- Any additional notes -->\n';
+    }}
+  }};
+  var tplFn = templates[ext];
+  if (!tplFn) {{ showToast('No template available for ' + ext, 'error'); return; }}
+  var content = tplFn(filename);
+  fetch('/api/evidence', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{filename: filename, content: content, day_number: dayNum}})
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('✅ Template created! Edit it in evidence.', 'success');
+      setTimeout(function() {{ location.reload(); }}, 800);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+}}
+
+// ── Screenshot guide ───────────────────────────────────────────
+function showScreenshotGuide() {{
+  showToast('📸 Take a screenshot, then upload it using the Upload button above.', 'success');
+  var guide = document.getElementById('uploadStatus');
+  if (guide) {{
+    guide.innerHTML = '<div style="background:#f0fdf4;padding:10px 14px;border-radius:6px;font-size:13px;line-height:1.6;">' +
+      '<strong>📸 Screenshot Tips:</strong><br>' +
+      '• Capture the full relevant area (use Snipping Tool or Win+Shift+S)<br>' +
+      '• Name your file matching the required artifact name<br>' +
+      '• Accepted formats: .png, .jpg<br>' +
+      '• Recommended: annotate key areas before uploading</div>';
+  }}
+}}
+
+// ── Save day note ──────────────────────────────────────────────
+function saveDayNote(event, dayNum) {{
+  event.preventDefault();
+  var form = document.getElementById('dayNoteForm');
+  var data = {{}};
+  for (var i = 0; i < form.elements.length; i++) {{
+    var el = form.elements[i];
+    if (el.name) {{
+      if (el.name.startsWith('scorecard_')) {{
+        if (!data.scorecard) data.scorecard = {{}};
+        data.scorecard[el.name.replace('scorecard_', '')] = el.value;
+      }} else if (el.name.startsWith('codexgate_')) {{
+        if (!data.codex_gate) data.codex_gate = {{}};
+        data.codex_gate[el.name.replace('codexgate_', '')] = el.value;
+      }} else {{
+        data[el.name] = el.value;
+      }}
+    }}
+  }}
+  fetch('/api/notes', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify(data)
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('✅ Note saved!', 'success');
+      setTimeout(function() {{ location.href = '/day/' + dayNum; }}, 800);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ Network error: ' + e, 'error'); }});
+  return false;
+}}
+
+// ── Upload day evidence ────────────────────────────────────────
+function uploadDayEvidence(event, dayNum) {{
+  var input = event.target;
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var ext = file.name.split('.').pop().toLowerCase();
+  var textExts = {{'md':1,'txt':1,'csv':1,'json':1,'yaml':1,'yml':1,'toml':1,'ini':1,'cfg':1,'log':1,'sql':1,'py':1,'js':1,'ts':1,'html':1,'css':1,'xml':1,'svg':1}};
+  var statusDiv = document.getElementById('uploadStatus');
+  statusDiv.innerHTML = '<span style="color:#6b7280;">Uploading ' + file.name + '...</span>';
+
+  function doUpload(content, isBase64) {{
+    var payload = {{filename: file.name, day_number: dayNum}};
+    if (isBase64) {{
+      payload.content_base64 = content;
+      fetch('/api/evidence/binary', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify(payload)
+      }})
+      .then(function(r) {{ return r.json(); }})
+      .then(function(r) {{
+        if (r.status === 'ok') {{
+          showToast('✅ ' + file.name + ' uploaded!', 'success');
+          setTimeout(function() {{ location.reload(); }}, 800);
+        }} else {{
+          statusDiv.innerHTML = '<span style="color:#dc2626;">❌ ' + r.message + '</span>';
+        }}
+      }})
+      .catch(function(e) {{ statusDiv.innerHTML = '<span style="color:#dc2626;">❌ ' + e + '</span>'; }});
+    }} else {{
+      payload.content = content;
+      fetch('/api/evidence', {{
+        method: 'POST',
+        headers: {{'Content-Type': 'application/json'}},
+        body: JSON.stringify(payload)
+      }})
+      .then(function(r) {{ return r.json(); }})
+      .then(function(r) {{
+        if (r.status === 'ok') {{
+          showToast('✅ ' + file.name + ' uploaded!', 'success');
+          setTimeout(function() {{ location.reload(); }}, 800);
+        }} else {{
+          statusDiv.innerHTML = '<span style="color:#dc2626;">❌ ' + r.message + '</span>';
+        }}
+      }})
+      .catch(function(e) {{ statusDiv.innerHTML = '<span style="color:#dc2626;">❌ ' + e + '</span>'; }});
+    }}
+  }}
+
+  if (textExts[ext]) {{
+    var reader = new FileReader();
+    reader.onload = function(e) {{ doUpload(e.target.result, false); }};
+    reader.readAsText(file);
+  }} else {{
+    var reader = new FileReader();
+    reader.onload = function(e) {{
+      var base64 = e.target.result.split(',')[1];
+      doUpload(base64, true);
+    }};
+    reader.readAsDataURL(file);
+  }}
+}}
+
+// ── Delete evidence ────────────────────────────────────────────
+function deleteEvidenceDay(dayNum, filename) {{
+  if (!confirm('Delete ' + filename + '?')) return;
+  fetch('/api/evidence/' + encodeURIComponent(filename), {{method: 'DELETE'}})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('🗑️ Deleted', 'success');
+      setTimeout(function() {{ location.reload(); }}, 800);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+}}
+
+// ── Auto-resize all textareas on load ──────────────────────────
+document.addEventListener('DOMContentLoaded', function() {{
+  var tas = document.querySelectorAll('textarea.note-field');
+  for (var i = 0; i < tas.length; i++) {{ autoResize(tas[i]); }}
+}});
+</script>
+'''
+    return _html_page(f'Day {day_number}', body, 'curriculum')
+
+
+def _page_note_editor(day_number: int = 1, note_data: dict = None, existing_date: str = None) -> str:
+    """Render the daily note editor form."""
+    entry = CURRICULUM.get(day_number, {})
+    classification = get_classification(day_number)
+    primary_track = get_primary_track(day_number)
+    level = get_level_for_day(day_number)
+    week_num = (day_number - 1) // 7 + 1
+    focus = entry.get('focus', '')
+    required_artifact = entry.get('required_artifact', '')
+    tags = entry.get('tags', [])
+    tag_str = ' · '.join(tags)
+
+    today_str = existing_date or date.today().isoformat()
+
+    # Scorecard toggles
+    scorecard_areas = _learner.get_scorecard_areas()
+    scorecard_html = ''
+    for area in scorecard_areas:
+        val = note_data.get('scorecard', {}).get(area, 'Unscored') if note_data else 'Unscored'
+        scorecard_html += f'''<div class="toggle-item">
+  <span>{area}</span>
+  <select name="scorecard_{area}">
+    <option {"selected" if val=="Pass" else ""}>Pass</option>
+    <option {"selected" if val=="Moderate" else ""}>Moderate</option>
+    <option {"selected" if val=="Fail" else ""}>Fail</option>
+    <option {"selected" if val=="Unscored" else ""}>Unscored</option>
+  </select>
+</div>'''
+
+    # Codex gate toggles
+    codex_gates = _learner.get_codex_gates_list()
+    gate_html = ''
+    for gate in codex_gates:
+        val = note_data.get('codex_gate', {}).get(gate, 'No') if note_data else 'No'
+        gate_html += f'''<div class="toggle-item">
+  <span>{gate}</span>
+  <select name="codexgate_{gate}">
+    <option {"selected" if val=="Yes" else ""}>Yes</option>
+    <option {"selected" if val=="No" else ""}>No</option>
+  </select>
+</div>'''
+
+    # Pre-fill form fields from existing note data or curriculum defaults
+    wl = note_data.get('what_learned', '') if note_data else ''
+    ep = note_data.get('evidence_produced', '') if note_data else ''
+    wr = note_data.get('what_remains', '') if note_data else ''
+    ns = note_data.get('next_step', '') if note_data else ''
+
+    title = f'✏️ Day {day_number} — {focus}' if not existing_date else f'📝 Note — {existing_date}'
+    save_label = 'Update Note' if existing_date else 'Save Note'
+
+    # ── Day navigation ────────────────────────────────────────────
+    prev_day = day_number - 1
+    next_day = day_number + 1
+    prev_link = f'<a href="/day/{prev_day}" class="btn btn-outline btn-sm" style="font-size:13px;">◀ Day {prev_day}</a>' if prev_day >= 1 else '<span class="btn btn-outline btn-sm" style="font-size:13px;opacity:0.4;cursor:default;">◀ Day 1</span>'
+    next_link = f'<a href="/day/{next_day}" class="btn btn-outline btn-sm" style="font-size:13px;">Day {next_day} ▶</a>' if next_day <= 28 else '<span class="btn btn-outline btn-sm" style="font-size:13px;opacity:0.4;cursor:default;">Day 28 ▶</span>'
+    day_selector_options = ''
+    for d in range(1, 29):
+        d_entry = CURRICULUM.get(d, {})
+        d_focus = (d_entry.get('focus', '') or '')[:40]
+        selected = 'selected' if d == day_number else ''
+        day_selector_options += f'<option value="{d}" {selected}>Day {d}: {d_focus}</option>'
+
+    day_nav = f'''
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+  <div style="display:flex;gap:6px;">
+    {prev_link}
+    {next_link}
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;">
+    <label for="dayJump" style="font-size:12px;color:#6b7280;">Jump to:</label>
+    <select id="dayJump" onchange="if(this.value) location.href='/day/'+this.value" style="font-size:13px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;">
+      {day_selector_options}
+    </select>
+  </div>
+</div>'''
+
+    body = f'''
+<h2 style="margin-bottom:16px;">{title}</h2>
+
+{day_nav}
+
+<form id="noteForm" onsubmit="return saveNote(event)">
+  <div class="card" style="margin-bottom:16px;">
+    <h2>📋 Curriculum Context</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" name="date" value="{today_str}" readonly>
+      </div>
+      <div class="form-group">
+        <label>Day Number</label>
+        <input type="number" name="day_number" value="{day_number}" readonly>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Classification</label>
+        <select name="classification">
+          <option {"selected" if classification=="Foundational" else ""}>Foundational</option>
+          <option {"selected" if classification=="Developing" else ""}>Developing</option>
+          <option {"selected" if classification=="Operational" else ""}>Operational</option>
+          <option {"selected" if classification=="Ready For Codex Acceleration" else ""}>Ready For Codex Acceleration</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Primary Track</label>
+        <select name="primary_track">
+          <option {"selected" if primary_track=="Pyramid operations" else ""}>Pyramid operations</option>
+          <option {"selected" if primary_track=="Codex productivity" else ""}>Codex productivity</option>
+          <option {"selected" if primary_track=="BI judgment" else ""}>BI judgment</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Level</label>
+        <select name="level">
+          <option {"selected" if level==1 else ""}>1</option>
+          <option {"selected" if level==2 else ""}>2</option>
+          <option {"selected" if level==3 else ""}>3</option>
+          <option {"selected" if level==4 else ""}>4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Week Number</label>
+        <input type="number" name="week_number" value="{week_num}" readonly>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Required Artifact</label>
+      <input type="text" name="required_artifact" value="{required_artifact}" readonly>
+    </div>
+    <div class="form-group">
+      <label>Category Tags</label>
+      <input type="text" value="{tag_str}" readonly style="color:#6b7280;">
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h2>📝 Daily Reflection</h2>
+    <div class="form-group">
+      <label>What I learned today</label>
+      <textarea class="note-field" name="what_learned" placeholder="Describe what you learned today...">{wl}</textarea>
+    </div>
+    <div class="form-group">
+      <label>What evidence I produced</label>
+      <textarea class="note-field" name="evidence_produced" placeholder="Describe the evidence you produced...">{ep}</textarea>
+    </div>
+    <div class="form-group">
+      <label>What remains open</label>
+      <textarea class="note-field" name="what_remains" placeholder="What is still unresolved?">{wr}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Next narrow step</label>
+      <textarea class="note-field" name="next_step" placeholder="What is your immediate next action?">{ns}</textarea>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h2>📊 Scorecard</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Rate your competency in each area for this day.</p>
+    <div class="toggle-grid">{scorecard_html}</div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h2>🚦 Codex Gates</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Mark which Codex gates you have passed.</p>
+    <div class="toggle-grid">{gate_html}</div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:16px;">
+    <button type="submit" class="btn btn-primary">{save_label}</button>
+    <a href="/notes" class="btn btn-outline">Cancel</a>
+  </div>
+</form>
+
+<script>
+function saveNote(event) {{
+  event.preventDefault();
+  var form = document.getElementById('noteForm');
+  var data = {{}};
+  for (var i = 0; i < form.elements.length; i++) {{
+    var el = form.elements[i];
+    if (el.name) {{
+      if (el.name.startsWith('scorecard_')) {{
+        if (!data.scorecard) data.scorecard = {{}};
+        data.scorecard[el.name.replace('scorecard_', '')] = el.value;
+      }} else if (el.name.startsWith('codexgate_')) {{
+        if (!data.codex_gate) data.codex_gate = {{}};
+        data.codex_gate[el.name.replace('codexgate_', '')] = el.value;
+      }} else {{
+        data[el.name] = el.value;
+      }}
+    }}
+  }}
+  fetch('/api/notes', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify(data)
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('✅ Note saved! Dashboard updating...', 'success');
+      setTimeout(function() {{ window.location.href = '/notes/' + r.date; }}, 1000);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ Network error: ' + e, 'error'); }});
+  return false;
+}}
+</script>
+'''
+    return _html_page(f'Day {day_number}', body, 'notes')
+
+
+def _page_note_list() -> str:
+    """Render the list of all notes."""
+    notes = _learner.list_notes()
+    if not notes:
+        body = '''
+<h2 style="margin-bottom:16px;">📝 All Notes</h2>
+<div class="card">
+  <p style="color:#6b7280;text-align:center;padding:20px;">No notes yet. Write your first note!</p>
+  <div style="text-align:center;margin-top:8px;">
+    <a href="/notes/new?day=1" class="btn btn-primary">✏️ Write Day 1 Note</a>
+  </div>
+</div>'''
+        return _html_page('Notes', body, 'notes')
+
+    items = []
+    for n in reversed(notes):
+        day = _learner._extract_day_from_note(n)
+        day_str = f'Day {day}' if day else ''
+        items.append(f'''<div class="note-list-item">
+  <div>
+    <div class="note-date">{n.stem}</div>
+    <div class="note-day">{day_str}</div>
+  </div>
+  <div class="note-actions">
+    <a href="/notes/{n.stem}" class="btn btn-outline btn-sm">View</a>
+    <a href="/notes/new?day={day if day else 1}&date={n.stem}" class="btn btn-outline btn-sm">Edit</a>
+  </div>
+</div>''')
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📝 All Notes ({len(notes)})</h2>
+<div class="card">
+{''.join(items)}
+</div>
+<div style="margin-top:12px;">
+  <a href="/notes/new?day=1" class="btn btn-primary">✏️ New Note</a>
+</div>'''
+    return _html_page('Notes', body, 'notes')
+
+
+def _page_note_view(date_str: str) -> str:
+    """Render a single note for viewing/editing."""
+    # Sanitize date_str to prevent path traversal
+    from urllib.parse import unquote
+    date_str = unquote(date_str)
+    # Only allow date-like filenames (YYYY-MM-DD)
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        return _html_page('Invalid', '<div class="card"><h2>❌ Invalid date</h2><a href="/notes">← Back</a></div>', 'notes')
+    note_path = NOTES_DIR / f'{date_str}.md'
+    if not note_path.exists():
+        return _html_page('Not Found', '<div class="card"><h2>❌ Note not found</h2><p style="color:#6b7280;">No note for {date_str}.</p><a href="/notes" class="btn btn-outline" style="margin-top:12px;">← Back to Notes</a></div>', 'notes')
+
+    content = note_path.read_text(encoding='utf-8')
+
+    # Parse note to extract structured fields (mirrors build_data.py parse_note logic)
+    def _extract(field):
+        m = re.search(rf'\*\*{field}:\*\*\s*(.*?)(?:\n|$)', content)
+        return m.group(1).strip() if m else ''
+
+    def _extract_section(heading):
+        pattern = rf'## {heading}:\s*\n(.*?)(?:\n## |\Z)'
+        m = re.search(pattern, content, re.DOTALL)
+        return m.group(1).strip() if m else ''
+
+    day_str = _extract('Day')  # "Day 3" → "3"
+    day_match = re.search(r'Day\s*(\d+)', day_str)
+    day_num = int(day_match.group(1)) if day_match else 1
+
+    # Load revision history
+    revisions = get_revision_history(note_path)
+    rev_html = ''
+    if revisions:
+        rev_items = ''
+        for rev in reversed(revisions):
+            rev_time = rev.get('timestamp', '')
+            rev_path = rev.get('revision_path', '')
+            rev_label = rev_time.replace('T', ' ')[:16] if rev_time else 'unknown'
+            from urllib.parse import quote as _url_quote
+            rev_url_path = _url_quote(rev_path, safe='/:')
+            rev_items += f'<li style="margin:4px 0;"><a href="/notes/revision?path={rev_url_path}" style="color:#7c73ff;font-size:12px;">📄 {rev_label}</a></li>'
+        rev_html = f'''
+<div class="card" style="margin-top:12px;">
+  <h4 style="margin:0 0 8px 0;font-size:14px;">📜 Revision History ({len(revisions)})</h4>
+  <ul style="margin:0;padding-left:16px;">{rev_items}</ul>
+</div>'''
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📝 Note — {date_str}</h2>
+
+<div class="card" style="margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+    <div>
+      <strong>{_extract('Classification')}</strong> ·
+      {_extract('Primary track')} ·
+      Level {_extract('Level')} ·
+      {_extract('Week Number')}
+    </div>
+    <a href="/day/{day_num}" class="btn btn-outline btn-sm">📖 Day {day_num}</a>
+  </div>
+  <div style="font-family:var(--font-mono);font-size:13px;background:#f9fafb;padding:16px;border-radius:6px;white-space:pre-wrap;line-height:1.5;">{content}</div>
+</div>
+
+{rev_html}
+
+<div style="display:flex;gap:8px;">
+  <a href="/notes" class="btn btn-outline">← Back to Notes</a>
+  <a href="/day/{day_num}" class="btn btn-primary">📖 Open Day {day_num} Workspace</a>
+</div>'''
+    return _html_page(f'Note {date_str}', body, 'notes')
+
+
+def _page_revision_view(rev_path: str) -> str:
+    """Render a historical revision for viewing."""
+    try:
+        from pathlib import Path as _Path
+        from urllib.parse import unquote as _url_unquote
+        rev_path = _url_unquote(rev_path)
+        p = _Path(rev_path)
+        # Ensure revision is within the archive directory
+        archive_dir = (ACTION_DIR / 'archive').resolve()
+        if not str(p.resolve()).startswith(str(archive_dir)):
+            return _html_page('Forbidden',
+                              '<div class="card"><h2>❌ Access denied</h2><a href="/notes">← Back</a></div>',
+                              'notes')
+        if not p.exists():
+            return _html_page('Revision Not Found',
+                              '<div class="card"><h2>❌ Revision not found</h2><p style="color:#6b7280;">The revision file no longer exists.</p><a href="/notes" class="btn btn-outline">← Back to Notes</a></div>',
+                              'notes')
+        content = p.read_text(encoding='utf-8')
+        # Try to extract parent note date from filename
+        parent_date = p.stem.split('_v')[0] if '_v' in p.stem else ''
+        back_link = f'/notes/{parent_date}' if parent_date else '/notes'
+        body = f'''
+<h2 style="margin-bottom:16px;">📜 Revision: {p.name}</h2>
+<div style="color:#6b7280;font-size:13px;margin-bottom:12px;">
+  Restored from <code>{p.name}</code>
+</div>
+<div class="card" style="margin-bottom:16px;">
+  <div style="font-family:var(--font-mono);font-size:13px;background:#f9fafb;padding:16px;border-radius:6px;white-space:pre-wrap;line-height:1.5;">{content}</div>
+</div>
+<a href="{back_link}" class="btn btn-outline">← Back to Note</a>'''
+        return _html_page(f'Revision: {p.name}', body, 'notes')
+    except Exception as e:
+        return _html_page('Error', f'<div class="card"><h2>❌ Error</h2><p>{e}</p><a href="/notes" class="btn btn-outline">← Back to Notes</a></div>', 'notes')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 3: Evidence Page Handlers
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _extract_pt_id(filename: str) -> str:
+    """Extract proof task ID from a filename, e.g. 'PT1_Day9_analysis.md' → 'PT1'."""
+    for pt_id in PROOF_TASKS:
+        if filename.upper().startswith(pt_id.upper()):
+            return pt_id
+    return ''
+
+
+def _extract_day_from_filename(filename: str) -> int:
+    """Extract day number from a filename, e.g. 'PT1_Day9_analysis.md' → 9."""
+    m = re.search(r'[Dd]ay[ _]?(\d+)', filename)
+    return int(m.group(1)) if m else 0
+
+
+def _evidence_list_data() -> list[dict]:
+    """Return structured list of evidence files."""
+    items = []
+    for f in sorted(EVIDENCE_DIR.glob('*.*'), reverse=True):
+        pt_id = _extract_pt_id(f.name)
+        day_num = _extract_day_from_filename(f.name)
+        size_kb = round(f.stat().st_size / 1024, 1) if f.stat().st_size else 0
+        items.append({
+            'filename': f.name,
+            'pt_id': pt_id,
+            'pt_name': PROOF_TASKS.get(pt_id, {}).get('name', '') if pt_id else '',
+            'day': day_num,
+            'size_kb': size_kb,
+            'path': str(f),
+        })
+    return items
+
+
+def _page_evidence_list() -> str:
+    """Render the evidence manager page."""
+    items = _evidence_list_data()
+
+    # Template quick-create buttons
+    pt_buttons = ''
+    for pt_id in sorted(PROOF_TASKS):
+        pt = PROOF_TASKS[pt_id]
+        due_day = pt['due_day']
+        pt_buttons += f'''
+<a href="/evidence/new?pt={pt_id}&day={due_day}" class="btn btn-outline btn-sm">{pt_id}: {pt['name']}</a>'''
+
+    if not items:
+        list_html = '''
+<div class="card">
+  <p style="color:#6b7280;text-align:center;padding:20px;">No evidence files yet. Create one from a template or upload a file.</p>
+</div>'''
+    else:
+        rows = []
+        for it in items:
+            pt_badge = f'<span style="font-size:11px;padding:2px 6px;background:#f0f5ff;color:#3b82f6;border-radius:4px;">{it["pt_id"]}</span>' if it['pt_id'] else ''
+            day_label = f'Day {it["day"]}' if it['day'] else ''
+            rows.append(f'''<div class="note-list-item">
+  <div>
+    <div class="note-date">{it['filename']}</div>
+    <div style="font-size:12px;color:#6b7280;display:flex;gap:6px;align-items:center;margin-top:2px;">
+      {pt_badge}{day_label}<span>{it['size_kb']} KB</span>
+    </div>
+  </div>
+  <div class="note-actions">
+    <a href="/evidence/{it['filename']}" class="btn btn-outline btn-sm">View</a>
+    <a href="/evidence/{it['filename']}?edit=1" class="btn btn-outline btn-sm">Edit</a>
+    <button class="btn btn-outline btn-sm" onclick="deleteEvidence('{it['filename']}')">🗑️</button>
+  </div>
+</div>''')
+        list_html = f'<div class="card">{"".join(rows)}</div>'
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📎 Evidence Manager</h2>
+
+<div class="card" style="margin-bottom:16px;">
+  <h2>Create from Proof Task Template</h2>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Choose a proof task to open its template with the required sections pre-filled.</p>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+    {pt_buttons}
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <h2>Upload Evidence File</h2>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Upload a .md, .txt, .csv, .png, or .pdf file to action/evidence/.</p>
+  <form id="uploadForm" onsubmit="return uploadEvidence(event)" enctype="multipart/form-data">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="file" name="file" id="fileInput" style="flex:1;" accept=".md,.txt,.csv,.png,.pdf,.jpg">
+      <button type="submit" class="btn btn-primary">Upload</button>
+    </div>
+  </form>
+  <div id="uploadStatus" style="margin-top:8px;font-size:13px;"></div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <h2>📁 Upload Folder as Evidence</h2>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Select a folder to upload all supported files as individual evidence items (recursive to 1 level).</p>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="file" name="folder" id="folderInput" style="flex:1;" webkitdirectory multiple>
+    <button type="button" class="btn btn-primary" onclick="uploadFolder()">Upload Folder</button>
+  </div>
+  <div id="folderUploadProgress" style="margin-top:8px;font-size:13px;"></div>
+</div>
+
+<h2 style="margin-bottom:12px;">Saved Evidence ({len(items)})</h2>
+{list_html}
+
+<script>
+function uploadEvidence(event) {{
+  event.preventDefault();
+  var input = document.getElementById('fileInput');
+  if (!input.files || !input.files[0]) {{ showToast('Please select a file', 'error'); return; }}
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {{
+    var content = e.target.result;
+    var filename = file.name;
+    fetch('/api/evidence', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{filename: filename, content: content, day_number: 0}})
+    }})
+    .then(function(r) {{ return r.json(); }})
+    .then(function(r) {{
+      if (r.status === 'ok') {{
+        showToast('✅ ' + filename + ' uploaded!', 'success');
+        setTimeout(function() {{ location.reload(); }}, 1000);
+      }} else {{
+        showToast('❌ ' + r.message, 'error');
+      }}
+    }})
+    .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+  }};
+  reader.readAsText(file);
+  return false;
+}}
+
+function uploadFolder() {{
+  var input = document.getElementById('folderInput');
+  if (!input.files || input.files.length === 0) {{ showToast('Please select a folder', 'error'); return; }}
+  var files = Array.from(input.files);
+  var total = files.length;
+  var done = 0;
+  var failed = 0;
+  var progressDiv = document.getElementById('folderUploadProgress');
+  progressDiv.innerHTML = '<div style="color:#6b7280;">Preparing ' + total + ' file(s)...</div>';
+
+  function uploadNext(index) {{
+    if (index >= files.length) {{
+      var msg = '✅ Uploaded ' + done + '/' + total + ' files' + (failed > 0 ? ' (' + failed + ' failed)' : '');
+      progressDiv.innerHTML = '<div style="color:' + (failed === 0 ? '#059669' : '#dc2626') + ';">' + msg + '</div>';
+      if (done > 0) setTimeout(function() {{ location.reload(); }}, 1500);
+      return;
+    }}
+    var file = files[index];
+    // Skip hidden files and unsupported binary types
+    var ext = file.name.split('.').pop().toLowerCase();
+    var textExts = {{'md':1,'txt':1,'csv':1,'json':1,'yaml':1,'yml':1,'toml':1,'ini':1,'cfg':1,'log':1,'sql':1,'py':1,'js':1,'ts':1,'html':1,'css':1,'xml':1,'svg':1,'env':1,'gitignore':1,'dockerfile':1}};
+    if (file.name.startsWith('.')) {{ uploadNext(index + 1); return; }}
+
+    progressDiv.innerHTML = '<div style="color:#6b7280;">[' + (index+1) + '/' + total + '] Uploading ' + file.name + '...</div>';
+
+    if (textExts[ext]) {{
+      // Read as text and POST via JSON
+      var reader = new FileReader();
+      reader.onload = function(e) {{
+        fetch('/api/evidence', {{
+          method: 'POST',
+          headers: {{'Content-Type': 'application/json'}},
+          body: JSON.stringify({{filename: file.name, content: e.target.result, day_number: 0}})
+        }})
+        .then(function(r) {{ return r.json(); }})
+        .then(function(r) {{
+          if (r.status === 'ok') {{ done++; }} else {{ failed++; }}
+          uploadNext(index + 1);
+        }})
+        .catch(function() {{ failed++; uploadNext(index + 1); }});
+      }};
+      reader.readAsText(file);
+    }} else {{
+      // Binary file — read as base64 and use binary upload endpoint
+      var reader = new FileReader();
+      reader.onload = function(e) {{
+        var base64 = e.target.result.split(',')[1];
+        fetch('/api/evidence/binary', {{
+          method: 'POST',
+          headers: {{'Content-Type': 'application/json'}},
+          body: JSON.stringify({{filename: file.name, content_base64: base64, day_number: 0}})
+        }})
+        .then(function(r) {{ return r.json(); }})
+        .then(function(r) {{
+          if (r.status === 'ok') {{ done++; }} else {{ failed++; }}
+          uploadNext(index + 1);
+        }})
+        .catch(function() {{ failed++; uploadNext(index + 1); }});
+      }};
+      reader.readAsDataURL(file);
+    }}
+  }}
+
+  uploadNext(0);
+}}
+
+function deleteEvidence(filename) {{
+  if (!confirm('Delete ' + filename + '?')) return;
+  fetch('/api/evidence/' + encodeURIComponent(filename), {{method: 'DELETE'}})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('🗑️ Deleted ' + filename, 'success');
+      setTimeout(function() {{ location.reload(); }}, 1000);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+}}
+</script>
+'''
+    return _html_page('Evidence Manager', body, 'evidence')
+
+
+def _page_evidence_new(pt_id: str, day_number: int) -> str:
+    """Render a proof task template form for creating new evidence."""
+    pt = PROOF_TASKS.get(pt_id)
+    criteria = PROOF_TASK_CRITERIA.get(pt_id)
+    if not pt or not criteria:
+        return _html_page('Not Found', '<div class="card"><h2>❌ Unknown proof task</h2><a href="/evidence" class="btn btn-outline">← Back</a></div>', 'evidence')
+
+    sections = criteria.get('required_sections', [])
+    min_len = criteria.get('min_content_length', 0)
+    quality_checks = criteria.get('quality_checks', [])
+
+    # Build section textarea fields
+    section_fields = ''
+    for i, sec in enumerate(sections):
+        safe_id = sec.lower().replace(' ', '_').replace('&', 'and')
+        section_fields += f'''<div class="form-group">
+  <label>{i+1}. {sec}</label>
+  <textarea class="note-field" name="section_{safe_id}" placeholder="Describe {sec.lower()}..." oninput="updateCharCount()"></textarea>
+</div>'''
+
+    # Build quality check list
+    qc_html = ''.join(f'<li style="font-size:13px;color:#6b7280;">☐ {qc}</li>' for qc in quality_checks)
+
+    suggested_filename = f'{pt_id}_Day{day_number}_{pt["name"].lower().replace(" ", "_")}.md'
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📎 {pt_id}: {pt['name']}</h2>
+
+<form id="evidenceForm" onsubmit="return saveEvidence(event)">
+  <div class="card" style="margin-bottom:16px;">
+    <h2>📋 Details</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Proof Task</label>
+        <input type="text" value="{pt_id} — {pt['name']}" readonly>
+      </div>
+      <div class="form-group">
+        <label>Due Day</label>
+        <input type="text" value="Day {pt['due_day']} (Week {pt['week']})" readonly>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Day Number</label>
+        <input type="number" name="day_number" value="{day_number}">
+      </div>
+      <div class="form-group">
+        <label>Filename</label>
+        <input type="text" name="filename" value="{suggested_filename}">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h2>📝 Required Sections</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:8px;">Minimum content length: <strong>{min_len} characters</strong> <span id="charCount" style="color:#6b7280;">(0 so far)</span></p>
+    {section_fields}
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h2>✅ Quality Checklist</h2>
+    <ul style="padding-left:20px;">{qc_html}</ul>
+  </div>
+
+  <div style="display:flex;gap:8px;">
+    <button type="submit" class="btn btn-primary">💾 Save Evidence</button>
+    <a href="/evidence" class="btn btn-outline">Cancel</a>
+  </div>
+</form>
+
+<script>
+function updateCharCount() {{
+  var total = 0;
+  var ta = document.querySelectorAll('textarea[name^="section_"]');
+  for (var i = 0; i < ta.length; i++) total += ta[i].value.length;
+  document.getElementById('charCount').textContent = '(' + total + ' so far' + (total >= {min_len} ? ' ✅' : '') + ')';
+}}
+
+function saveEvidence(event) {{
+  event.preventDefault();
+  var form = document.getElementById('evidenceForm');
+  var data = {{}};
+  var sections = {{}};
+  for (var i = 0; i < form.elements.length; i++) {{
+    var el = form.elements[i];
+    if (!el.name) continue;
+    if (el.name.startsWith('section_')) {{
+      var heading = el.name.replace('section_', '').replace(/_/g, ' ').replace(/\\b\\w/g, function(c){{return c.toUpperCase();}});
+      sections[heading] = el.value;
+    }} else {{
+      data[el.name] = el.value;
+    }}
+  }}
+  data.pt_id = '{pt_id}';
+  data.sections = sections;
+  fetch('/api/evidence', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify(data)
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('✅ Evidence saved!', 'success');
+      setTimeout(function() {{ window.location.href = '/evidence/' + encodeURIComponent(r.filename); }}, 1000);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+  return false;
+}}
+
+// Initial char count
+updateCharCount();
+</script>
+'''
+    return _html_page(f'{pt_id}: {pt["name"]}', body, 'evidence')
+
+
+def _page_evidence_view(filename: str, edit_mode: bool = False) -> str:
+    """Render evidence view/edit/delete page."""
+    # URL-decode filename
+    from urllib.parse import unquote
+    filename = unquote(filename)
+
+    # Path traversal check
+    try:
+        filename = _safe_filename(filename, EVIDENCE_DIR)
+    except ValueError:
+        return _html_page('Invalid', '<div class="card"><h2>❌ Invalid filename</h2><a href="/evidence">← Back</a></div>', 'evidence')
+
+    file_path = EVIDENCE_DIR / filename
+    if not file_path.exists():
+        return _html_page('Not Found', f'<div class="card"><h2>❌ File not found</h2><p style="color:#6b7280;">{filename}</p><a href="/evidence" class="btn btn-outline" style="margin-top:12px;">← Back to Evidence</a></div>', 'evidence')
+
+    content = file_path.read_text(encoding='utf-8') if file_path.suffix in ('.md', '.txt', '.csv') else '[Binary file — preview not available]'
+    pt_id = _extract_pt_id(filename)
+    day_num = _extract_day_from_filename(filename)
+    pt_name = PROOF_TASKS.get(pt_id, {}).get('name', '') if pt_id else ''
+
+    meta_info = f'{pt_id} — {pt_name}' if pt_id else 'General evidence'
+    day_info = f'Day {day_num}' if day_num else ''
+
+    if edit_mode:
+        # Inline edit mode
+        body = f'''
+<h2 style="margin-bottom:16px;">✏️ Edit — {filename}</h2>
+
+<form id="editForm" onsubmit="return saveEdit(event)">
+  <div class="card" style="margin-bottom:16px;">
+    <div style="font-size:13px;color:#6b7280;margin-bottom:8px;">
+      {meta_info} {day_info}
+    </div>
+    <div class="form-group">
+      <label>Filename</label>
+      <input type="text" name="filename" value="{filename}">
+    </div>
+    <div class="form-group">
+      <label>Content (markdown)</label>
+      <textarea class="note-field" name="content" style="min-height:400px;font-family:var(--font-mono);">{content}</textarea>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+    <a href="/evidence/{filename}" class="btn btn-outline">Cancel</a>
+    <span style="flex:1;"></span>
+    <button type="button" class="btn btn-outline" onclick="deleteEvidence('{filename}')" style="color:#ef4444;">🗑️ Delete</button>
+  </div>
+</form>
+
+<script>
+function saveEdit(event) {{
+  event.preventDefault();
+  var form = document.getElementById('editForm');
+  var data = {{}};
+  for (var i = 0; i < form.elements.length; i++) {{
+    var el = form.elements[i];
+    if (el.name) data[el.name] = el.value;
+  }}
+  data.day_number = {day_num};
+  fetch('/api/evidence', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify(data)
+  }})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('✅ Saved!', 'success');
+      window.location.href = '/evidence/' + encodeURIComponent(r.filename);
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+  return false;
+}}
+
+function deleteEvidence(filename) {{
+  if (!confirm('Delete ' + filename + '?')) return;
+  fetch('/api/evidence/' + encodeURIComponent(filename), {{method: 'DELETE'}})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('🗑️ Deleted', 'success');
+      window.location.href = '/evidence';
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+}}
+</script>
+'''
+    else:
+        # View mode
+        # Load revision history
+        ev_revisions = get_revision_history(file_path)
+        ev_rev_html = ''
+        if ev_revisions:
+            ev_rev_items = ''
+            for rev in reversed(ev_revisions):
+                rev_time = rev.get('timestamp', '')
+                rev_path = rev.get('revision_path', '')
+                rev_label = rev_time.replace('T', ' ')[:16] if rev_time else 'unknown'
+                from urllib.parse import quote as _url_quote
+                rev_url_path = _url_quote(rev_path, safe='/:')
+                ev_rev_items += f'<li style="margin:4px 0;"><a href="/evidence/revision?path={rev_url_path}" style="color:#7c73ff;font-size:12px;">📄 {rev_label}</a></li>'
+            ev_rev_html = f'''
+<div class="card" style="margin-top:12px;">
+  <h4 style="margin:0 0 8px 0;font-size:14px;">📜 Revision History ({len(ev_revisions)})</h4>
+  <ul style="margin:0;padding-left:16px;">{ev_rev_items}</ul>
+</div>'''
+
+        body = f'''
+<h2 style="margin-bottom:16px;">📄 {filename}</h2>
+
+<div class="card" style="margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+    <div style="font-size:13px;color:#6b7280;">
+      {meta_info} {day_info} · {file_path.stat().st_size:,} bytes
+    </div>
+    <div style="display:flex;gap:6px;">
+      <a href="/evidence/{filename}?edit=1" class="btn btn-outline btn-sm">✏️ Edit</a>
+      <button class="btn btn-outline btn-sm" onclick="deleteEvidence('{filename}')" style="color:#ef4444;">🗑️ Delete</button>
+    </div>
+  </div>
+  <div style="font-family:var(--font-mono);font-size:13px;background:#f9fafb;padding:16px;border-radius:6px;white-space:pre-wrap;line-height:1.5;">{content}</div>
+</div>
+
+{ev_rev_html}
+
+<div style="display:flex;gap:8px;">
+  <a href="/evidence" class="btn btn-outline">← Back to Evidence</a>
+  <a href="/evidence/{filename}?edit=1" class="btn btn-primary">✏️ Edit</a>
+</div>
+
+<script>
+function deleteEvidence(filename) {{
+  if (!confirm('Delete ' + filename + '?')) return;
+  fetch('/api/evidence/' + encodeURIComponent(filename), {{method: 'DELETE'}})
+  .then(function(r) {{ return r.json(); }})
+  .then(function(r) {{
+    if (r.status === 'ok') {{
+      showToast('🗑️ Deleted', 'success');
+      window.location.href = '/evidence';
+    }} else {{
+      showToast('❌ ' + r.message, 'error');
+    }}
+  }})
+  .catch(function(e) {{ showToast('❌ ' + e, 'error'); }});
+}}
+</script>
+'''
+
+    return _html_page(filename, body, 'evidence')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 4: Feedback, Progress, Q&A Page Handlers
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _page_feedback_list() -> str:
+    """Render the feedback page showing all reviewer feedback on learner artifacts."""
+    all_feedback = get_feedback_for_learner()
+    unread = get_unread_feedback()
+    unread_ids = {f"{fb['artifactId']}::{fb['reviewId']}" for fb in unread}
+
+    if not all_feedback:
+        body = '''
+<h2 style="margin-bottom:16px;">📬 Feedback</h2>
+<div class="card">
+  <p style="color:#6b7280;text-align:center;padding:20px;">No feedback yet. Feedback from reviewers will appear here once they review your work.</p>
+</div>'''
+        return _html_page('Feedback', body, 'feedback')
+
+    # Group by artifact
+    by_artifact = {}
+    for fb in all_feedback:
+        aid = fb['artifactId']
+        if aid not in by_artifact:
+            by_artifact[aid] = {'artifactId': aid, 'reviews': [], 'is_note': fb['is_note'], 'is_evidence': fb['is_evidence']}
+        by_artifact[aid]['reviews'].append(fb)
+
+    rows = []
+    for aid, group in by_artifact.items():
+        latest = group['reviews'][0]
+        has_unread = any(f"{fb['artifactId']}::{fb['reviewId']}" in unread_ids for fb in group['reviews'])
+        rating_colors = {'👍 Pass': '#198754', '⚡ Needs Work': '#ffc107', '❌ Rework': '#dc3545'}
+        rating_color = rating_colors.get(latest['rating'], '#6b7280')
+        artifact_type = '📝 Note' if group['is_note'] else ('📎 Evidence' if group['is_evidence'] else '📄 Artifact')
+        unread_badge = '<span class="unread-dot" title="Unread feedback"></span>' if has_unread else ''
+        reviewer_name = latest['reviewer']['display_name']
+        reviewer_color = latest['reviewer'].get('color', '#7c73ff')
+
+        rows.append(f'''<div class="feedback-item {'unread' if has_unread else ''}">
+  <div class="feedback-meta">
+    <div class="feedback-artifact">
+      {unread_badge}
+      <strong>{artifact_type}:</strong> {aid}
+    </div>
+    <div style="font-size:12px;color:#6b7280;">
+      <span style="color:{reviewer_color};font-weight:600;">{reviewer_name}</span>
+      · <span style="color:{rating_color};font-weight:600;">{latest['rating']}</span>
+      · {latest['timestamp'][:10] if latest['timestamp'] else ''}
+      · {len(group['reviews'])} review(s)
+    </div>
+  </div>
+  <div class="feedback-preview">{latest['text'][:200]}{'...' if len(latest['text']) > 200 else ''}</div>
+  <div class="feedback-actions">
+    <a href="/feedback/{aid}" class="btn btn-outline btn-sm">View Details</a>
+  </div>
+</div>''')
+
+    unread_count = len(unread)
+    unread_banner = f'<div class="alert alert-info" style="margin-bottom:16px;">📬 You have <strong>{unread_count}</strong> unread feedback item(s). <a href="#" onclick="markAllSeen()">Mark all as seen</a></div>' if unread_count else ''
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📬 Feedback ({len(all_feedback)} total)</h2>
+{unread_banner}
+<div class="card">
+  {"".join(rows)}
+</div>
+
+<script>
+function markAllSeen() {{
+  fetch('/api/feedback/seen', {{method: 'POST', headers: {{'Content-Type': 'application/json'}}, body: '{{}}'}})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{if(r.status==='ok'){{showToast('✅ All marked as seen','success');setTimeout(function(){{location.reload()}},1000);}}}})
+  .catch(function(e){{showToast('❌ '+e,'error')}});
+}}
+</script>
+'''
+    return _html_page('Feedback', body, 'feedback')
+
+
+def _page_feedback_detail(artifact_id: str) -> str:
+    """Render detail page for a specific artifact's feedback with Q&A threads."""
+    from urllib.parse import unquote
+    artifact_id = unquote(artifact_id)
+    all_feedback = get_feedback_for_learner()
+    artifact_feedback = [fb for fb in all_feedback if fb['artifactId'] == artifact_id]
+
+    if not artifact_feedback:
+        return _html_page('Not Found', f'<div class="card"><h2>❌ No feedback found</h2><p>{artifact_id}</p><a href="/feedback" class="btn btn-outline">← Back</a></div>', 'feedback')
+
+    # Mark as seen
+    for fb in artifact_feedback:
+        mark_seen(fb['artifactId'], fb['reviewId'])
+
+    # Group reviews by reviewId for Q&A
+    rating_colors = {'👍 Pass': '#198754', '⚡ Needs Work': '#ffc107', '❌ Rework': '#dc3545'}
+
+    review_cards = []
+    for fb in artifact_feedback:
+        rc = rating_colors.get(fb['rating'], '#6b7280')
+        qa_thread = get_qa_thread(fb['reviewId'])
+        reviewer_color = fb['reviewer'].get('color', '#7c73ff')
+
+        # Q&A thread
+        qa_html = ''
+        for entry in qa_thread:
+            author_style = 'font-weight:600;color:#7c73ff;' if entry['author'] == 'learner' else f'font-weight:600;color:{reviewer_color};'
+            author_label = 'You' if entry['author'] == 'learner' else fb['reviewer']['display_name']
+            qa_html += f'''<div class="qa-entry">
+  <div style="display:flex;justify-content:space-between;font-size:12px;">
+    <span style="{author_style}">{author_label}</span>
+    <span style="color:#6b7280;">{entry['timestamp'][:16].replace('T',' ')}</span>
+  </div>
+  <div style="margin-top:4px;font-size:13px;">{entry['text']}</div>
+</div>'''
+
+        review_cards.append(f'''<div class="card" style="margin-bottom:16px;border-left:4px solid {rc};">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+    <div>
+      <span style="font-weight:600;color:{reviewer_color};">{fb['reviewer']['display_name']}</span>
+      <span style="font-size:12px;color:#6b7280;"> · {fb['reviewer'].get('role', 'Reviewer')}</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="background:{rc};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">{fb['rating']}</span>
+      <span style="font-size:11px;color:#6b7280;">{fb['timestamp'][:16].replace('T',' ') if fb['timestamp'] else ''}</span>
+    </div>
+  </div>
+  <div style="font-size:14px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;">{fb['text']}</div>
+
+  <div class="qa-section">
+    <h4 style="font-size:13px;color:#333;margin:0 0 8px;">💬 Discussion ({len(qa_thread)})</h4>
+    {qa_html if qa_html else '<p style="font-size:12px;color:#6b7280;">No questions yet. Ask a question about this feedback.</p>'}
+    <div class="qa-input" style="display:flex;gap:8px;margin-top:8px;">
+      <textarea id="qaText_{fb['reviewId']}" placeholder="Ask a question about this feedback..." style="flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;resize:none;min-height:40px;"></textarea>
+      <button class="btn btn-primary btn-sm" onclick="postQA('{fb['reviewId']}','{artifact_id}')">Ask</button>
+    </div>
+  </div>
+</div>''')
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📬 Feedback: {artifact_id}</h2>
+{"".join(review_cards)}
+<div style="display:flex;gap:8px;">
+  <a href="/feedback" class="btn btn-outline">← Back to Feedback</a>
+</div>
+
+<script>
+function postQA(reviewId, artifactId) {{
+  var ta = document.getElementById('qaText_' + reviewId);
+  var text = ta.value.trim();
+  if (!text) {{ showToast('Please enter a question', 'error'); return; }}
+  fetch('/api/feedback/qa', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{reviewId: reviewId, artifactId: artifactId, text: text}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('✅ Question posted!','success');ta.value='';setTimeout(function(){{location.reload()}},1000);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+</script>
+'''
+    return _html_page(f'Feedback: {artifact_id}', body, 'feedback')
+
+
+def _page_progress() -> str:
+    """Render the level progression page."""
+    prog = get_level_progress()
+    levels = prog.get('levels', {})
+    current_level = prog.get('current_level', 1)
+    current_day = prog.get('current_day', 0)
+    latest_class = prog.get('latest_classification', '—')
+    scorecard = prog.get('scorecard_trend', {})
+    codex_gates = prog.get('codex_gate_status', {})
+    proof_tasks = prog.get('proof_tasks', {})
+
+    # Level cards
+    level_cards = []
+    level_labels = {1: ('🌱', 'Foundation'), 2: ('🌿', 'Development'), 3: ('🌳', 'Operational'), 4: ('🏆', 'Mastery')}
+    for lvl_num in range(1, 5):
+        lvl_info = levels.get(str(lvl_num), {})
+        emoji, label = level_labels.get(lvl_num, ('📘', f'Level {lvl_num}'))
+        is_current = lvl_num == current_level
+        is_unlocked = lvl_info.get('is_unlocked', False) or is_current
+        is_completed = lvl_info.get('is_completed', False)
+        days_done = lvl_info.get('days_completed', 0)
+        days_req = lvl_info.get('days_required', 28)
+        gates = lvl_info.get('gates', {})
+        blockers = gates.get('blockers', [])
+
+        status_icon = '🔓' if is_unlocked else '🔒'
+        if is_completed:
+            status_icon = '✅'
+        progress_pct = min(round(days_done / max(days_req, 1) * 100), 100)
+
+        # Gate details
+        gate_details = gates.get('details', {})
+        gate_rows = ''
+        for metric, value in gate_details.items():
+            gate_rows += f'''<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;">
+  <span style="color:#6b7280;">{metric}</span>
+  <span>{value}</span>
+</div>'''
+
+        blocker_html = ''
+        if blockers:
+            blocker_html = '<div style="margin-top:8px;font-size:12px;color:#dc3545;">⚠️ ' + '; '.join(blockers[:3]) + '</div>'
+
+        active_class = ' level-active' if is_current else ''
+        completed_class = ' level-completed' if is_completed else ''
+
+        level_cards.append(f'''<div class="level-card{active_class}{completed_class}">
+  <div class="level-header" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <span style="font-size:20px;margin-right:8px;">{emoji}</span>
+      <strong>Level {lvl_num}: {label}</strong>
+      <span style="font-size:12px;color:#6b7280;margin-left:8px;">{status_icon}</span>
+    </div>
+    {f'<span style="font-size:12px;background:#19875420;color:#198754;padding:2px 8px;border-radius:4px;">✅ Completed</span>' if is_completed else ''}
+  </div>
+  <div class="progress-bar" style="margin:8px 0;">
+    <div class="fill" style="width:{progress_pct}%;background:{'#198754' if is_completed else ('#7c73ff' if is_current else '#d1d5db')};"></div>
+  </div>
+  <div style="font-size:12px;color:#6b7280;">{days_done}/{days_req} days ({progress_pct}%)</div>
+  {gate_rows}
+  {blocker_html}
+</div>''')
+
+    # Scorecard summary
+    scorecard_rows = ''
+    for area, entries in sorted(scorecard.items()):
+        if entries:
+            latest_score = entries[-1].get('score', 'Unscored')
+            score_color = {'Pass': '#198754', 'Moderate': '#ffc107', 'Fail': '#dc3545', 'Unscored': '#6b7280'}.get(latest_score, '#6b7280')
+            scorecard_rows += f'''<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+  <span>{area}</span>
+  <span style="color:{score_color};font-weight:600;">{latest_score}</span>
+</div>'''
+
+    # Codex gates
+    gate_rows = ''
+    for gate, status in sorted(codex_gates.items()):
+        passed = status == 'Yes'
+        gate_rows += f'''<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+  <span>{gate}</span>
+  <span style="color:{'#198754' if passed else '#6b7280'};">{'✅ Passed' if passed else '⏳ Not yet'}</span>
+</div>'''
+
+    # Proof tasks
+    pt_rows = ''
+    for pt, done in sorted(proof_tasks.items()):
+        pt_rows += f'''<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+  <span>{pt}</span>
+  <span style="color:{'#198754' if done else '#6b7280'};">{'✅ Done' if done else '⏳ Pending'}</span>
+</div>'''
+
+    body = f'''
+<h2 style="margin-bottom:16px;">📊 Progress & Level Progression</h2>
+
+<div class="stats-grid" style="margin-bottom:16px;">
+  <div class="stat-card">
+    <div class="stat-value">Level {current_level}</div>
+    <div class="stat-label">Current Level</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">Day {current_day}</div>
+    <div class="stat-label">Current Day</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{latest_class}</div>
+    <div class="stat-label">Classification</div>
+  </div>
+</div>
+
+<h3 style="margin:16px 0 8px;">🏔️ Levels</h3>
+{"".join(level_cards)}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+  <div class="card">
+    <h3 style="font-size:15px;margin:0 0 8px;">🏆 Scorecard</h3>
+    {scorecard_rows if scorecard_rows else '<p style="font-size:13px;color:#6b7280;">No scorecard data yet.</p>'}
+  </div>
+  <div class="card">
+    <h3 style="font-size:15px;margin:0 0 8px;">🚪 Codex Gates</h3>
+    {gate_rows if gate_rows else '<p style="font-size:13px;color:#6b7280;">No gate data yet.</p>'}
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h3 style="font-size:15px;margin:0 0 8px;">✅ Proof Tasks</h3>
+  {pt_rows if pt_rows else '<p style="font-size:13px;color:#6b7280;">No proof task data yet.</p>'}
+</div>
+'''
+    return _html_page('Progress', body, 'progress')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 4: Feedback & Progress API Handlers
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _api_feedback_list() -> str:
+    """GET /api/feedback — all feedback for learner as JSON."""
+    feedback = get_feedback_for_learner()
+    return json.dumps(feedback, indent=2, default=str)
+
+
+def _api_feedback_unread() -> str:
+    """GET /api/feedback/unread — unread feedback count and items."""
+    unread = get_unread_feedback()
+    return json.dumps({'count': len(unread), 'items': unread}, indent=2, default=str)
+
+
+def _api_feedback_mark_seen(body: dict) -> str:
+    """POST /api/feedback/seen — mark feedback as seen."""
+    artifact_id = body.get('artifactId', '')
+    review_id = body.get('reviewId', '')
+    if artifact_id and review_id:
+        mark_seen(artifact_id, review_id)
+    else:
+        mark_all_seen()
+    return json.dumps({'status': 'ok'})
+
+
+def _api_feedback_qa_get(review_id: str) -> str:
+    """GET /api/feedback/qa/{reviewId} — Q&A thread for a review."""
+    thread = get_qa_thread(review_id)
+    return json.dumps(thread, indent=2, default=str)
+
+
+def _api_feedback_qa_add(body: dict) -> str:
+    """POST /api/feedback/qa — add a Q&A entry."""
+    review_id = body.get('reviewId', '')
+    text = body.get('text', '').strip()
+    artifact_id = body.get('artifactId', '')
+    if not review_id or not text:
+        return json.dumps({'status': 'error', 'message': 'reviewId and text required'})
+    entry = add_qa_entry(review_id, 'learner', text, artifact_id)
+    return json.dumps({'status': 'ok', 'entry': entry}, default=str)
+
+
+def _api_progress() -> str:
+    """GET /api/progress — level progression data as JSON."""
+    return json.dumps(get_level_progress(), indent=2, default=str)
+
+
+def _api_learner_summary() -> str:
+    """GET /api/learner/summary — learner's daily summary data."""
+    summary = compile_learner_daily_summary()
+    return json.dumps(summary, indent=2, default=str)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 4: Email Scheduler
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _send_email(to_addr: str, subject: str, html_body: str) -> tuple:
+    """Send an email via SMTP. Returns (ok, error_msg)."""
+    if not SMTP_HOST:
+        return False, 'SMTP not configured — set MUE_SMTP_HOST environment variable'
+    if not to_addr:
+        return False, 'No recipient email address'
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = SMTP_FROM
+        msg['To'] = to_addr
+        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+        if SMTP_PORT == 465:
+            server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15)
+        else:
+            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15)
+            if SMTP_USE_TLS:
+                server.starttls()
+        if SMTP_USER and SMTP_PASS:
+            server.login(SMTP_USER, SMTP_PASS)
+        server.sendmail(SMTP_FROM, [to_addr], msg.as_string())
+        server.quit()
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
+def _build_learner_summary_html(summary: dict) -> str:
+    """Build an HTML email body for the learner's daily summary."""
+    unread = summary.get('unread_feedback', 0)
+    notes_today = summary.get('notes_today', 0)
+    evidence_today = summary.get('evidence_today', 0)
+    total_notes = summary.get('total_notes', 0)
+    total_evidence = summary.get('total_evidence', 0)
+    current_day = summary.get('current_day', 0)
+    latest_class = summary.get('latest_classification', '—')
+
+    return f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+  <div style="background:linear-gradient(135deg,#7c73ff,#a29bfe);padding:24px;color:#fff">
+    <h1 style="margin:0;font-size:18px">🌅 MUE Daily Summary</h1>
+    <p style="margin:6px 0 0;opacity:.85;font-size:13px">{datetime.now().strftime("%A, %Y-%m-%d")}</p>
+  </div>
+  <div style="padding:20px 24px">
+    <h2 style="font-size:15px;color:#333;margin:0 0 12px">📊 Your Progress</h2>
+    <table style="width:100%;margin-bottom:16px"><tr>
+      <td style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#7c73ff">{current_day}/28</div><div style="font-size:11px;color:#888">Days</div></td>
+      <td style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#198754">{total_notes}</div><div style="font-size:11px;color:#888">Notes</div></td>
+      <td style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#3b82f6">{total_evidence}</div><div style="font-size:11px;color:#888">Evidence Files</div></td>
+      <td style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center;width:25%"><div style="font-size:22px;font-weight:700;color:#f59e0b">{latest_class}</div><div style="font-size:11px;color:#888">Classification</div></td>
+    </tr></table>
+
+    <h2 style="font-size:15px;color:#333;margin:16px 0 8px">📋 Today's Activity</h2>
+    <p style="font-size:13px;color:#333;">
+      Notes written today: <strong>{notes_today}</strong><br>
+      Evidence uploaded today: <strong>{evidence_today}</strong>
+    </p>
+
+    <h2 style="font-size:15px;color:#333;margin:16px 0 8px">📬 Feedback</h2>
+    <p style="font-size:13px;color:{'#dc3545' if unread > 0 else '#198754'};">
+      {'⚠️ You have <strong>' + str(unread) + '</strong> unread feedback item(s) requiring attention.' if unread > 0 else '✅ All feedback has been reviewed.'}
+    </p>
+
+    <p style="font-size:12px;color:#aaa;margin:20px 0 0;text-align:center;">
+      Sent by MUE Learner Server · <a href="http://localhost:5005" style="color:#7c73ff;">Open Dashboard</a>
+    </p>
+  </div>
+</div></body></html>'''
+
+
+def send_learner_daily_summary():
+    """Compile and send the learner's daily summary email."""
+    global _scheduler_running
+    if not SUMMARY_ENABLED or not LEARNER_EMAIL:
+        return False
+
+    summary = compile_learner_daily_summary()
+    html_body = _build_learner_summary_html(summary)
+    subject = f'🌅 MUE Daily Summary — Day {summary["current_day"]} · {summary["total_notes"]} notes, {summary["total_evidence"]} evidence'
+
+    ok, err = _send_email(LEARNER_EMAIL, subject, html_body)
+    if ok:
+        print(f'  📧 Daily summary sent to {LEARNER_EMAIL}')
+    else:
+        print(f'  ⚠️ Failed to send daily summary: {err}')
+    return ok
+
+
+def _scheduler_loop():
+    """Background thread that checks every 60s if it's time for the daily summary."""
+    global _scheduler_running
+    _scheduler_running = True
+    while _scheduler_running:
+        try:
+            now = datetime.now()
+            if now.hour == DAILY_SUMMARY_HOUR and now.minute == DAILY_SUMMARY_MINUTE:
+                send_learner_daily_summary()
+                # Sleep extra to avoid re-triggering in the same minute
+                time.sleep(70)
+            else:
+                time.sleep(55)
+        except Exception:
+            time.sleep(55)
+    _scheduler_running = False
+
+
+def start_email_scheduler():
+    """Start the background email scheduler thread."""
+    global _scheduler_thread
+    if _scheduler_thread and _scheduler_thread.is_alive():
+        return
+    _scheduler_thread = threading.Thread(target=_scheduler_loop, daemon=True)
+    _scheduler_thread.start()
+    if SUMMARY_ENABLED and LEARNER_EMAIL:
+        print(f'  📧 Daily summary scheduled for {DAILY_SUMMARY_HOUR:02d}:{DAILY_SUMMARY_MINUTE:02d} → {LEARNER_EMAIL}')
+
+
+def _api_send_summary() -> str:
+    """POST /api/learner/summary/send — manually trigger the daily summary email."""
+    ok = send_learner_daily_summary()
+    return json.dumps({'status': 'ok' if ok else 'error'})
+
+
+def _api_status() -> str:
+    """GET /api/status — learner status, current day, classification."""
+    today_str = date.today().isoformat()
+    day_num = _learner.get_curriculum_day(today_str) or 1
+    entry = CURRICULUM.get(day_num, {})
+    notes_count = len(_learner.list_notes())
+    evidence_count = len(_learner.list_evidence())
+
+    return json.dumps({
+        'learner_name': _learner.get_name(),
+        'current_day': day_num,
+        'week': (day_num - 1) // 7 + 1,
+        'total_days': 28,
+        'focus': entry.get('focus', ''),
+        'classification': get_classification(day_num),
+        'primary_track': get_primary_track(day_num),
+        'level': get_level_for_day(day_num),
+        'notes_count': notes_count,
+        'evidence_count': evidence_count,
+    })
+
+
+def _api_curriculum() -> str:
+    """GET /api/curriculum — full 28-day schedule as JSON."""
+    return json.dumps({str(k): v for k, v in CURRICULUM.items()}, indent=2)
+
+
+def _api_notes_list() -> str:
+    """GET /api/notes — list all notes as JSON."""
+    notes = []
+    for n in _learner.list_notes():
+        day = _learner._extract_day_from_note(n)
+        notes.append({
+            'date': n.stem,
+            'day': day,
+            'path': str(n),
+        })
+    return json.dumps(notes, indent=2)
+
+
+def _api_note_get(date_str: str) -> str:
+    """GET /api/notes/{date} — get a specific note's content as JSON."""
+    from urllib.parse import unquote
+    date_str = unquote(date_str)
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        return json.dumps({'error': 'invalid date'})
+    note_path = NOTES_DIR / f'{date_str}.md'
+    if not note_path.exists():
+        return json.dumps({'error': 'not found'})
+    content = note_path.read_text(encoding='utf-8')
+    return json.dumps({'date': date_str, 'content': content}, indent=2)
+
+
+def _api_note_save(body: dict) -> str:
+    """POST /api/notes — create or update a note."""
+    date_str = body.get('date', date.today().isoformat())
+    if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        return json.dumps({'status': 'error', 'message': 'Invalid date format'})
+    day_number = int(body.get('day_number', 1))
+
+    fields = {
+        'classification': body.get('classification', 'Foundational'),
+        'primary_track': body.get('primary_track', 'BI judgment'),
+        'level': int(body.get('level', 1)),
+        'what_learned': body.get('what_learned', ''),
+        'evidence_produced': body.get('evidence_produced', ''),
+        'what_remains': body.get('what_remains', ''),
+        'next_step': body.get('next_step', ''),
+        'scorecard': body.get('scorecard', {}),
+        'codex_gate': body.get('codex_gate', {}),
+        'required_artifact': body.get('required_artifact', ''),
+    }
+
+    try:
+        # Create revision before overwriting (if note already exists)
+        note_path = NOTES_DIR / f'{date_str}.md'
+        create_revision(note_path, 'note', f'{date_str}.md')
+
+        _learner.stage_note_content(date_str, day_number, fields)
+        note_path = _learner.generate_daily_note(date_str, day_number)
+        return json.dumps({'status': 'ok', 'date': date_str, 'path': str(note_path)})
+    except Exception as e:
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+
+def _api_evidence_list() -> str:
+    """GET /api/evidence — list all evidence files as JSON."""
+    return json.dumps(_evidence_list_data(), indent=2)
+
+
+def _api_evidence_get(filename: str) -> str:
+    """GET /api/evidence/{filename} — get evidence content."""
+    from urllib.parse import unquote
+    filename = unquote(filename)
+    try:
+        filename = _safe_filename(filename, EVIDENCE_DIR)
+    except ValueError:
+        return json.dumps({'error': 'invalid filename'})
+    file_path = EVIDENCE_DIR / filename
+    if not file_path.exists():
+        return json.dumps({'error': 'not found'})
+    content = file_path.read_text(encoding='utf-8') if file_path.suffix in ('.md', '.txt', '.csv') else '[binary]'
+    pt_id = _extract_pt_id(filename)
+    return json.dumps({
+        'filename': filename,
+        'content': content,
+        'pt_id': pt_id,
+        'day': _extract_day_from_filename(filename),
+        'size': file_path.stat().st_size,
+    }, indent=2)
+
+
+def _api_evidence_save(body: dict) -> str:
+    """POST /api/evidence — create or update evidence."""
+    filename = body.get('filename', '')
+    if not filename:
+        return json.dumps({'status': 'error', 'message': 'No filename provided'})
+    try:
+        filename = _safe_filename(filename, EVIDENCE_DIR)
+    except ValueError:
+        return json.dumps({'status': 'error', 'message': 'Invalid filename'})
+
+    # If sections were provided (from template), build markdown
+    sections = body.get('sections')
+    content = body.get('content')
+
+    if sections and not content:
+        # Build from template sections
+        lines = [f'# {body.get("pt_id", "Evidence")}', '']
+        for heading, text in sections.items():
+            lines.append(f'## {heading}')
+            lines.append(str(text))
+            lines.append('')
+        content = '\n'.join(lines)
+
+    if not content:
+        return json.dumps({'status': 'error', 'message': 'No content provided'})
+
+    day_number = int(body.get('day_number', 0))
+
+    try:
+        # Create revision before overwriting
+        ev_path_existing = EVIDENCE_DIR / filename
+        create_revision(ev_path_existing, 'evidence', filename)
+
+        _learner.stage_evidence_content(day_number if day_number else 1, filename, {
+            'filename': filename,
+            'content': content,
+        })
+        ev_path = _learner.generate_evidence(day_number if day_number else 1, filename)
+        # If the filename changed, clean up old file
+        old_filename = body.get('_original_filename')
+        if old_filename and old_filename != filename:
+            old_path = EVIDENCE_DIR / old_filename
+            if old_path.exists():
+                old_path.unlink()
+        return json.dumps({'status': 'ok', 'filename': filename, 'path': str(ev_path)})
+    except Exception as e:
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+
+def _api_evidence_binary_save(body: dict) -> str:
+    """POST /api/evidence/binary — upload binary evidence (base64-encoded)."""
+    import base64
+    filename = body.get('filename', '')
+    content_b64 = body.get('content_base64', '')
+    if not filename or not content_b64:
+        return json.dumps({'status': 'error', 'message': 'Missing filename or content'})
+    try:
+        filename = _safe_filename(filename, EVIDENCE_DIR)
+    except ValueError:
+        return json.dumps({'status': 'error', 'message': 'Invalid filename'})
+    try:
+        raw = base64.b64decode(content_b64)
+        file_path = EVIDENCE_DIR / filename
+        # Create revision before overwriting
+        create_revision(file_path, 'evidence', filename)
+        file_path.write_bytes(raw)
+        return json.dumps({'status': 'ok', 'filename': filename, 'size': len(raw)})
+    except Exception as e:
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+
+def _api_evidence_delete(filename: str) -> str:
+    """DELETE /api/evidence/{filename} — delete evidence file."""
+    from urllib.parse import unquote
+    filename = unquote(filename)
+    try:
+        filename = _safe_filename(filename, EVIDENCE_DIR)
+    except ValueError:
+        return json.dumps({'status': 'error', 'message': 'Invalid filename'})
+    file_path = EVIDENCE_DIR / filename
+    if not file_path.exists():
+        return json.dumps({'status': 'error', 'message': 'File not found'})
+    try:
+        file_path.unlink()
+        return json.dumps({'status': 'ok'})
+    except Exception as e:
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+
+def _api_rebuild() -> str:
+    """POST /api/rebuild — trigger build_data.py."""
+    try:
+        result = subprocess.run(
+            [sys.executable, str(BUILD_SCRIPT)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0:
+            return json.dumps({'status': 'ok'})
+        else:
+            return json.dumps({'status': 'error', 'message': result.stderr.strip()[-200:]})
+    except Exception as e:
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# HTTP Request Handler
+# ═══════════════════════════════════════════════════════════════════════════
+
+class LearnerHTTPHandler(SimpleHTTPRequestHandler):
+    """HTTP request handler for the learner web interface."""
+
+    def log_message(self, format, *args):
+        """Quiet logs — only print non-static requests."""
+        try:
+            if len(args) >= 2:
+                code = str(args[0])
+                target = str(args[1]) if len(args) > 1 else ''
+                if not code.startswith('200') or not target.startswith('/static/'):
+                    print(f'  {code} {target}')
+        except Exception:
+            pass  # Ignore logging errors
+
+    def _send_json(self, data: str, status: int = 200):
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Cache-Control', 'no-cache')
+        self.end_headers()
+        self.wfile.write(data.encode('utf-8'))
+
+    def _send_html(self, html: str, status: int = 200):
+        self.send_response(status)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Cache-Control', 'no-cache')
+        self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
+
+    def _send_redirect(self, location: str):
+        self.send_response(302)
+        self.send_header('Location', location)
+        self.end_headers()
+
+    def _read_body(self) -> dict:
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length == 0:
+            return {}
+        raw = self.rfile.read(content_length)
+        return json.loads(raw.decode('utf-8'))
+
+    def do_GET(self):
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip('/') or '/'
+        qs = parse_qs(parsed.query)
+
+        # ── Static files ──────────────────────────────────────────
+        if path.startswith('/static/'):
+            rel_path = path[len('/static/'):]
+            static_file = STATIC_DIR / rel_path
+            if static_file.exists() and static_file.is_file():
+                self.send_response(200)
+                if static_file.suffix == '.css':
+                    self.send_header('Content-Type', 'text/css; charset=utf-8')
+                elif static_file.suffix == '.js':
+                    self.send_header('Content-Type', 'application/javascript')
+                else:
+                    self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('Cache-Control', 'max-age=3600')
+                self.end_headers()
+                with open(static_file, 'rb') as f:
+                    self.wfile.write(f.read())
+                return
+            self.send_error(404, 'Static file not found')
+            return
+
+        # ── API routes ────────────────────────────────────────────
+        if path == '/api/status':
+            return self._send_json(_api_status())
+        if path == '/api/curriculum':
+            return self._send_json(_api_curriculum())
+        if path == '/api/notes':
+            return self._send_json(_api_notes_list())
+        if path.startswith('/api/notes/'):
+            date_str = path[len('/api/notes/'):]
+            return self._send_json(_api_note_get(date_str))
+        if path == '/api/evidence':
+            return self._send_json(_api_evidence_list())
+        if path.startswith('/api/evidence/'):
+            filename = path[len('/api/evidence/'):]
+            return self._send_json(_api_evidence_get(filename))
+        # Phase 4 API routes
+        if path == '/api/feedback':
+            return self._send_json(_api_feedback_list())
+        if path == '/api/feedback/unread':
+            return self._send_json(_api_feedback_unread())
+        if path.startswith('/api/feedback/qa/'):
+            review_id = path[len('/api/feedback/qa/'):]
+            return self._send_json(_api_feedback_qa_get(review_id))
+        if path == '/api/progress':
+            return self._send_json(_api_progress())
+        if path == '/api/learner/summary':
+            return self._send_json(_api_learner_summary())
+
+        # ── Page routes ───────────────────────────────────────────
+        if path == '/' or path == '':
+            return self._send_html(_page_dashboard())
+        if path == '/curriculum':
+            week = int(qs.get('week', [0])[0])
+            return self._send_html(_page_curriculum(week))
+        if path == '/day':
+            return self._send_redirect('/curriculum')
+        if path.startswith('/day/'):
+            try:
+                day_num = int(path[len('/day/'):])
+                if 1 <= day_num <= 28:
+                    return self._send_html(_page_day_workspace(day_num))
+            except (ValueError, IndexError):
+                pass
+            return self._send_redirect('/curriculum')
+        if path.startswith('/curriculum/'):
+            try:
+                day_num = int(path[len('/curriculum/'):])
+                if 1 <= day_num <= 28:
+                    return self._send_html(_page_day_workspace(day_num))
+            except (ValueError, IndexError):
+                pass
+            return self._send_html('<h2>Invalid day</h2><a href="/curriculum">← Back</a>')
+        if path == '/notes':
+            return self._send_html(_page_note_list())
+        if path == '/notes/new':
+            day = int(qs.get('day', [1])[0])
+            existing_date = qs.get('date', [None])[0]
+            return self._send_html(_page_note_editor(day, existing_date=existing_date))
+        if path == '/notes/revision':
+            rev_path = qs.get('path', [None])[0]
+            if rev_path:
+                return self._send_html(_page_revision_view(rev_path))
+            return self._send_html('<h2>Missing revision path</h2><a href="/notes">← Back</a>')
+        if path.startswith('/notes/'):
+            date_str = path[len('/notes/'):]
+            return self._send_html(_page_note_view(date_str))
+        if path == '/evidence':
+            return self._send_html(_page_evidence_list())
+        if path == '/evidence/new':
+            pt = qs.get('pt', [''])[0]
+            day = int(qs.get('day', ['1'])[0])
+            return self._send_html(_page_evidence_new(pt, day))
+        if path == '/evidence/revision':
+            rev_path = qs.get('path', [None])[0]
+            if rev_path:
+                return self._send_html(_page_revision_view(rev_path))
+            return self._send_html('<h2>Missing revision path</h2><a href="/evidence">← Back</a>')
+        if path.startswith('/evidence/'):
+            filename = path[len('/evidence/'):]
+            edit_mode = 'edit' in qs
+            return self._send_html(_page_evidence_view(filename, edit_mode))
+        # Phase 4 page routes
+        if path == '/feedback':
+            return self._send_html(_page_feedback_list())
+        if path.startswith('/feedback/'):
+            artifact_id = path[len('/feedback/'):]
+            return self._send_html(_page_feedback_detail(artifact_id))
+        if path == '/progress':
+            return self._send_html(_page_progress())
+
+        self.send_error(404, 'Not found')
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip('/') or '/'
+
+        if path == '/api/notes':
+            body = self._read_body()
+            return self._send_json(_api_note_save(body))
+        if path == '/api/evidence/binary':
+            body = self._read_body()
+            return self._send_json(_api_evidence_binary_save(body))
+        if path == '/api/evidence':
+            body = self._read_body()
+            return self._send_json(_api_evidence_save(body))
+        if path == '/api/rebuild':
+            return self._send_json(_api_rebuild())
+        # Phase 4 POST endpoints
+        if path == '/api/feedback/seen':
+            body = self._read_body()
+            return self._send_json(_api_feedback_mark_seen(body))
+        if path == '/api/feedback/qa':
+            body = self._read_body()
+            return self._send_json(_api_feedback_qa_add(body))
+        if path == '/api/learner/summary/send':
+            return self._send_json(_api_send_summary())
+
+        self.send_error(404, 'Not found')
+
+    def do_DELETE(self):
+        """Handle DELETE requests for evidence deletion."""
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip('/') or '/'
+
+        if path.startswith('/api/evidence/'):
+            filename = path[len('/api/evidence/'):]
+            return self._send_json(_api_evidence_delete(filename))
+
+        self.send_error(404, 'Not found')
+
+    def do_OPTIONS(self):
+        """CORS preflight."""
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Entry Point
+# ═══════════════════════════════════════════════════════════════════════════
+
+def main():
+    parser = argparse.ArgumentParser(description='MUE Learner Web Interface')
+    parser.add_argument('--port', type=int, default=5000, help='Port to serve on (default: 5000)')
+    parser.add_argument('--host', type=str, default='127.0.0.1', help='Host to bind (default: 127.0.0.1)')
+    args = parser.parse_args()
+
+    # Start email scheduler
+    start_email_scheduler()
+
+    server = HTTPServer((args.host, args.port), LearnerHTTPHandler)
+    print(f'''
+╔══════════════════════════════════════════════════════════╗
+║        MUE Learner Web Interface                         ║
+║        Phase 4: Feedback + Progress + Daily Summary     ║
+╠══════════════════════════════════════════════════════════╣
+║  ● Learner: {_learner.get_name():<40s}║
+║  ● Start date: {str(_learner.start_date):<37s}║
+║  ● Notes on disk: {len(_learner.list_notes()):<3d}                      ║
+║  ● Email summary: {'ON → ' + LEARNER_EMAIL if SUMMARY_ENABLED and LEARNER_EMAIL else 'OFF':<39s}║
+║                                                          ║
+║  🏠  Dashboard:  http://{args.host}:{args.port}/            ║
+║  📚  Curriculum: http://{args.host}:{args.port}/curriculum  ║
+║  📝  Notes:      http://{args.host}:{args.port}/notes       ║
+║  📎  Evidence:   http://{args.host}:{args.port}/evidence    ║
+║  📬  Feedback:   http://{args.host}:{args.port}/feedback    ║
+║  📊  Progress:   http://{args.host}:{args.port}/progress    ║
+║                                                          ║
+║  Press Ctrl+C to stop.                                   ║
+╚══════════════════════════════════════════════════════════╝''')
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print('\nShutting down...')
+        server.server_close()
+
+
+if __name__ == '__main__':
+    main()

@@ -2,18 +2,17 @@
 action/proxy/__init__.py
 MUE Learner Proxy — swappable learner behavior for the action/ workspace.
 
-To swap in the real learner web interface:
-    1. Create action/proxy/web_interface.py implementing LearnerProxy
-    2. Change the import below:
-         from .dummy import DummyLearner as ActiveLearner
-       to:
+The real learner web interface is now active. To swap back to the dummy:
+    1. Change the import below:
          from .web_interface import WebLearner as ActiveLearner
-    3. Everything downstream stays unchanged.
+       to:
+         from .dummy import DummyLearner as ActiveLearner
+    2. Everything downstream stays unchanged.
 """
 from action.proxy.interface import LearnerProxy
-from action.proxy.dummy import DummyLearner
+from action.proxy.web_interface import WebLearner
 
-# ── SWAP POINT: Change this import when the real interface is ready ──
-ActiveLearner = DummyLearner
+# ── SWAP POINT: Change this import to switch implementations ──
+ActiveLearner = WebLearner
 
-__all__ = ['LearnerProxy', 'DummyLearner', 'ActiveLearner']
+__all__ = ['LearnerProxy', 'WebLearner', 'ActiveLearner']

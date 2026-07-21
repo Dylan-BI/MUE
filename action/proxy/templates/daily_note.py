@@ -28,10 +28,7 @@ from action.proxy.curriculum import (
 # Maps day ranges to expected scorecard state (trending from Fail→Pass)
 _SCORECARD_PROGRESSION = {
     # All areas start as Unscored — instructors assign scores
-    range(1, 29): {'Prompt discipline': 'Unscored', 'Repo or workspace analysis': 'Unscored',
-                    'Change isolation': 'Unscored', 'Validation order': 'Unscored',
-                    'Deployment awareness': 'Unscored', 'Reviewer handoff': 'Unscored',
-                    'Reusability': 'Unscored'},
+    range(1, 29): {area: 'Unscored' for area in SCORE_AREAS},
 }
 
 # ── Codex gate progression ──────────────────────────────────────────────────
