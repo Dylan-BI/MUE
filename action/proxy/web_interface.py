@@ -470,8 +470,8 @@ class WebLearner(LearnerProxy):
         return sorted(self.notes_dir.glob('*.md'))
 
     def list_evidence(self) -> list[Path]:
-        """Return all evidence files sorted by name."""
-        return sorted(self.evidence_dir.glob('*.*'))
+        """Return all evidence files sorted by name (excluding .gitkeep)."""
+        return sorted(f for f in self.evidence_dir.glob('*.*') if f.name != '.gitkeep')
 
     def list_reports(self) -> list[Path]:
         """Return all report files sorted by name."""

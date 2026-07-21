@@ -1766,6 +1766,8 @@ def _evidence_list_data() -> list[dict]:
     """Return structured list of evidence files."""
     items = []
     for f in sorted(EVIDENCE_DIR.glob('*.*'), reverse=True):
+        if f.name == '.gitkeep':
+            continue
         pt_id = _extract_pt_id(f.name)
         day_num = _extract_day_from_filename(f.name)
         size_kb = round(f.stat().st_size / 1024, 1) if f.stat().st_size else 0
