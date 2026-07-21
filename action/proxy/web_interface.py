@@ -28,6 +28,8 @@ import re
 import shutil
 import subprocess
 import sys
+import hashlib
+import secrets
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -48,8 +50,226 @@ EVIDENCE_DIR = ACTION_DIR / 'evidence'
 REPORTS_DIR = ACTION_DIR / 'reports'
 ARCHIVE_DIR = ACTION_DIR / 'archive'
 CONFIG_PATH = ACTION_DIR / 'learner_config.json'
+PROFILES_CONFIG_PATH = ACTION_DIR / 'profiles.json'
+PROFILES_DIR = ACTION_DIR / 'profiles'
 BUILD_SCRIPT = ACTION_DIR.parent / 'action' / 'dashboard' / 'build_data.py'
 SYNC_SCRIPT = ACTION_DIR.parent / 'review' / 'scripts' / 'sync-from-action.py'
+
+
+# ── Profile loader ──────────────────────────────────────────────────────────
+def load_profiles() -> list[dict]:
+    """Load available learner profiles from profiles.json."""
+    if PROFILES_CONFIG_PATH.exists():
+        try:
+            with open(PROFILES_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get('profiles', [])
+        except (json.JSONDecodeError, OSError):
+            pass
+    return []
+
+
+def get_profile_by_id(profile_id: str) -> dict | None:
+    """Look up a profile by its id."""
+    for p in load_profiles():
+        if p.get('id') == profile_id:
+            return p
+    return None
+
+
+def get_active_profile_id() -> str:
+    """Return the active profile id from profiles.json, or 'default'."""
+    if PROFILES_CONFIG_PATH.exists():
+        try:
+            with open(PROFILES_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get('active_profile', 'default')
+        except (json.JSONDecodeError, OSError):
+            pass
+    return 'default'
+
+
+def _save_profiles(profiles: list, active_profile: str = 'default') -> None:
+    """Save profile list and active profile to profiles.json."""
+    try:
+        PROFILES_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(PROFILES_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump({'profiles': profiles, 'active_profile': active_profile}, f, indent=2)
+    except OSError as e:
+        raise ValueError(f'Could not save profiles: {e}')
+
+
+# ── Password hashing ────────────────────────────────────────────────────────
+def _hash_password(password: str, salt: bytes | None = None) -> tuple[str, str]:
+    """
+    Hash a password with PBKDF2-HMAC-SHA256.
+
+    Returns:
+        (hash_hex, salt_hex) - both as hex strings for JSON storage.
+    """
+    if salt is None:
+        salt = secrets.token_bytes(16)
+    elif isinstance(salt, str):
+        salt = bytes.fromhex(salt)
+    hash_bytes = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100_000)
+    return hash_bytes.hex(), salt.hex()
+
+
+def _verify_password(password: str, hash_hex: str, salt_hex: str) -> bool:
+    """Verify a password against a stored hash and salt."""
+    try:
+        computed_hash, _ = _hash_password(password, bytes.fromhex(salt_hex))
+        return secrets.compare_digest(computed_hash, hash_hex)
+    except Exception:
+        return False
+
+
+def create_profile(name: str, start_date: str | None = None, password: str | None = None, email: str | None = None) -> dict:
+    """
+    Create a new learner profile.
+
+    Enforces the one-profile-per-user rule: only one profile can exist at a time.
+    Raises ValueError if a profile already exists.
+
+    Args:
+        name: Display name for the learner (will be sanitised into a profile id)
+        start_date: ISO date string for curriculum start, or None for auto-detect
+        password: Optional password to secure the profile. If provided, will be
+                  required for switching to or deleting this profile.
+        email: Email address for notifications and account recovery. Required.
+
+    Returns:
+        The created profile dict.
+    """
+    profiles = load_profiles()
+
+    # One-profile-per-user enforcement
+    if len(profiles) > 0:
+        existing_names = ', '.join(p.get('name', '?') for p in profiles)
+        raise ValueError(
+            f'A profile already exists ({existing_names}). '
+            'Delete it first before creating a new one.'
+        )
+
+    # Validate name
+    if not name or not name.strip():
+        raise ValueError('Profile name is required.')
+    name = name.strip()
+
+    # Validate password if provided
+    if password is not None:
+        if not password or not password.strip():
+            raise ValueError('Password cannot be empty if provided.')
+        password = password.strip()
+        if len(password) < 4:
+            raise ValueError('Password must be at least 4 characters.')
+
+    # Validate email (required)
+    if not email or not email.strip():
+        raise ValueError('Email address is required.')
+    email = email.strip()
+    if '@' not in email:
+        raise ValueError('Invalid email address.')
+
+    # Generate a unique profile id from the name
+    import re as _re
+    profile_id = _re.sub(r'[^a-z0-9_]+', '_', name.lower()).strip('_')
+    if not profile_id:
+        profile_id = 'learner'
+    existing_ids = {p['id'] for p in profiles}
+    base_id = profile_id
+    counter = 1
+    while profile_id in existing_ids:
+        profile_id = f'{base_id}_{counter}'
+        counter += 1
+
+    # Hash password if provided
+    password_hash = None
+    password_salt = None
+    if password:
+        password_hash, password_salt = _hash_password(password)
+
+    profile = {
+        'id': profile_id,
+        'name': name,
+        'start_date': start_date or None,
+        'created_at': datetime.now().isoformat(),
+    }
+    if password_hash:
+        profile['password_hash'] = password_hash
+        profile['password_salt'] = password_salt
+    if email:
+        profile['email'] = email
+    profiles.append(profile)
+    _save_profiles(profiles, active_profile=profile_id)
+
+    # Create profile directories
+    import os as _os
+    profile_dir = PROFILES_DIR / profile_id
+    for sub in ('notes', 'evidence', 'reports', 'archive'):
+        sub_dir = profile_dir / sub
+        sub_dir.mkdir(parents=True, exist_ok=True)
+        gitkeep = sub_dir / '.gitkeep'
+        if not gitkeep.exists():
+            try:
+                gitkeep.touch(exist_ok=False)
+            except OSError:
+                pass  # already exists or can't create
+
+    return profile
+
+
+def _hash_password(password: str) -> tuple[str, str]:
+    """Hash a password with a random salt using PBKDF2."""
+    import hashlib
+    import secrets
+    salt = secrets.token_bytes(16)
+    hash_bytes = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100_000)
+    return hash_bytes.hex(), salt.hex()
+
+
+def _verify_password(password: str, password_hash: str, password_salt: str) -> bool:
+    """Verify a password against its hash and salt."""
+    import hashlib
+    salt = bytes.fromhex(password_salt)
+    hash_bytes = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100_000)
+    return hash_bytes.hex() == password_hash
+
+
+def delete_profile(profile_id: str, password: str | None = None) -> bool:
+    """
+    Delete a profile by its id.
+
+    Removes the profile from profiles.json. The profile's data directory
+    is left on disk so data can be recovered if needed.
+
+    Args:
+        profile_id: The id of the profile to delete.
+        password: Optional password for verification. Required if the profile
+                  has a password set.
+
+    Returns:
+        True if the profile was found and deleted, False otherwise.
+
+    Raises:
+        ValueError: If the profile has a password but none was provided,
+                    or if the provided password is incorrect.
+    """
+    profiles = load_profiles()
+    profile = next((p for p in profiles if p['id'] == profile_id), None)
+    if not profile:
+        return False  # not found
+
+    # Verify password if profile has one
+    if 'password_hash' in profile and profile['password_hash']:
+        if not password:
+            raise ValueError('This profile is password-protected. Please provide the password to delete it.')
+        if not _verify_password(password, profile['password_hash'], profile['password_salt']):
+            raise ValueError('Incorrect password.')
+
+    new_profiles = [p for p in profiles if p['id'] != profile_id]
+    _save_profiles(new_profiles, active_profile='default')
+    return True
 
 
 class WebLearner(LearnerProxy):
@@ -64,16 +284,34 @@ class WebLearner(LearnerProxy):
     refresh the reviewer dashboard.
     """
 
-    def __init__(self, action_dir: Optional[Path] = None, auto_build: bool = True):
+    def __init__(self, action_dir: Optional[Path] = None, auto_build: bool = True, profile_id: str | None = None):
         """
         Args:
             action_dir: Path to action/ directory (default: auto-detect)
             auto_build: If True, run build_data.py after each write
+            profile_id: Profile identifier (default: None = use top-level action/ dirs)
         """
-        self.action_dir = action_dir or ACTION_DIR
-        self.notes_dir = self.action_dir / 'notes'
-        self.evidence_dir = self.action_dir / 'evidence'
-        self.reports_dir = self.action_dir / 'reports'
+        self.profile_id = profile_id
+        self.profile_info = get_profile_by_id(profile_id) if profile_id else None
+
+        if profile_id and PROFILES_DIR.exists():
+            # Profile-specific directories under action/profiles/{profile_id}/
+            self.profile_dir = PROFILES_DIR / profile_id
+            self.action_dir = self.profile_dir
+            self.notes_dir = self.profile_dir / 'notes'
+            self.evidence_dir = self.profile_dir / 'evidence'
+            self.reports_dir = self.profile_dir / 'reports'
+            # Archive still goes to action/archive/ for central management
+            self.archive_dir = ARCHIVE_DIR
+        else:
+            # Legacy mode: use top-level action/ dirs
+            self.profile_dir = None
+            self.action_dir = action_dir or ACTION_DIR
+            self.notes_dir = self.action_dir / 'notes'
+            self.evidence_dir = self.action_dir / 'evidence'
+            self.reports_dir = self.action_dir / 'reports'
+            self.archive_dir = self.action_dir / 'archive'
+
         self.auto_build = auto_build
 
         # ── Content staging ────────────────────────────────────────────
@@ -82,21 +320,36 @@ class WebLearner(LearnerProxy):
         self._staged_notes: dict[tuple[str, int], dict] = {}
         self._staged_evidence: dict[tuple[int, str], dict] = {}
 
-        # Load config
+        # Load config (profile config merged on top of global config)
         self.config = self._load_config()
         self.start_date = self._resolve_start_date()
 
     # ── Config helpers ─────────────────────────────────────────────────────
 
     def _load_config(self) -> dict:
-        """Load learner configuration from learner_config.json."""
+        """Load learner configuration from learner_config.json + profile config."""
+        config = {}
+        # Global config
         if CONFIG_PATH.exists():
             try:
                 with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                    config = json.load(f)
             except (json.JSONDecodeError, OSError):
                 pass
-        return {}
+        # Profile-specific config (overrides global)
+        if self.profile_dir:
+            profile_config_path = self.profile_dir / 'config.json'
+            if profile_config_path.exists():
+                try:
+                    with open(profile_config_path, 'r', encoding='utf-8') as f:
+                        profile_cfg = json.load(f)
+                        config.update(profile_cfg)
+                except (json.JSONDecodeError, OSError):
+                    pass
+        # Ensure learner_name from profile info
+        if not config.get('learner_name') and self.profile_info:
+            config['learner_name'] = self.profile_info.get('name', '')
+        return config
 
     def _resolve_start_date(self) -> date:
         """Resolve the curriculum start date from config or first note."""
@@ -180,8 +433,16 @@ class WebLearner(LearnerProxy):
     # ── LearnerProxy interface implementation ─────────────────────────────
 
     def get_name(self) -> str:
-        """Return the learner's display name from config."""
+        """Return the learner's display name from profile info or config."""
+        if self.profile_info:
+            return self.profile_info.get('name') or self.config.get('learner_name') or 'Learner'
         return self.config.get('learner_name') or 'Web Learner'
+
+    def get_profile_label(self) -> str:
+        """Return a short label like 'Alex Chen' or 'Default Learner'."""
+        if self.profile_info:
+            return self.profile_info.get('name', self.profile_id or 'Default')
+        return 'Default'
 
     def get_curriculum_day(self, date_str: str) -> Optional[int]:
         """

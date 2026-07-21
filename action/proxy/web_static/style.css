@@ -78,6 +78,40 @@ header nav a.active {
   text-decoration: none;
 }
 
+/* ── Profile Selector ─────────────────────────────────────────── */
+.profile-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.profile-selector select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.profile-selector select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.profile-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
 .container {
   max-width: 1100px;
   margin: 0 auto;
@@ -835,6 +869,28 @@ header nav a.active {
 .alert-info a {
   color: var(--primary);
   text-decoration: underline;
+}
+
+/* ── Danger button ────────────────────────────────────────────── */
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover { background: #dc2626; }
+
+/* ── Welcome page ────────────────────────────────────────────── */
+.welcome-page h1 {
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.welcome-page .card {
+  padding: 28px;
+}
+
+.welcome-page .form-group {
+  margin-bottom: 16px;
 }
 
 /* ── Responsive ───────────────────────────────────────────────── */

@@ -103,8 +103,41 @@ def _safe_filename(name: str, allowed_dir: Path) -> str:
     return clean
 
 
-# ── Learner instance (shared across requests) ──────────────────────────────
-_learner = WebLearner(action_dir=ACTION_DIR, auto_build=True)
+# ── Learner instance & profile support ────────────────────────────────────
+_learner = WebLearner(action_dir=ACTION_DIR, auto_build=True)  # fallback (legacy)
+
+# Load profiles and create per-profile learners
+_profiles_list: list[dict] = []
+_learners: dict[str, WebLearner] = {}
+
+try:
+    from action.proxy.web_interface import load_profiles as _load_profiles
+    _profiles_list = _load_profiles()
+    for _p in _profiles_list:
+        _pid = _p['id']
+        _learners[_pid] = WebLearner(profile_id=_pid, auto_build=True)
+except Exception:
+    pass  # profiles.json may not exist yet
+
+
+def _reload_profiles():
+    """Reload profile list from disk and sync _learners dict."""
+    global _profiles_list, _learners
+    try:
+        from action.proxy.web_interface import load_profiles as _lp
+        _profiles_list = _lp()
+        seen = set()
+        for _p in _profiles_list:
+            pid = _p['id']
+            seen.add(pid)
+            if pid not in _learners:
+                _learners[pid] = WebLearner(profile_id=pid, auto_build=True)
+        # Remove learners that no longer exist in profiles
+        for pid in list(_learners.keys()):
+            if pid not in seen:
+                del _learners[pid]
+    except Exception:
+        pass
 
 # ── .env file loader ───────────────────────────────────────────────────────
 def _load_env_file(path: Path) -> None:
@@ -175,6 +208,33 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
         f'<a href="{href}"{" class=\"active\"" if active else ""}>{label}</a>'
         for href, label, active in nav_items
     )
+    # ── Profile selector ────────────────────────────────────────────
+    try:
+        _pid = _learner.profile_id or 'default'
+        _pname = _learner.get_profile_label()
+    except Exception:
+        _pid = 'default'
+        _pname = 'Default'
+
+    if not _profiles_list:
+        _profile_html = '<a href="/" class="btn btn-sm" style="text-decoration:none;">➕ Create Profile</a>'
+    elif len(_profiles_list) == 1:
+        # Only one profile — show name as badge, no switch dropdown
+        _profile_html = f'<span class="profile-badge">{_pname}</span>'
+    else:
+        _profile_opts = ''
+        for _p in _profiles_list:
+            _sel = 'selected' if _p.get('id') == _pid else ''
+            _profile_opts += f'<option value="{_p["id"]}" {_sel}>{_p.get("name", _p["id"])}</option>'
+        _profile_html = f'''<select id="profileSelect" onchange="switchProfile(this.value)">
+      {_profile_opts}
+    </select>
+    <span class="profile-badge">{_pname}</span>'''
+
+    manage_link = ''
+    if _profiles_list:
+        manage_link = '<a href="/manage" class="btn btn-outline btn-sm" style="text-decoration:none;margin-left:4px;">⚙️</a>'
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -187,6 +247,10 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
 <header>
   <div class="logo"><span>MUE</span> Learner</div>
   <nav>{nav_links}</nav>
+  <div class="profile-selector">
+    {_profile_html}
+    {manage_link}
+  </div>
 </header>
 <div class="container">
 {body}
@@ -197,6 +261,49 @@ function showToast(msg, type) {{
   var t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast ' + type + ' show';
   setTimeout(function() {{ t.className = 'toast'; }}, 3000);
+}}
+
+function switchProfile(profileId) {{
+  fetch('/api/profile/switch', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{profile_id: profileId}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('🔄 Switched to ' + profileId,'success');setTimeout(function(){{location.reload()}},600);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+
+function createProfile(name, startDate, password) {{
+  fetch('/api/profiles/create', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{name: name, start_date: startDate || null, password: password}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('✅ Profile created!','success');setTimeout(function(){{location.reload()}},600);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+
+function deleteProfile(profileId) {{
+  if(!confirm('Are you sure you want to delete your profile? All progress data will be disconnected (files remain on disk).')) return;
+  fetch('/api/profiles/delete', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{profile_id: profileId}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('🗑️ Profile deleted.','success');setTimeout(function(){{location.reload()}},600);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
 }}
 </script>
 </body>
@@ -498,6 +605,156 @@ def _page_guide() -> str:
     return _html_page('Learner Guide', body, 'guide')
 
 
+def _page_welcome() -> str:
+    """Render the welcome / create-profile page (shown when no profiles exist)."""
+    today_str = date.today().isoformat()
+    body = f'''
+<div class="welcome-page">
+  <div style="max-width:540px;margin:60px auto;text-align:center;">
+    <div style="font-size:64px;margin-bottom:16px;">👋</div>
+    <h1>Welcome to the MUE Learning Program</h1>
+    <p style="color:#6b7280;font-size:16px;line-height:1.6;">
+      This is your personal workspace for the 28-day Business Intelligence
+      curriculum. Before you begin, let's set up your learner profile.
+    </p>
+    <div class="card" style="margin-top:32px;text-align:left;">
+      <h2 style="margin-top:0;">Create Your Profile</h2>
+      <div class="form-group">
+        <label for="nameInput">Your Name <span style="color:#ef4444;">*</span></label>
+        <input type="text" id="nameInput" class="form-input"
+               placeholder="e.g. Alex Chen" autofocus>
+      </div>
+      <div class="form-group">
+        <label for="emailInput">Email Address <span style="color:#ef4444;">*</span></label>
+        <input type="email" id="emailInput" class="form-input"
+               placeholder="e.g. alex@example.com" required>
+        <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">
+          Required for notifications and account recovery.
+        </p>
+      </div>
+      <div class="form-group">
+        <label for="startDateInput">Curriculum Start Date</label>
+        <input type="date" id="startDateInput" class="form-input"
+               value="{today_str}">
+        <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">
+          Leave as today to follow the real schedule, or pick a past date to catch up.
+        </p>
+      </div>
+      <div class="form-group">
+        <label for="passwordInput">Password <span style="color:#ef4444;">*</span></label>
+        <input type="password" id="passwordInput" class="form-input"
+               placeholder="Create a password" required>
+        <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">
+          Required to protect your profile. You'll need this to switch profiles or delete.
+        </p>
+      </div>
+      <div class="form-group">
+        <label for="confirmPasswordInput">Confirm Password <span style="color:#ef4444;">*</span></label>
+        <input type="password" id="confirmPasswordInput" class="form-input"
+               placeholder="Confirm your password" required>
+      </div>
+      <button class="btn btn-primary" onclick="doCreateProfile()"
+              style="width:100%;padding:12px;font-size:16px;">
+        🚀 Start Learning
+      </button>
+      <div id="createError" style="color:#ef4444;margin-top:12px;display:none;"></div>
+    </div>
+    <p style="font-size:13px;color:#9ca3af;margin-top:24px;">
+      One profile per user. You can delete your profile later to start fresh.
+    </p>
+  </div>
+</div>
+<script>
+function doCreateProfile() {{
+  var name = document.getElementById('nameInput').value.trim();
+  var email = document.getElementById('emailInput').value.trim() || null;
+  var startDate = document.getElementById('startDateInput').value || null;
+  var password = document.getElementById('passwordInput').value;
+  var confirmPassword = document.getElementById('confirmPasswordInput').value;
+  var errDiv = document.getElementById('createError');
+  if(!name) {{ errDiv.textContent = 'Please enter your name.'; errDiv.style.display = 'block'; return; }}
+  if(!password) {{ errDiv.textContent = 'Please enter a password.'; errDiv.style.display = 'block'; return; }}
+  if(password !== confirmPassword) {{ errDiv.textContent = 'Passwords do not match.'; errDiv.style.display = 'block'; return; }}
+  if(password.length < 4) {{ errDiv.textContent = 'Password must be at least 4 characters.'; errDiv.style.display = 'block'; return; }}
+  errDiv.style.display = 'none';
+  createProfile(name, startDate, password, email);
+}}
+
+function createProfile(name, startDate, password, email) {{
+  fetch('/api/profiles/create', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{name: name, start_date: startDate, password: password, email: email}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('✅ Profile created!','success');setTimeout(function(){{location.reload()}},600);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+</script>'''
+    return _html_page('Welcome — MUE Learner', body)
+
+
+def _page_manage_profile() -> str:
+    """Render the profile management page (delete profile)."""
+    try:
+        _pid = _learner.profile_id or 'default'
+        _pname = _learner.get_profile_label()
+    except Exception:
+        _pid = 'default'
+        _pname = 'Unknown'
+
+    body = f'''
+<div style="max-width:540px;margin:40px auto;">
+  <h1>⚙️ Profile Management</h1>
+  <div class="card" style="margin-top:20px;">
+    <h2 style="margin-top:0;">Current Profile</h2>
+    <p><strong>Name:</strong> {_pname}</p>
+    <p><strong>ID:</strong> {_pid}</p>
+  </div>
+  <div class="card" style="margin-top:20px;border-left:3px solid #ef4444;">
+    <h2 style="margin-top:0;color:#ef4444;">⚠️ Danger Zone</h2>
+    <p style="font-size:14px;color:#6b7280;">
+      Deleting your profile will disconnect it from the dashboard. Your notes,
+      evidence, and reports remain on disk and can be recovered if needed.
+      You will be able to create a new profile afterward.
+    </p>
+    <div class="form-group" style="margin-top:16px;">
+      <label for="deletePassword">Password <span style="color:#ef4444;">*</span></label>
+      <input type="password" id="deletePassword" class="form-input" placeholder="Enter your password to confirm">
+    </div>
+    <button class="btn btn-danger" onclick="deleteProfile('{_pid}')">
+      🗑️ Delete My Profile
+    </button>
+    <div id="deleteError" style="color:#ef4444;margin-top:12px;display:none;"></div>
+  </div>
+  <p style="margin-top:16px;"><a href="/">← Back to Dashboard</a></p>
+</div>
+<script>
+function deleteProfile(profileId) {{
+  var password = document.getElementById('deletePassword').value;
+  var errDiv = document.getElementById('deleteError');
+  if(!password) {{ errDiv.textContent = 'Password is required to delete your profile.'; errDiv.style.display = 'block'; return; }}
+  errDiv.style.display = 'none';
+  if(!confirm('Are you sure you want to delete your profile? All progress data will be disconnected (files remain on disk).')) return;
+  fetch('/api/profiles/delete', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{profile_id: profileId, password: password}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('🗑️ Profile deleted.','success');setTimeout(function(){{location.reload()}},600);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+</script>'''
+    return _html_page('Manage Profile — MUE Learner', body, 'home')
+
+
 def _page_dashboard() -> str:
     """Render the dashboard/home page."""
     today_str = date.today().isoformat()
@@ -614,6 +871,16 @@ def _page_dashboard() -> str:
   <div style="display:flex;gap:8px;flex-wrap:wrap;">
     <a href="/notes" class="btn btn-outline btn-sm">📝 All Notes</a>
     <a href="/curriculum" class="btn btn-outline btn-sm">📚 Full Schedule</a>
+  </div>
+</div>
+
+<div class="card" style="border-left:3px solid #6366f1;">
+  <h2>👤 Profile</h2>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:14px;color:#6b7280;">
+      Signed in as <strong>{_learner.get_profile_label()}</strong>
+    </span>
+    <a href="/manage" class="btn btn-outline btn-sm">⚙️ Manage Profile</a>
   </div>
 </div>
 '''
@@ -795,7 +1062,7 @@ def _page_day_workspace(day_number: int) -> str:
 
     # ── Evidence for this day ─────────────────────────────────────────
     day_evidence = []
-    for f in sorted(EVIDENCE_DIR.glob('*.*'), reverse=True):
+    for f in sorted(_learner.evidence_dir.glob('*.*'), reverse=True):
         d = _extract_day_from_filename(f.name)
         if d == day_number or (f.name.startswith(f'Day{day_number}') or f.name.startswith(f'Day_{day_number}')):
             pt_id = _extract_pt_id(f.name)
@@ -1645,7 +1912,7 @@ def _page_note_view(date_str: str) -> str:
     # Only allow date-like filenames (YYYY-MM-DD)
     if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
         return _html_page('Invalid', '<div class="card"><h2>❌ Invalid date</h2><a href="/notes">← Back</a></div>', 'notes')
-    note_path = NOTES_DIR / f'{date_str}.md'
+    note_path = _learner.notes_dir / f'{date_str}.md'
     if not note_path.exists():
         return _html_page('Not Found', '<div class="card"><h2>❌ Note not found</h2><p style="color:#6b7280;">No note for {date_str}.</p><a href="/notes" class="btn btn-outline" style="margin-top:12px;">← Back to Notes</a></div>', 'notes')
 
@@ -1765,7 +2032,7 @@ def _extract_day_from_filename(filename: str) -> int:
 def _evidence_list_data() -> list[dict]:
     """Return structured list of evidence files."""
     items = []
-    for f in sorted(EVIDENCE_DIR.glob('*.*'), reverse=True):
+    for f in sorted(_learner.evidence_dir.glob('*.*'), reverse=True):
         if f.name == '.gitkeep':
             continue
         pt_id = _extract_pt_id(f.name)
@@ -2098,11 +2365,11 @@ def _page_evidence_view(filename: str, edit_mode: bool = False) -> str:
 
     # Path traversal check
     try:
-        filename = _safe_filename(filename, EVIDENCE_DIR)
+        filename = _safe_filename(filename, _learner.evidence_dir)
     except ValueError:
         return _html_page('Invalid', '<div class="card"><h2>❌ Invalid filename</h2><a href="/evidence">← Back</a></div>', 'evidence')
 
-    file_path = EVIDENCE_DIR / filename
+    file_path = _learner.evidence_dir / filename
     if not file_path.exists():
         return _html_page('Not Found', f'<div class="card"><h2>❌ File not found</h2><p style="color:#6b7280;">{filename}</p><a href="/evidence" class="btn btn-outline" style="margin-top:12px;">← Back to Evidence</a></div>', 'evidence')
 
@@ -2739,8 +3006,17 @@ def _api_status() -> str:
     notes_count = len(_learner.list_notes())
     evidence_count = len(_learner.list_evidence())
 
+    try:
+        profile_id = _learner.profile_id or 'default'
+        profile_name = _learner.get_profile_label()
+    except Exception:
+        profile_id = 'default'
+        profile_name = 'Default'
+
     return json.dumps({
         'learner_name': _learner.get_name(),
+        'profile_id': profile_id,
+        'profile_name': profile_name,
         'current_day': day_num,
         'week': (day_num - 1) // 7 + 1,
         'total_days': 28,
@@ -2777,7 +3053,7 @@ def _api_note_get(date_str: str) -> str:
     date_str = unquote(date_str)
     if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
         return json.dumps({'error': 'invalid date'})
-    note_path = NOTES_DIR / f'{date_str}.md'
+    note_path = _learner.notes_dir / f'{date_str}.md'
     if not note_path.exists():
         return json.dumps({'error': 'not found'})
     content = note_path.read_text(encoding='utf-8')
@@ -2806,7 +3082,7 @@ def _api_note_save(body: dict) -> str:
 
     try:
         # Create revision before overwriting (if note already exists)
-        note_path = NOTES_DIR / f'{date_str}.md'
+        note_path = _learner.notes_dir / f'{date_str}.md'
         create_revision(note_path, 'note', f'{date_str}.md')
 
         _learner.stage_note_content(date_str, day_number, fields)
@@ -2826,10 +3102,10 @@ def _api_evidence_get(filename: str) -> str:
     from urllib.parse import unquote
     filename = unquote(filename)
     try:
-        filename = _safe_filename(filename, EVIDENCE_DIR)
+        filename = _safe_filename(filename, _learner.evidence_dir)
     except ValueError:
         return json.dumps({'error': 'invalid filename'})
-    file_path = EVIDENCE_DIR / filename
+    file_path = _learner.evidence_dir / filename
     if not file_path.exists():
         return json.dumps({'error': 'not found'})
     content = file_path.read_text(encoding='utf-8') if file_path.suffix in ('.md', '.txt', '.csv') else '[binary]'
@@ -2849,7 +3125,7 @@ def _api_evidence_save(body: dict) -> str:
     if not filename:
         return json.dumps({'status': 'error', 'message': 'No filename provided'})
     try:
-        filename = _safe_filename(filename, EVIDENCE_DIR)
+        filename = _safe_filename(filename, _learner.evidence_dir)
     except ValueError:
         return json.dumps({'status': 'error', 'message': 'Invalid filename'})
 
@@ -2873,7 +3149,7 @@ def _api_evidence_save(body: dict) -> str:
 
     try:
         # Create revision before overwriting
-        ev_path_existing = EVIDENCE_DIR / filename
+        ev_path_existing = _learner.evidence_dir / filename
         create_revision(ev_path_existing, 'evidence', filename)
 
         _learner.stage_evidence_content(day_number if day_number else 1, filename, {
@@ -2884,7 +3160,7 @@ def _api_evidence_save(body: dict) -> str:
         # If the filename changed, clean up old file
         old_filename = body.get('_original_filename')
         if old_filename and old_filename != filename:
-            old_path = EVIDENCE_DIR / old_filename
+            old_path = _learner.evidence_dir / old_filename
             if old_path.exists():
                 old_path.unlink()
         return json.dumps({'status': 'ok', 'filename': filename, 'path': str(ev_path)})
@@ -2900,12 +3176,12 @@ def _api_evidence_binary_save(body: dict) -> str:
     if not filename or not content_b64:
         return json.dumps({'status': 'error', 'message': 'Missing filename or content'})
     try:
-        filename = _safe_filename(filename, EVIDENCE_DIR)
+        filename = _safe_filename(filename, _learner.evidence_dir)
     except ValueError:
         return json.dumps({'status': 'error', 'message': 'Invalid filename'})
     try:
         raw = base64.b64decode(content_b64)
-        file_path = EVIDENCE_DIR / filename
+        file_path = _learner.evidence_dir / filename
         # Create revision before overwriting
         create_revision(file_path, 'evidence', filename)
         file_path.write_bytes(raw)
@@ -2919,10 +3195,10 @@ def _api_evidence_delete(filename: str) -> str:
     from urllib.parse import unquote
     filename = unquote(filename)
     try:
-        filename = _safe_filename(filename, EVIDENCE_DIR)
+        filename = _safe_filename(filename, _learner.evidence_dir)
     except ValueError:
         return json.dumps({'status': 'error', 'message': 'Invalid filename'})
-    file_path = EVIDENCE_DIR / filename
+    file_path = _learner.evidence_dir / filename
     if not file_path.exists():
         return json.dumps({'status': 'error', 'message': 'File not found'})
     try:
@@ -2995,10 +3271,46 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
         raw = self.rfile.read(content_length)
         return json.loads(raw.decode('utf-8'))
 
+    # ── Profile resolution ────────────────────────────────────────
+
+    def _get_profile_id(self) -> str:
+        """Determine the active profile from query param or cookie."""
+        parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        if 'profile' in qs:
+            return qs['profile'][0]
+        cookies = self.headers.get('Cookie', '')
+        for c in cookies.split(';'):
+            c = c.strip()
+            if c.startswith('mue_profile='):
+                return c[len('mue_profile='):]
+        try:
+            from action.proxy.web_interface import get_active_profile_id as _gapi
+            return _gapi()
+        except Exception:
+            return 'default'
+
+    def _resolve_learner(self):
+        """Set _learner based on the request's profile."""
+        global _learner
+        pid = self._get_profile_id()
+        if pid in _learners:
+            _learner = _learners[pid]
+        # else keep default _learner
+
     def do_GET(self):
+        self._resolve_learner()
         parsed = urlparse(self.path)
         path = parsed.path.rstrip('/') or '/'
         qs = parse_qs(parsed.query)
+
+        # ── Profile API ───────────────────────────────────────────
+        if path == '/api/profiles':
+            try:
+                from action.proxy.web_interface import load_profiles as _lp
+                return self._send_json(json.dumps({'profiles': _lp()}))
+            except Exception as e:
+                return self._send_json(json.dumps({'profiles': [], 'error': str(e)}))
 
         # ── Static files ──────────────────────────────────────────
         if path.startswith('/static/'):
@@ -3050,7 +3362,14 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
 
         # ── Page routes ───────────────────────────────────────────
         if path == '/' or path == '':
+            if not _profiles_list:
+                return self._send_html(_page_welcome())
             return self._send_html(_page_dashboard())
+
+        # If no profiles exist, redirect all non-API/non-static pages to /
+        if not _profiles_list and not path.startswith('/api/') and not path.startswith('/static/'):
+            return self._send_redirect('/')
+
         if path == '/curriculum':
             week = int(qs.get('week', [0])[0])
             return self._send_html(_page_curriculum(week))
@@ -3111,12 +3430,94 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             return self._send_html(_page_feedback_detail(artifact_id))
         if path == '/progress':
             return self._send_html(_page_progress())
+        if path == '/manage':
+            return self._send_html(_page_manage_profile())
 
         self.send_error(404, 'Not found')
 
     def do_POST(self):
+        self._resolve_learner()
         parsed = urlparse(self.path)
         path = parsed.path.rstrip('/') or '/'
+
+        # ── Profile switch ─────────────────────────────────────────
+        if path == '/api/profile/switch':
+            body = self._read_body()
+            pid = body.get('profile_id', 'default')
+            password = body.get('password') or None
+            from action.proxy.web_interface import get_profile_by_id as _gpbi, _verify_password as _vp
+            profile = _gpbi(pid)
+            if profile or pid == 'default':
+                # Verify password if profile has one
+                if profile and profile.get('password_hash'):
+                    if not password:
+                        return self._send_json(json.dumps({
+                            'status': 'error',
+                            'message': 'This profile requires a password.'
+                        }))
+                    if not _vp(password, profile['password_hash'], profile['password_salt']):
+                        return self._send_json(json.dumps({
+                            'status': 'error',
+                            'message': 'Incorrect password.'
+                        }))
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Set-Cookie', f'mue_profile={pid}; Path=/; Max-Age=31536000')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'ok', 'profile_id': pid}).encode('utf-8'))
+                return
+            return self._send_json(json.dumps({'status': 'error', 'message': 'Unknown profile'}))
+
+        # ── Profile create ─────────────────────────────────────────
+        if path == '/api/profiles/create':
+            body = self._read_body()
+            name = body.get('name', '').strip()
+            start_date = body.get('start_date') or None
+            password = body.get('password') or None
+            email = body.get('email') or None
+            if not password:
+                return self._send_json(json.dumps({'status': 'error', 'message': 'Password is required.'}))
+            try:
+                from action.proxy.web_interface import create_profile as _cp
+                profile = _cp(name, start_date, password, email)
+                _reload_profiles()
+                # Set cookie to the newly created profile
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Set-Cookie', f'mue_profile={profile["id"]}; Path=/; Max-Age=31536000')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'ok', 'profile': profile}).encode('utf-8'))
+            except ValueError as e:
+                return self._send_json(json.dumps({'status': 'error', 'message': str(e)}))
+            return
+
+        # ── Profile delete ─────────────────────────────────────────
+        if path == '/api/profiles/delete':
+            body = self._read_body()
+            profile_id = body.get('profile_id', '')
+            password = body.get('password') or None
+            owner_id = self._get_profile_id()
+            # Only the profile owner can delete their own profile
+            if profile_id != owner_id:
+                return self._send_json(json.dumps({
+                    'status': 'error',
+                    'message': 'You can only delete your own profile.'
+                }))
+            from action.proxy.web_interface import delete_profile as _dp
+            try:
+                if _dp(profile_id, password):
+                    _reload_profiles()
+                    # Clear profile cookie
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Set-Cookie', 'mue_profile=; Path=/; Max-Age=0')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({'status': 'ok', 'message': 'Profile deleted'}).encode('utf-8'))
+                else:
+                    return self._send_json(json.dumps({'status': 'error', 'message': 'Profile not found'}))
+            except ValueError as e:
+                return self._send_json(json.dumps({'status': 'error', 'message': str(e)}))
+            return
 
         if path == '/api/notes':
             body = self._read_body()
@@ -3143,6 +3544,7 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         """Handle DELETE requests for evidence deletion."""
+        self._resolve_learner()
         parsed = urlparse(self.path)
         path = parsed.path.rstrip('/') or '/'
 
@@ -3175,13 +3577,19 @@ def main():
     start_email_scheduler()
 
     server = HTTPServer((args.host, args.port), LearnerHTTPHandler)
+    profile_count = len(_profiles_list)
+    if _profiles_list:
+        profile_names = ', '.join(p.get('name', p['id']) for p in _profiles_list)
+    else:
+        profile_names = 'None — create one at /'
     print(f'''
 ╔══════════════════════════════════════════════════════════╗
 ║        MUE Learner Web Interface                         ║
-║        Phase 4: Feedback + Progress + Daily Summary     ║
+║        Phase 5: Single-profile per user                  ║
 ╠══════════════════════════════════════════════════════════╣
 ║  ● Learner: {_learner.get_name():<40s}║
 ║  ● Start date: {str(_learner.start_date):<37s}║
+║  ● Profiles: {profile_count:<2d} ({profile_names:<29s})║
 ║  ● Notes on disk: {len(_learner.list_notes()):<3d}                      ║
 ║  ● Email summary: {'ON → ' + LEARNER_EMAIL if SUMMARY_ENABLED and LEARNER_EMAIL else 'OFF':<39s}║
 ║                                                          ║
