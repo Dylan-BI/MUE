@@ -89,5 +89,15 @@
     "action": "session_started",
     "detail": "Admin signed in as Dashboard Admin",
     "timestamp": "2026-07-21T13:04:08.252795"
+  },
+  {
+    "username": "test_reviewer",
+    "action": "review_submitted",
+    "detail": "Reviewed 2026-07-21.md — 👍 Pass",
+    "timestamp": "2026-07-21T13:10:22.271933",
+    "metadata": {
+      "artifactId": "2026-07-21.md",
+      "reviewId": "17846322207366609"
+    }
   }
 ]
