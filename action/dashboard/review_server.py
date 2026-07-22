@@ -1463,7 +1463,12 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
     def end_headers(self):
         # CORS headers for cross-origin access (file:// fallback)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        origin = self.headers.get('Origin', '')
+        if origin:
+            self.send_header('Access-Control-Allow-Origin', origin)
+            self.send_header('Access-Control-Allow-Credentials', 'true')
+        else:
+            self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -1752,6 +1757,31 @@ function backToStep1() {{
         else:
             self._send_json(200, {'admin': False, 'username': None})
 
+    def _handle_admin_logout(self):
+        """POST /api/admin/logout — clear admin session cookie and server-side session."""
+        cookie = self.headers.get('Cookie', '')
+        session_id = None
+        if cookie:
+            for part in cookie.split(';'):
+                part = part.strip()
+                if part.startswith(ADMIN_SESSION_COOKIE + '='):
+                    session_id = part[len(ADMIN_SESSION_COOKIE) + 1:]
+                    break
+        if session_id:
+            with _admin_sessions_lock:
+                if session_id in _admin_sessions:
+                    username = _admin_sessions[session_id].get('username', 'unknown')
+                    del _admin_sessions[session_id]
+                    log('INFO', f'Admin logout: @{username}')
+        # Clear the cookie
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Set-Cookie', f'{ADMIN_SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
+        body_bytes = json.dumps({'ok': True, 'message': 'Logged out'}).encode('utf-8')
+        self.send_header('Content-Length', str(len(body_bytes)))
+        self.end_headers()
+        self.wfile.write(body_bytes)
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -1838,7 +1868,7 @@ function backToStep1() {{
             return
 
         # Token check — skip for admin auth endpoint
-        if parsed.path not in ('/api/admin/auth', '/admin-login'):
+        if parsed.path not in ('/api/admin/auth', '/api/admin/logout', '/admin-login'):
             if not self._check_token(qs):
                 return
 
@@ -1860,6 +1890,8 @@ function backToStep1() {{
             self._handle_daily_summary()
         elif parsed.path == '/api/admin/auth':
             self._handle_admin_auth()
+        elif parsed.path == '/api/admin/logout':
+            self._handle_admin_logout()
         elif parsed.path == '/api/tpl/generate':
             self._handle_tpl_generate()
         elif parsed.path == '/api/tpl/cleanup':

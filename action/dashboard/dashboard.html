@@ -4181,6 +4181,14 @@ function logoutProfile() {
   try { localStorage.removeItem(PROFILE_KEY); } catch {}
   // Also clear admin local profile if present
   try { localStorage.removeItem(ADMIN_LOCAL_PROFILE_KEY); } catch {}
+  // Call server logout endpoint to clear admin session cookie
+  if (REVIEW_SERVER) {
+    _serverFetch(REVIEW_SERVER + '/api/admin/logout', {
+      method: 'POST',
+      credentials: 'include',
+      signal: AbortSignal.timeout(2000)
+    }).catch(() => {}); // Ignore errors, proceed with local cleanup
+  }
   // Reload page to reset state
   location.reload();
 }
