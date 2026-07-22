@@ -99,5 +99,17 @@
       "artifactId": "2026-07-21.md",
       "reviewId": "17846322207366609"
     }
+  },
+  {
+    "username": "admin",
+    "action": "session_started",
+    "detail": "Admin signed in as Dashboard Admin",
+    "timestamp": "2026-07-22T02:41:06.608471"
+  },
+  {
+    "username": "admin",
+    "action": "session_started",
+    "detail": "Admin signed in as Dashboard Admin",
+    "timestamp": "2026-07-22T03:11:13.560645"
   }
 ]

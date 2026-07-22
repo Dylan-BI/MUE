@@ -106,6 +106,24 @@ def _safe_filename(name: str, allowed_dir: Path) -> str:
 # ── Learner instance & profile support ────────────────────────────────────
 _learner = WebLearner(action_dir=ACTION_DIR, auto_build=True)  # fallback (legacy)
 
+# ── Admin profile access control ────────────────────────────────────────────
+# Only these profile IDs are considered administrative (repo owner).
+# They are hidden from the profile switcher for non-admin sessions.
+ADMIN_PROFILE_IDS = {'owner_user', 'secure_user'}
+
+
+def _is_admin_session(profile_id: str | None) -> bool:
+    """Return True if the current session is an admin profile."""
+    if not profile_id:
+        return False
+    return profile_id in ADMIN_PROFILE_IDS
+
+
+def _is_admin_profile(profile_id: str) -> bool:
+    """Return True if the given profile ID is an administrative profile."""
+    return profile_id in ADMIN_PROFILE_IDS
+
+
 # Load profiles and create per-profile learners
 _profiles_list: list[dict] = []
 _learners: dict[str, WebLearner] = {}
@@ -216,20 +234,32 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
         _pid = 'default'
         _pname = 'Default'
 
+    # Determine if current session is admin
+    _session_is_admin = _is_admin_session(_pid)
+
+    # Filter profiles: non-admin sessions only see non-admin profiles
+    _visible_profiles = [p for p in _profiles_list if _session_is_admin or not _is_admin_profile(p['id'])]
+
     if not _profiles_list:
         _profile_html = '<a href="/" class="btn btn-sm" style="text-decoration:none;">➕ Create Profile</a>'
-    elif len(_profiles_list) == 1:
-        # Only one profile — show name as badge, no switch dropdown
+    elif len(_visible_profiles) <= 1:
+        # Only one profile visible — show name as badge, no switch dropdown
         _profile_html = f'<span class="profile-badge">{_pname}</span>'
     else:
         _profile_opts = ''
-        for _p in _profiles_list:
+        for _p in _visible_profiles:
             _sel = 'selected' if _p.get('id') == _pid else ''
             _profile_opts += f'<option value="{_p["id"]}" {_sel}>{_p.get("name", _p["id"])}</option>'
         _profile_html = f'''<select id="profileSelect" onchange="switchProfile(this.value)">
       {_profile_opts}
     </select>
     <span class="profile-badge">{_pname}</span>'''
+
+    # Admin login / status indicator
+    if _session_is_admin:
+        _admin_html = '<span style="font-size:11px;color:#dc3545;margin-left:4px;">👑 Admin</span>'
+    else:
+        _admin_html = '<a href="/admin-login" class="btn btn-outline btn-sm" style="text-decoration:none;margin-left:4px;font-size:11px;">🔑 Admin</a>'
 
     manage_link = ''
     if _profiles_list:
@@ -249,6 +279,7 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
   <nav>{nav_links}</nav>
   <div class="profile-selector">
     {_profile_html}
+    {_admin_html}
     {manage_link}
   </div>
 </header>
@@ -673,6 +704,7 @@ function doCreateProfile() {{
   var confirmPassword = document.getElementById('confirmPasswordInput').value;
   var errDiv = document.getElementById('createError');
   if(!name) {{ errDiv.textContent = 'Please enter your name.'; errDiv.style.display = 'block'; return; }}
+  if(!email) {{ errDiv.textContent = 'Email address is required for daily summaries and reviewer feedback notifications.'; errDiv.style.display = 'block'; return; }}
   if(!password) {{ errDiv.textContent = 'Please enter a password.'; errDiv.style.display = 'block'; return; }}
   if(password !== confirmPassword) {{ errDiv.textContent = 'Passwords do not match.'; errDiv.style.display = 'block'; return; }}
   if(password.length < 4) {{ errDiv.textContent = 'Password must be at least 4 characters.'; errDiv.style.display = 'block'; return; }}
@@ -698,22 +730,98 @@ function createProfile(name, startDate, password, email) {{
 
 
 def _page_manage_profile() -> str:
-    """Render the profile management page (delete profile)."""
+    """Render the profile management page (edit profile details, change password, delete)."""
     try:
         _pid = _learner.profile_id or 'default'
         _pname = _learner.get_profile_label()
+        # Fetch full profile info for email / start_date
+        from action.proxy.web_interface import get_profile_by_id as _gpbi2
+        _profile_full = _gpbi2(_pid) or {}
+        _pemail = _profile_full.get('email', '')
+        _pstart = _profile_full.get('start_date', '')
+        _has_password = bool(_profile_full.get('password_hash'))
     except Exception:
         _pid = 'default'
         _pname = 'Unknown'
+        _pemail = ''
+        _pstart = ''
+        _has_password = False
+
+    today_str = date.today().isoformat()
+    start_val = _pstart if _pstart else today_str
 
     body = f'''
 <div style="max-width:540px;margin:40px auto;">
   <h1>⚙️ Profile Management</h1>
+
+  <!-- ── Current Profile Info ── -->
   <div class="card" style="margin-top:20px;">
     <h2 style="margin-top:0;">Current Profile</h2>
     <p><strong>Name:</strong> {_pname}</p>
-    <p><strong>ID:</strong> {_pid}</p>
+    <p><strong>ID:</strong> <code>{_pid}</code></p>
+    <p><strong>Email:</strong> {_pemail or '<em style="color:#9ca3af;">Not set</em>'}</p>
+    <p><strong>Password:</strong> {'✅ Set' if _has_password else '⚠️ Not set'}</p>
   </div>
+
+  <!-- ── Edit Profile Details ── -->
+  <div class="card" style="margin-top:20px;border-left:3px solid #6366f1;">
+    <h2 style="margin-top:0;">✏️ Edit Profile Details</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+      Update your display name, email address, or curriculum start date.
+      Your current password is required to make changes.
+    </p>
+    <div class="form-group">
+      <label for="editName">Display Name</label>
+      <input type="text" id="editName" class="form-input" value="{_pname}">
+    </div>
+    <div class="form-group">
+      <label for="editEmail">Email Address <span style="color:#ef4444;">*</span></label>
+      <input type="email" id="editEmail" class="form-input" value="{_pemail}" placeholder="your@email.com">
+      <div style="font-size:12px;color:#6b7280;margin-top:4px;">Required for daily summaries and reviewer feedback notifications.</div>
+    </div>
+    <div class="form-group">
+      <label for="editStartDate">Curriculum Start Date</label>
+      <input type="date" id="editStartDate" class="form-input" value="{start_val}">
+    </div>
+    <div class="form-group">
+      <label for="editCurrentPassword">Current Password <span style="color:#ef4444;">*</span></label>
+      <input type="password" id="editCurrentPassword" class="form-input"
+             placeholder="Required to save changes">
+    </div>
+    <button class="btn btn-primary" onclick="updateProfile()">
+      💾 Save Changes
+    </button>
+    <div id="updateError" style="color:#ef4444;margin-top:12px;display:none;"></div>
+    <div id="updateSuccess" style="color:#059669;margin-top:12px;display:none;"></div>
+  </div>
+
+  <!-- ── Change Password ── -->
+  <div class="card" style="margin-top:20px;border-left:3px solid #f59e0b;">
+    <h2 style="margin-top:0;">🔑 Change Password</h2>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:12px;">
+      Set a new password for your profile. You will need your current password
+      to confirm the change.
+    </p>
+    <div class="form-group">
+      <label for="pwCurrent">Current Password <span style="color:#ef4444;">*</span></label>
+      <input type="password" id="pwCurrent" class="form-input" placeholder="Enter current password">
+    </div>
+    <div class="form-group">
+      <label for="pwNew">New Password <span style="color:#ef4444;">*</span></label>
+      <input type="password" id="pwNew" class="form-input" placeholder="At least 4 characters">
+    </div>
+    <div class="form-group">
+      <label for="pwConfirm">Confirm New Password <span style="color:#ef4444;">*</span></label>
+      <input type="password" id="pwConfirm" class="form-input" placeholder="Re-enter new password">
+    </div>
+    <button class="btn btn-primary" onclick="changePassword()">
+      🔑 Change Password
+    </button>
+    <div id="pwError" style="color:#ef4444;margin-top:12px;display:none;"></div>
+    <div id="pwSuccess" style="color:#059669;margin-top:12px;display:none;"></div>
+  </div>
+
+  <!-- ── Danger Zone ── -->
   <div class="card" style="margin-top:20px;border-left:3px solid #ef4444;">
     <h2 style="margin-top:0;color:#ef4444;">⚠️ Danger Zone</h2>
     <p style="font-size:14px;color:#6b7280;">
@@ -733,6 +841,69 @@ def _page_manage_profile() -> str:
   <p style="margin-top:16px;"><a href="/">← Back to Dashboard</a></p>
 </div>
 <script>
+function updateProfile() {{
+  var name = document.getElementById('editName').value.trim();
+  var email = document.getElementById('editEmail').value.trim();
+  var startDate = document.getElementById('editStartDate').value || null;
+  var currentPassword = document.getElementById('editCurrentPassword').value;
+  var errDiv = document.getElementById('updateError');
+  var successDiv = document.getElementById('updateSuccess');
+  errDiv.style.display = 'none'; successDiv.style.display = 'none';
+  if(!currentPassword) {{ errDiv.textContent = 'Current password is required to save changes.'; errDiv.style.display = 'block'; return; }}
+  if(!name) {{ errDiv.textContent = 'Name cannot be empty.'; errDiv.style.display = 'block'; return; }}
+  if(!email) {{ errDiv.textContent = 'Email cannot be empty.'; errDiv.style.display = 'block'; return; }}
+  fetch('/api/profiles/update', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{profile_id: '{_pid}', current_password: currentPassword, name: name, email: email, start_date: startDate}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{
+      successDiv.innerHTML = '✅ Profile updated! Changes: <ul style=\"margin:4px 0 0 16px;\">' + r.changes.map(function(c){{return '<li>' + c + '</li>'}}).join('') + '</ul>';
+      successDiv.style.display = 'block';
+      setTimeout(function(){{location.reload()}}, 2000);
+    }}else{{
+      errDiv.textContent = '❌ ' + r.message;
+      errDiv.style.display = 'block';
+    }}
+  }})
+  .catch(function(e){{errDiv.textContent = '❌ ' + e; errDiv.style.display = 'block';}});
+}}
+
+function changePassword() {{
+  var currentPw = document.getElementById('pwCurrent').value;
+  var newPw = document.getElementById('pwNew').value;
+  var confirmPw = document.getElementById('pwConfirm').value;
+  var errDiv = document.getElementById('pwError');
+  var successDiv = document.getElementById('pwSuccess');
+  errDiv.style.display = 'none'; successDiv.style.display = 'none';
+  if(!currentPw) {{ errDiv.textContent = 'Please enter your current password.'; errDiv.style.display = 'block'; return; }}
+  if(!newPw) {{ errDiv.textContent = 'Please enter a new password.'; errDiv.style.display = 'block'; return; }}
+  if(newPw.length < 4) {{ errDiv.textContent = 'New password must be at least 4 characters.'; errDiv.style.display = 'block'; return; }}
+  if(newPw !== confirmPw) {{ errDiv.textContent = 'New passwords do not match.'; errDiv.style.display = 'block'; return; }}
+  fetch('/api/profiles/update', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{profile_id: '{_pid}', current_password: currentPw, new_password: newPw}})
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{
+      successDiv.innerHTML = '✅ Password changed successfully!';
+      successDiv.style.display = 'block';
+      document.getElementById('pwCurrent').value = '';
+      document.getElementById('pwNew').value = '';
+      document.getElementById('pwConfirm').value = '';
+      setTimeout(function(){{location.reload()}}, 2000);
+    }}else{{
+      errDiv.textContent = '❌ ' + r.message;
+      errDiv.style.display = 'block';
+    }}
+  }})
+  .catch(function(e){{errDiv.textContent = '❌ ' + e; errDiv.style.display = 'block';}});
+}}
+
 function deleteProfile(profileId) {{
   var password = document.getElementById('deletePassword').value;
   var errDiv = document.getElementById('deleteError');
@@ -753,6 +924,81 @@ function deleteProfile(profileId) {{
 }}
 </script>'''
     return _html_page('Manage Profile — MUE Learner', body, 'home')
+
+
+def _page_admin_login() -> str:
+    """Render the admin login page — lists admin profiles for authenticated access."""
+    # Find admin profiles that exist in the profiles list
+    admin_profiles = [p for p in _profiles_list if _is_admin_profile(p['id'])]
+
+    if not admin_profiles:
+        body = '''
+<div style="max-width:480px;margin:60px auto;text-align:center;">
+  <h1>🔑 Admin Access</h1>
+  <div class="card">
+    <p style="color:#6b7280;">No administrative profiles exist yet.</p>
+    <p style="font-size:13px;color:#6b7280;">Create a profile named "owner_user" to enable admin access.</p>
+    <a href="/" class="btn btn-primary" style="display:inline-block;margin-top:12px;">← Back to Home</a>
+  </div>
+</div>'''
+        return _html_page('Admin Login — MUE Learner', body)
+
+    profile_cards = ''
+    for p in admin_profiles:
+        pid = p['id']
+        pname = p.get('name', pid)
+        has_pw = bool(p.get('password_hash'))
+        password_field = f'''
+        <div style="margin-top:8px;">
+          <label style="font-size:12px;color:#6b7280;display:block;">Password</label>
+          <input type="password" id="pw-{pid}" class="form-input" style="width:100%;" placeholder="Enter password" {'required' if has_pw else ''}>
+        </div>''' if has_pw else ''
+        profile_cards += f'''
+<div class="card" style="margin-bottom:12px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <strong style="font-size:16px;">👑 {pname}</strong>
+      <div style="font-size:12px;color:#6b7280;">ID: <code>{pid}</code></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="adminLogin('{pid}')">🔑 Switch to Admin</button>
+  </div>
+  {password_field}
+</div>'''
+
+    body = f'''
+<div style="max-width:480px;margin:40px auto;">
+  <h1>🔑 Admin Access</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
+    Administrative profiles are hidden from the profile switcher. Use this page to log in to an admin profile.
+    You will need the profile's password if one is set.
+  </p>
+  {profile_cards}
+  <div style="margin-top:16px;text-align:center;">
+    <a href="/" class="btn btn-outline btn-sm" style="text-decoration:none;">← Back to Home</a>
+  </div>
+</div>
+<script>
+function adminLogin(profileId) {{
+  var pw = document.getElementById('pw-' + profileId);
+  var data = {{profile_id: profileId}};
+  if (pw && pw.value) {{ data.password = pw.value; }}
+  fetch('/api/profile/switch', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify(data)
+  }})
+  .then(function(r){{return r.json();}})
+  .then(function(j){{
+    if (j.status === 'ok') {{
+      window.location.href = '/';
+    }} else {{
+      showToast('❌ ' + (j.message || 'Login failed'), 'error');
+    }}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+</script>'''
+    return _html_page('Admin Login — MUE Learner', body)
 
 
 def _page_dashboard() -> str:
@@ -822,7 +1068,32 @@ def _page_dashboard() -> str:
     else:
         catchup_section = ''
 
+    # Check if profile has an email address
+    try:
+        from action.proxy.web_interface import get_profile_by_id as _gpbi3
+        _profile_data = _gpbi3(_learner.profile_id)
+        _has_email = bool(_profile_data and _profile_data.get('email'))
+    except Exception:
+        _has_email = False
+
+    email_banner = ''
+    if not _has_email:
+        email_banner = '''
+<div class="card" style="border-left:4px solid #f59e0b;background:#fefce8;margin-bottom:16px;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span style="font-size:24px;">📧</span>
+    <div>
+      <strong>Email address required</strong>
+      <p style="font-size:13px;color:#6b7280;margin:2px 0 0;">
+        Set your email address on the <a href="/manage" style="color:#6366f1;">Profile Management</a> page
+        to receive daily summaries and reviewer feedback notifications.
+      </p>
+    </div>
+  </div>
+</div>'''
+
     body = f'''
+{email_banner}
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-value">Day {day_num}</div>
@@ -2722,6 +2993,18 @@ def _page_progress() -> str:
   <span>{value}</span>
 </div>'''
 
+        # Reviewer confirmation indicator
+        reviewer_confirmed = lvl_info.get('reviewer_confirmed', False)
+        if lvl_num < 4:  # Only levels 1-3 need reviewer confirmation to advance
+            if reviewer_confirmed:
+                reviewer_html = '<div style="margin-top:6px;font-size:12px;color:#198754;">👤 Reviewer: ✅ Confirmed</div>'
+            elif is_completed:
+                reviewer_html = '<div style="margin-top:6px;font-size:12px;color:#ffc107;">👤 Reviewer: ⏳ Awaiting confirmation</div>'
+            else:
+                reviewer_html = '<div style="margin-top:6px;font-size:12px;color:#6b7280;">👤 Reviewer: ⏳ Pending</div>'
+        else:
+            reviewer_html = ''  # Mastery doesn't need reviewer confirmation
+
         blocker_html = ''
         if blockers:
             blocker_html = '<div style="margin-top:8px;font-size:12px;color:#dc3545;">⚠️ ' + '; '.join(blockers[:3]) + '</div>'
@@ -2742,6 +3025,7 @@ def _page_progress() -> str:
     <div class="fill" style="width:{progress_pct}%;background:{'#198754' if is_completed else ('#7c73ff' if is_current else '#d1d5db')};"></div>
   </div>
   <div style="font-size:12px;color:#6b7280;">{days_done}/{days_req} days ({progress_pct}%)</div>
+  {reviewer_html}
   {gate_rows}
   {blocker_html}
 </div>''')
@@ -2945,19 +3229,34 @@ def _build_learner_summary_html(summary: dict) -> str:
 </div></body></html>'''
 
 
+def _get_active_profile_email() -> str:
+    """Get the email address from the active profile, or fall back to env var."""
+    try:
+        from action.proxy.web_interface import get_profile_by_id as _gpbi3
+        pid = _learner.profile_id
+        if pid:
+            p = _gpbi3(pid)
+            if p and p.get('email'):
+                return p['email']
+    except Exception:
+        pass
+    return LEARNER_EMAIL
+
+
 def send_learner_daily_summary():
     """Compile and send the learner's daily summary email."""
     global _scheduler_running
-    if not SUMMARY_ENABLED or not LEARNER_EMAIL:
+    to_addr = _get_active_profile_email()
+    if not SUMMARY_ENABLED or not to_addr:
         return False
 
     summary = compile_learner_daily_summary()
     html_body = _build_learner_summary_html(summary)
     subject = f'🌅 MUE Daily Summary — Day {summary["current_day"]} · {summary["total_notes"]} notes, {summary["total_evidence"]} evidence'
 
-    ok, err = _send_email(LEARNER_EMAIL, subject, html_body)
+    ok, err = _send_email(to_addr, subject, html_body)
     if ok:
-        print(f'  📧 Daily summary sent to {LEARNER_EMAIL}')
+        print(f'  📧 Daily summary sent to {to_addr}')
     else:
         print(f'  ⚠️ Failed to send daily summary: {err}')
     return ok
@@ -2988,14 +3287,165 @@ def start_email_scheduler():
         return
     _scheduler_thread = threading.Thread(target=_scheduler_loop, daemon=True)
     _scheduler_thread.start()
-    if SUMMARY_ENABLED and LEARNER_EMAIL:
-        print(f'  📧 Daily summary scheduled for {DAILY_SUMMARY_HOUR:02d}:{DAILY_SUMMARY_MINUTE:02d} → {LEARNER_EMAIL}')
+    _sched_email = _get_active_profile_email()
+    if SUMMARY_ENABLED and _sched_email:
+        print(f'  📧 Daily summary scheduled for {DAILY_SUMMARY_HOUR:02d}:{DAILY_SUMMARY_MINUTE:02d} → {_sched_email}')
 
 
 def _api_send_summary() -> str:
     """POST /api/learner/summary/send — manually trigger the daily summary email."""
     ok = send_learner_daily_summary()
     return json.dumps({'status': 'ok' if ok else 'error'})
+
+
+def _build_welcome_email_html(profile: dict) -> str:
+    """Build an HTML welcome email for a newly created learner profile."""
+    profile_id = profile.get('id', '')
+    name = profile.get('name', 'Learner')
+    email = profile.get('email', '')
+    created_at = profile.get('created_at', datetime.now().isoformat())
+    start_date = profile.get('start_date', 'Auto-detected')
+    has_password = bool(profile.get('password_hash'))
+    created_str = created_at[:10] if created_at else 'today'
+    login_url = f'http://localhost:5005'
+
+    return f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f0f4ff;padding:20px">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)">
+  <div style="background:linear-gradient(135deg,#7c73ff,#a29bfe);padding:28px 32px;color:#fff">
+    <div style="font-size:40px;margin-bottom:8px;">🎉</div>
+    <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;">Welcome to MUE, {name}!</h1>
+    <p style="margin:0;opacity:.85;font-size:14px;">Your BI learning journey starts today</p>
+  </div>
+  <div style="padding:24px 32px">
+    <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 20px;">
+      Your learner profile has been created. Below are your profile details and
+      security information — please save them for your records.
+    </p>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;width:120px;border-radius:8px 0 0 8px;">Display Name</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{name}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Profile ID</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#6366f1;font-family:monospace;border-radius:0 8px 8px 0;">{profile_id}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Email</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{email}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Password</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{'✅ Set (hashed, not stored in plain text)' if has_password else '⚠️ Not set'}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Created</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{created_str}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Start Date</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{start_date}</td>
+      </tr>
+    </table>
+
+    <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;color:#92400e;">
+        <strong>🔒 Security Notice:</strong> Your password is stored using
+        PBKDF2-HMAC-SHA256 hashing. It is never stored in plain text.
+        Never share your password or profile ID with anyone.
+      </p>
+    </div>
+
+    <div style="background:#f0fdf4;border-left:4px solid #22c55e;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;color:#166534;">
+        <strong>🚀 Getting Started:</strong> Open your personal dashboard to
+        begin your 28-day curriculum. Your profile is ready and waiting.
+      </p>
+    </div>
+
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{login_url}"
+         style="display:inline-block;background:linear-gradient(135deg,#7c73ff,#a29bfe);color:#fff;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;">
+        🚀 Open MUE Dashboard
+      </a>
+    </div>
+
+    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:20px 0 0;">
+      MUE — Model-Understanding-Evidence · 28-Day BI Curriculum<br>
+      Sent by the MUE Learner Server
+    </p>
+  </div>
+</div></body></html>'''
+
+
+def _build_profile_update_email_html(profile: dict, changes_html: str) -> str:
+    """Build an HTML email notifying the learner of profile changes."""
+    name = profile.get('name', 'Learner')
+    email = profile.get('email', '')
+    login_url = 'http://localhost:5005'
+
+    return f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f0f4ff;padding:20px">
+<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)">
+  <div style="background:linear-gradient(135deg,#6366f1,#818cf8);padding:28px 32px;color:#fff">
+    <div style="font-size:40px;margin-bottom:8px;">🔐</div>
+    <h1 style="margin:0 0 4px;font-size:22px;font-weight:700;">Profile Updated, {name}!</h1>
+    <p style="margin:0;opacity:.85;font-size:14px;">Your MUE learner profile has been changed</p>
+  </div>
+  <div style="padding:24px 32px">
+    <p style="font-size:15px;color:#333;line-height:1.6;margin:0 0 20px;">
+      The following changes were made to your profile:
+    </p>
+
+    <div style="background:#f8f9fa;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+      <ul style="margin:0;padding-left:20px;font-size:14px;color:#333;line-height:1.8;">
+        {changes_html}
+      </ul>
+    </div>
+
+    <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;color:#92400e;">
+        <strong>🔒 Security Notice:</strong> If you did not make these changes,
+        please contact your administrator immediately. Your password is stored
+        using PBKDF2-HMAC-SHA256 hashing and is never stored in plain text.
+      </p>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;width:120px;border-radius:8px 0 0 8px;">Profile ID</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#6366f1;font-family:monospace;border-radius:0 8px 8px 0;">{profile.get('id', '')}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Email</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{email}</td>
+      </tr>
+      <tr><td colspan="2" style="height:6px;"></td></tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:13px;font-weight:600;color:#333;border-radius:8px 0 0 8px;">Updated</td>
+        <td style="padding:10px 14px;background:#f8f9fa;font-size:14px;color:#333;border-radius:0 8px 8px 0;">{datetime.now().strftime('%Y-%m-%d %H:%M')}</td>
+      </tr>
+    </table>
+
+    <div style="text-align:center;margin:24px 0;">
+      <a href="{login_url}"
+         style="display:inline-block;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;">
+        🚀 Open MUE Dashboard
+      </a>
+    </div>
+
+    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:20px 0 0;">
+      MUE — Model-Understanding-Evidence · 28-Day BI Curriculum<br>
+      Sent by the MUE Learner Server
+    </p>
+  </div>
+</div></body></html>'''
 
 
 def _api_status() -> str:
@@ -3209,10 +3659,14 @@ def _api_evidence_delete(filename: str) -> str:
 
 
 def _api_rebuild() -> str:
-    """POST /api/rebuild — trigger build_data.py."""
+    """POST /api/rebuild — trigger build_data.py scoped to current profile."""
     try:
+        pid = _learner.profile_id
+        cmd = [sys.executable, str(BUILD_SCRIPT)]
+        if pid:
+            cmd.extend(['--profile', pid])
         result = subprocess.run(
-            [sys.executable, str(BUILD_SCRIPT)],
+            cmd,
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -3308,7 +3762,14 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
         if path == '/api/profiles':
             try:
                 from action.proxy.web_interface import load_profiles as _lp
-                return self._send_json(json.dumps({'profiles': _lp()}))
+                all_profiles = _lp()
+                # Filter out admin profiles for non-admin sessions
+                current_pid = self._get_profile_id()
+                if _is_admin_session(current_pid):
+                    return self._send_json(json.dumps({'profiles': all_profiles}))
+                else:
+                    visible = [p for p in all_profiles if not _is_admin_profile(p['id'])]
+                    return self._send_json(json.dumps({'profiles': visible}))
             except Exception as e:
                 return self._send_json(json.dumps({'profiles': [], 'error': str(e)}))
 
@@ -3432,6 +3893,8 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             return self._send_html(_page_progress())
         if path == '/manage':
             return self._send_html(_page_manage_profile())
+        if path == '/admin-login':
+            return self._send_html(_page_admin_login())
 
         self.send_error(404, 'Not found')
 
@@ -3448,8 +3911,44 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             from action.proxy.web_interface import get_profile_by_id as _gpbi, _verify_password as _vp
             profile = _gpbi(pid)
             if profile or pid == 'default':
-                # Verify password if profile has one
-                if profile and profile.get('password_hash'):
+                # Admin profile protection:
+                # Switching to an admin profile requires either:
+                #   a) Already logged in as admin, OR
+                #   b) Providing the correct password
+                current_pid = self._get_profile_id()
+                is_current_admin = _is_admin_session(current_pid)
+                is_target_admin = _is_admin_profile(pid) if pid != 'default' else False
+
+                if is_target_admin and not is_current_admin:
+                    # Non-admin session trying to switch to an admin profile
+                    if profile and profile.get('password_hash'):
+                        # Profile has a password — must verify it
+                        if not password:
+                            return self._send_json(json.dumps({
+                                'status': 'error',
+                                'message': 'Admin profile requires a password.'
+                            }))
+                        if not _vp(password, profile['password_hash'], profile['password_salt']):
+                            return self._send_json(json.dumps({
+                                'status': 'error',
+                                'message': 'Incorrect password.'
+                            }))
+                    else:
+                        # Admin profile has no password set — require password field anyway
+                        if not password:
+                            return self._send_json(json.dumps({
+                                'status': 'error',
+                                'message': 'Admin profile requires authentication. Use the Admin Login page.'
+                            }))
+                        # Use password as a simple shared secret for initial admin access
+                        # For now, just require something to be typed (the admin can set a proper password later)
+                        if len(password) < 4:
+                            return self._send_json(json.dumps({
+                                'status': 'error',
+                                'message': 'Admin authentication requires a password of at least 4 characters.'
+                            }))
+                elif profile and profile.get('password_hash'):
+                    # Standard password check for non-admin profiles that have a password
                     if not password:
                         return self._send_json(json.dumps({
                             'status': 'error',
@@ -3481,6 +3980,18 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
                 from action.proxy.web_interface import create_profile as _cp
                 profile = _cp(name, start_date, password, email)
                 _reload_profiles()
+                # Send welcome email with profile details and security information
+                profile_email = profile.get('email', '')
+                if profile_email:
+                    welcome_subject = f'🎉 Welcome to MUE, {profile.get("name", "Learner")}! Your Profile Details'
+                    welcome_html = _build_welcome_email_html(profile)
+                    ok, err = _send_email(profile_email, welcome_subject, welcome_html)
+                    if ok:
+                        print(f'  📧 Welcome email sent to {profile_email}')
+                    else:
+                        print(f'  ⚠️ Could not send welcome email to {profile_email}: {err}')
+                else:
+                    print(f'  ⚠️ No email address for profile {profile["id"]}; welcome email not sent')
                 # Set cookie to the newly created profile
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
@@ -3515,6 +4026,56 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({'status': 'ok', 'message': 'Profile deleted'}).encode('utf-8'))
                 else:
                     return self._send_json(json.dumps({'status': 'error', 'message': 'Profile not found'}))
+            except ValueError as e:
+                return self._send_json(json.dumps({'status': 'error', 'message': str(e)}))
+            return
+
+        # ── Profile update ─────────────────────────────────────────
+        if path == '/api/profiles/update':
+            body = self._read_body()
+            pid = body.get('profile_id', '')
+            current_password = body.get('current_password') or None
+            new_name = body.get('name')
+            new_email = body.get('email')
+            new_start_date = body.get('start_date')
+            new_password = body.get('new_password') or None
+            owner_id = self._get_profile_id()
+            # Only the profile owner can update their own profile
+            if pid != owner_id:
+                return self._send_json(json.dumps({
+                    'status': 'error',
+                    'message': 'You can only update your own profile.'
+                }))
+            from action.proxy.web_interface import update_profile as _up
+            from action.proxy.web_interface import get_profile_by_id as _gpbi
+            try:
+                updated_profile, changes = _up(
+                    pid, current_password,
+                    new_name=new_name, new_email=new_email,
+                    new_start_date=new_start_date, new_password=new_password
+                )
+                _reload_profiles()
+                # Notify via email if profile has an email address
+                profile_email = updated_profile.get('email', '')
+                if profile_email:
+                    changes_bullets = '\n'.join(f'<li>{c}</li>' for c in changes)
+                    update_subject = f'🔐 MUE Profile Updated — {updated_profile.get("name", "Learner")}'
+                    update_html = _build_profile_update_email_html(
+                        updated_profile, changes_bullets
+                    )
+                    ok, err = _send_email(profile_email, update_subject, update_html)
+                    if ok:
+                        print(f'  📧 Profile update notification sent to {profile_email}')
+                    else:
+                        print(f'  ⚠️ Could not send profile update email to {profile_email}: {err}')
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'status': 'ok',
+                    'profile': updated_profile,
+                    'changes': changes
+                }).encode('utf-8'))
             except ValueError as e:
                 return self._send_json(json.dumps({'status': 'error', 'message': str(e)}))
             return
@@ -3582,6 +4143,7 @@ def main():
         profile_names = ', '.join(p.get('name', p['id']) for p in _profiles_list)
     else:
         profile_names = 'None — create one at /'
+    _startup_email = _get_active_profile_email()
     print(f'''
 ╔══════════════════════════════════════════════════════════╗
 ║        MUE Learner Web Interface                         ║
@@ -3591,7 +4153,7 @@ def main():
 ║  ● Start date: {str(_learner.start_date):<37s}║
 ║  ● Profiles: {profile_count:<2d} ({profile_names:<29s})║
 ║  ● Notes on disk: {len(_learner.list_notes()):<3d}                      ║
-║  ● Email summary: {'ON → ' + LEARNER_EMAIL if SUMMARY_ENABLED and LEARNER_EMAIL else 'OFF':<39s}║
+║  ● Email summary: {'ON → ' + _startup_email if SUMMARY_ENABLED and _startup_email else 'OFF':<39s}║
 ║                                                          ║
 ║  🏠  Dashboard:  http://{args.host}:{args.port}/            ║
 ║  📚  Curriculum: http://{args.host}:{args.port}/curriculum  ║

@@ -313,18 +313,21 @@ LEVEL_COMPETENCY_GATES = {
         'min_proof_tasks': 2,                # PT1, PT3
         'min_codex_gates': 2,                # end_to_end_workflow, business_logic_ownership
         'min_categories_covered': 5,
+        'require_reviewer_confirmation': True,
     },
     2: {  # Development → Operational
         'min_scorecard_pass_rate': 0.7,      # 5/7 areas Pass
         'min_proof_tasks': 4,                # PT1, PT3, PT4, PT5
         'min_codex_gates': 4,                # + validation_evidence, clean_change_slice
         'min_categories_covered': 7,
+        'require_reviewer_confirmation': True,
     },
     3: {  # Operational → Mastery
         'min_scorecard_pass_rate': 0.85,     # 6/7 areas Pass
         'min_proof_tasks': 6,                # All PTs
         'min_codex_gates': 6,                # All gates
         'min_categories_covered': 8,
+        'require_reviewer_confirmation': True,
     },
 }
 

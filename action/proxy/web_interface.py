@@ -272,6 +272,99 @@ def delete_profile(profile_id: str, password: str | None = None) -> bool:
     return True
 
 
+def update_profile(profile_id: str, current_password: str | None = None,
+                   new_name: str | None = None, new_email: str | None = None,
+                   new_start_date: str | None = None,
+                   new_password: str | None = None) -> tuple[dict, list[str]]:
+    """
+    Update an existing learner profile's details and/or security information.
+
+    Requires the current password for verification if the profile has one set.
+    Returns the updated profile dict and a list of human-readable change descriptions.
+
+    Args:
+        profile_id: The id of the profile to update.
+        current_password: Current password for verification (required if profile has a password).
+        new_name: New display name, or None to keep unchanged.
+        new_email: New email address, or None to keep unchanged.
+        new_start_date: New curriculum start date (ISO date string), or None to keep unchanged.
+        new_password: New password, or None to keep unchanged.
+
+    Returns:
+        (updated_profile_dict, list_of_change_descriptions)
+
+    Raises:
+        ValueError: If validation fails, password is missing/incorrect, or profile not found.
+    """
+    profiles = load_profiles()
+    profile = next((p for p in profiles if p['id'] == profile_id), None)
+    if not profile:
+        raise ValueError(f'Profile "{profile_id}" not found.')
+
+    # Verify current password if profile has one
+    if profile.get('password_hash'):
+        if not current_password:
+            raise ValueError('Current password is required to update profile settings.')
+        if not _verify_password(current_password, profile['password_hash'], profile['password_salt']):
+            raise ValueError('Current password is incorrect.')
+
+    changes = []
+
+    # Update name
+    if new_name is not None:
+        new_name = new_name.strip()
+        if not new_name:
+            raise ValueError('Profile name cannot be empty.')
+        old_name = profile.get('name', '')
+        if new_name != old_name:
+            profile['name'] = new_name
+            changes.append(f'Name changed from "{old_name}" to "{new_name}"')
+
+    # Update email
+    if new_email is not None:
+        new_email = new_email.strip()
+        if not new_email:
+            raise ValueError('Email address cannot be empty.')
+        if '@' not in new_email:
+            raise ValueError('Invalid email address.')
+        old_email = profile.get('email', '')
+        if new_email != old_email:
+            profile['email'] = new_email
+            changes.append(f'Email changed from "{old_email}" to "{new_email}"')
+
+    # Update start date
+    if new_start_date is not None:
+        new_start_date = new_start_date.strip() or None
+        old_date = profile.get('start_date', 'Auto-detected') or 'Auto-detected'
+        if new_start_date != profile.get('start_date'):
+            profile['start_date'] = new_start_date
+            changes.append(f'Start date changed from "{old_date}" to "{new_start_date or "Auto-detected"}"')
+
+    # Update password
+    if new_password is not None:
+        new_password = new_password.strip()
+        if not new_password:
+            raise ValueError('New password cannot be empty.')
+        if len(new_password) < 4:
+            raise ValueError('New password must be at least 4 characters.')
+        # Verify new password differs from current (if current is known)
+        if current_password and new_password == current_password:
+            raise ValueError('New password must be different from the current password.')
+        new_hash, new_salt = _hash_password(new_password)
+        profile['password_hash'] = new_hash
+        profile['password_salt'] = new_salt
+        changes.append('Password was changed')
+
+    if not changes:
+        raise ValueError('No changes were made. Provide at least one field to update.')
+
+    # Record when the update happened
+    profile['updated_at'] = datetime.now().isoformat()
+
+    _save_profiles(profiles, active_profile=profile_id)
+    return profile, changes
+
+
 class WebLearner(LearnerProxy):
     """
     Interactive learner that accepts real input from the web UI.
@@ -708,7 +801,7 @@ class WebLearner(LearnerProxy):
         return current
 
     def _trigger_build(self) -> None:
-        """Run build_data.py to regenerate data.json for the dashboard."""
+        """Run build_data.py to regenerate data.json for the dashboard, scoped to profile."""
         if not self.auto_build:
             return
         try:
@@ -716,8 +809,11 @@ class WebLearner(LearnerProxy):
             if build_script.exists():
                 env = os.environ.copy()
                 env['PYTHONIOENCODING'] = 'utf-8'
+                cmd = [sys.executable, str(build_script)]
+                if self.profile_id:
+                    cmd.extend(['--profile', self.profile_id])
                 result = subprocess.run(
-                    [sys.executable, str(build_script)],
+                    cmd,
                     cwd=self.action_dir.parent,
                     capture_output=True,
                     text=True,

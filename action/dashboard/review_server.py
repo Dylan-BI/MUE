@@ -60,6 +60,7 @@ DASHBOARD_DIR = SCRIPT_DIR
 REVIEWS_PATH = REPO_ROOT / 'review' / 'reviews.json'
 PROFILES_PATH = REPO_ROOT / 'review' / 'reviewer_profiles.json'
 ACTIVITY_PATH = REPO_ROOT / 'review' / 'profile_activity.json'
+COMPETENCY_PATH = REPO_ROOT / 'review' / 'competency.json'
 BUILD_SCRIPT = DASHBOARD_DIR / 'build_data.py'
 ENV_FILE = DASHBOARD_DIR / '.env'
 
@@ -269,6 +270,30 @@ def save_reviews(data):
     REVIEWS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _reviews_lock:
         with open(REVIEWS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+# ── Competency Confirmations ──────────────────────────────────────────
+
+def load_competency() -> dict:
+    """
+    Load competency confirmations from review/competency.json.
+    Returns a dict with a 'confirmations' key mapping level numbers to confirmation data.
+    """
+    if not COMPETENCY_PATH.exists():
+        return {'confirmations': {}}
+    try:
+        with open(COMPETENCY_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {'confirmations': {}}
+
+
+def save_competency(data: dict) -> None:
+    """Save competency confirmations to review/competency.json (thread-safe)."""
+    COMPETENCY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with _reviews_lock:
+        with open(COMPETENCY_PATH, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
 
@@ -1456,6 +1481,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_presence()
         elif path == '/api/profiles':
             self._handle_get_profiles(qs)
+        elif path == '/api/competency':
+            self._handle_get_competency()
         elif path == '/api/activity':
             self._handle_get_activity(qs)
         elif path == '/api/file':
@@ -1504,6 +1531,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_leave()
         elif parsed.path == '/api/profiles':
             self._handle_save_profile()
+        elif parsed.path == '/api/competency':
+            self._handle_set_competency()
         elif parsed.path == '/api/activity':
             self._handle_log_activity()
         elif parsed.path == '/api/daily-summary':
@@ -1634,6 +1663,76 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                      {'requester': requester})
         log('INFO', f'Profile saved: {display_name} (@{username}) by @{requester}')
         self._send_json(200, {'ok': True, 'profile': profiles[username]})
+
+    # ── Competency Confirmation Handlers ─────────────────────────────
+
+    def _handle_get_competency(self):
+        """GET /api/competency — return all competency confirmations."""
+        data = load_competency()
+        self._send_json(200, data)
+
+    def _handle_set_competency(self):
+        """POST /api/competency — confirm or revoke competency for a level.
+
+        Body: {
+            level: 1..3 (the level being completed, i.e. 1 → allows access to level 2)
+            confirmed: true/false
+            confirmed_by: reviewer username
+            comment?: optional note
+        }
+
+        Authorization: must be a registered reviewer or admin.
+        """
+        body = self._read_body()
+        if not body:
+            return
+        level = body.get('level')
+        confirmed = bool(body.get('confirmed', False))
+        confirmed_by = body.get('confirmed_by', '').strip()
+        comment = body.get('comment', '').strip()
+        if not isinstance(level, int) or level < 1 or level > 3:
+            self._send_json(400, {'error': 'level must be 1, 2, or 3'})
+            return
+        if not confirmed_by:
+            self._send_json(400, {'error': 'confirmed_by (reviewer username) is required'})
+            return
+        # Verify the reviewer is registered
+        profiles = load_profiles()
+        reviewer_profile = profiles.get(confirmed_by)
+        if not reviewer_profile and confirmed_by not in ADMIN_USERS:
+            self._send_json(403, {'error': f'@{confirmed_by} is not a registered reviewer'})
+            return
+
+        data = load_competency()
+        confirmations = data.get('confirmations', {})
+        level_str = str(level)
+
+        if confirmed:
+            confirmations[level_str] = {
+                'confirmed': True,
+                'confirmed_by': confirmed_by,
+                'confirmed_at': datetime.now().isoformat(),
+                'comment': comment or f'Competency confirmed for Level {level} completion by {confirmed_by}',
+            }
+            log_activity(confirmed_by, 'competency_confirmed',
+                         f'Confirmed competency for Level {level}',
+                         {'level': level})
+            log('INFO', f'Competency confirmed for Level {level} by @{confirmed_by}')
+        else:
+            # Revoke confirmation
+            confirmations.pop(level_str, None)
+            log_activity(confirmed_by, 'competency_revoked',
+                         f'Revoked competency confirmation for Level {level}',
+                         {'level': level})
+            log('INFO', f'Competency confirmation revoked for Level {level} by @{confirmed_by}')
+
+        data['confirmations'] = confirmations
+        save_competency(data)
+
+        # Trigger rebuild so dashboard data reflects new confirmation
+        rebuild_data_json()
+
+        self._send_json(200, {'ok': True, 'competency': confirmations.get(level_str)})
 
     # ── Activity Log Handlers ────────────────────────────────────────
 

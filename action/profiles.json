@@ -1,13 +1,14 @@
 {
   "profiles": [
     {
-      "id": "jordan_smith",
-      "name": "Jordan Smith",
+      "id": "owner_user",
+      "name": "Owner User",
+      "email": "monteretroion@gmail.com",
       "start_date": null,
       "created_at": "2026-07-21T14:28:13.051031",
       "password_hash": "d098b3f42b38eee5a4c1b198a244943086f9fc41c64530bd02ef07a2b22ebc46",
       "password_salt": "a2eb552eb4a5c8264394302997ac21fc"
     }
   ],
-  "active_profile": "jordan_smith"
+  "active_profile": "owner_user"
 }

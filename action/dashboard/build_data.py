@@ -14,7 +14,12 @@ alignment, and provides version-based review metadata.
 
 Usage:
     python action/dashboard/build_data.py
+    python action/dashboard/build_data.py --profile owner_user
     # Output: action/dashboard/data.json
+
+When --profile is provided, only that profile's data (from action/profiles/{id}/)
+is scanned. Without --profile, data from all profile directories + shared dirs
+is included (review-server mode).
 """
 import glob
 import json
@@ -43,6 +48,7 @@ REPORTS_ARCHIVE_DIR = os.path.join(ACTION_DIR, 'archive', 'reports')
 REPO_ROOT = os.path.abspath(os.path.join(ACTION_DIR, '..'))
 REVIEW_DIR = os.path.join(REPO_ROOT, 'review')
 SOURCE_DIR = os.path.join(REPO_ROOT, 'source')
+COMPETENCY_PATH = os.path.join(REVIEW_DIR, 'competency.json')
 
 # Learner config — dynamic start date override
 LEARNER_CONFIG_PATH = os.path.join(ACTION_DIR, 'learner_config.json')
@@ -148,18 +154,21 @@ LEVEL_COMPETENCY_GATES = {
         'min_proof_tasks': 2,                # PT1, PT3
         'min_codex_gates': 2,                # end_to_end_workflow, business_logic_ownership
         'min_categories_covered': 5,
+        'require_reviewer_confirmation': True,
     },
     2: {  # Development → Operational
         'min_scorecard_pass_rate': 0.7,      # 5/7 areas Pass
         'min_proof_tasks': 4,                # PT1, PT3, PT4, PT5
         'min_codex_gates': 4,
         'min_categories_covered': 7,
+        'require_reviewer_confirmation': True,
     },
     3: {  # Operational → Mastery
         'min_scorecard_pass_rate': 0.85,     # 6/7 areas Pass
         'min_proof_tasks': 6,                # All PTs
         'min_codex_gates': 6,                # All gates
         'min_categories_covered': 8,
+        'require_reviewer_confirmation': True,
     },
 }
 
@@ -208,9 +217,30 @@ def detect_earliest_learner_artifact():
     return earliest.isoformat() if earliest else None
 
 
-def _check_competency_gates(notes, level_gates):
+def _load_competency_confirmations() -> dict:
+    """
+    Load reviewer competency confirmations from review/competency.json.
+    Returns a dict mapping level number (str) to confirmation data, or empty dict.
+    """
+    if not os.path.exists(COMPETENCY_PATH):
+        return {}
+    try:
+        with open(COMPETENCY_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get('confirmations', {})
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _check_competency_gates(notes, level_gates, reviewer_confirmed=False):
     """
     Check competency gate requirements for a specific level.
+    
+    Args:
+        notes: List of note dicts for this level.
+        level_gates: Gate requirements dict from LEVEL_COMPETENCY_GATES.
+        reviewer_confirmed: Whether a reviewer has confirmed competency for this level.
+    
     Returns dict with gate compliance details.
     """
     if not level_gates:
@@ -263,6 +293,7 @@ def _check_competency_gates(notes, level_gates):
         'codex_gates_target': level_gates.get('min_codex_gates', 0),
         'categories_covered': len(categories_covered),
         'categories_target': level_gates.get('min_categories_covered', 0),
+        'reviewer_confirmed': reviewer_confirmed,
     }
     
     blockers = []
@@ -274,6 +305,8 @@ def _check_competency_gates(notes, level_gates):
         blockers.append(f'Codex gates passed {gate_passes} < {level_gates["min_codex_gates"]} required')
     if len(categories_covered) < level_gates.get('min_categories_covered', 0):
         blockers.append(f'Categories covered {len(categories_covered)} < {level_gates["min_categories_covered"]} required')
+    if not reviewer_confirmed and level_gates.get('require_reviewer_confirmation', True):
+        blockers.append('⏳ Awaiting reviewer competency confirmation — a reviewer must confirm you are ready to advance')
     
     return {
         'met': len(blockers) == 0,
@@ -292,6 +325,7 @@ def detect_level_progression(notes):
     A level is considered complete when:
       1. Minimum working days completed (LEVEL_DAYS)
       2. Competency gates met (scorecard pass rate, proof tasks, codex gates, categories)
+      3. Reviewer has confirmed competency (loaded from review/competency.json)
     
     Returns a dict:
     {
@@ -308,6 +342,9 @@ def detect_level_progression(notes):
     }
     """
     from collections import defaultdict
+    
+    # Load reviewer competency confirmations
+    competency_confirmations = _load_competency_confirmations()
     
     # Group notes by level (default to Level 1 if no level field)
     level_notes = defaultdict(list)
@@ -340,8 +377,10 @@ def detect_level_progression(notes):
                 start_date = dates[0]
                 last_date = dates[-1]
         
-        # Check competency gates for this level
-        gates = _check_competency_gates(l_notes, LEVEL_COMPETENCY_GATES.get(lvl))
+        # Check competency gates for this level (including reviewer confirmation)
+        lvl_str = str(lvl)
+        reviewer_confirmed = competency_confirmations.get(lvl_str, {}).get('confirmed', False)
+        gates = _check_competency_gates(l_notes, LEVEL_COMPETENCY_GATES.get(lvl), reviewer_confirmed=reviewer_confirmed)
         
         # A level is completed when BOTH days threshold AND competency gates are met
         days_met = days_completed >= LEVEL_DAYS
@@ -368,6 +407,7 @@ def detect_level_progression(notes):
             'is_unlocked': is_unlocked,
             'is_completed': is_completed,
             'in_progress': in_progress,
+            'reviewer_confirmed': reviewer_confirmed,
             'gates': gates,
         }
         
@@ -1234,43 +1274,97 @@ def min_quality_check(artifact_path, task_id):
     return len(issues) == 0, issues
 
 
-def scan_evidence():
+def scan_evidence_from_dirs(evidence_dirs: list[str], archive_dirs: list[str]) -> list[dict]:
+    """Scan evidence files from specified directories + archive directories."""
     files = []
-    if not has_real_learner_identity():
-        return files
-    if not os.path.isdir(EVIDENCE_DIR):
-        return files
-    for root, dirs, fnames in os.walk(EVIDENCE_DIR):
-        for f in fnames:
-            if f == '.gitkeep' or f.startswith('tpl_'):
-                continue
-            fp = os.path.join(root, f)
-            rel = os.path.relpath(fp, EVIDENCE_DIR)
-            files.append({
-                'path': rel,
-                'filename': f,
-                'size': os.path.getsize(fp),
-                'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
-            })
+    seen_paths = set()
+
+    for ed in evidence_dirs:
+        if not os.path.isdir(ed):
+            continue
+        for root, dirs, fnames in os.walk(ed):
+            for f in fnames:
+                if f == '.gitkeep' or f.startswith('tpl_'):
+                    continue
+                fp = os.path.join(root, f)
+                real = os.path.realpath(fp)
+                if real in seen_paths:
+                    continue
+                seen_paths.add(real)
+                rel = os.path.relpath(fp, ed)
+                files.append({
+                    'path': rel,
+                    'filename': f,
+                    'size': os.path.getsize(fp),
+                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                })
+
+    for ad in archive_dirs:
+        if not os.path.isdir(ad):
+            continue
+        for root, dirs, fnames in os.walk(ad):
+            for f in fnames:
+                if f == '.gitkeep':
+                    continue
+                fp = os.path.join(root, f)
+                real = os.path.realpath(fp)
+                if real in seen_paths:
+                    continue
+                seen_paths.add(real)
+                rel = os.path.relpath(fp, ad)
+                files.append({
+                    'path': 'archive/' + rel,
+                    'size': os.path.getsize(fp),
+                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                    'archived': True,
+                })
+
     files.sort(key=lambda x: x['modified'], reverse=True)
     return files
 
 
-def scan_reports():
+def scan_reports_from_dirs(reports_dirs: list[str], archive_dirs: list[str]) -> list[dict]:
+    """Scan .md report files from specified directories + archive directories."""
     files = []
-    if not has_real_learner_identity():
-        return files
-    if not os.path.isdir(REPORTS_DIR):
-        return files
-    pattern = os.path.join(REPORTS_DIR, '*.md')
-    for fp in sorted(glob.glob(pattern)):
-        if os.path.basename(fp) == '.gitkeep':
+    seen_paths = set()
+
+    for rd in reports_dirs:
+        if not os.path.isdir(rd):
             continue
-        files.append({
-            'path': os.path.basename(fp),
-            'size': os.path.getsize(fp),
-            'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
-        })
+        pattern = os.path.join(rd, '*.md')
+        for fp in sorted(glob.glob(pattern)):
+            if os.path.basename(fp) == '.gitkeep':
+                continue
+            real = os.path.realpath(fp)
+            if real in seen_paths:
+                continue
+            seen_paths.add(real)
+            files.append({
+                'path': os.path.basename(fp),
+                'filename': os.path.basename(fp),
+                'size': os.path.getsize(fp),
+                'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+            })
+
+    for ad in archive_dirs:
+        if not os.path.isdir(ad):
+            continue
+        pattern = os.path.join(ad, '*.md')
+        for fp in sorted(glob.glob(pattern)):
+            if os.path.basename(fp) == '.gitkeep':
+                continue
+            real = os.path.realpath(fp)
+            if real in seen_paths:
+                continue
+            seen_paths.add(real)
+            files.append({
+                'path': 'archive/reports/' + os.path.basename(fp),
+                'filename': os.path.basename(fp),
+                'size': os.path.getsize(fp),
+                'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
+                'archived': True,
+            })
+
     return files
 
 
@@ -1697,42 +1791,110 @@ def build_page_artifacts(artifacts, changed_set):
     return page_map
 
 
-def main():
-    real_learner_configured = has_real_learner_identity()
+def _resolve_profile_dirs(profile_id: str | None) -> dict:
+    """
+    Resolve notes/evidence/reports directories for a given profile.
+    
+    When profile_id is provided, returns paths scoped to action/profiles/{id}/.
+    When None, returns the legacy shared paths plus all profile dirs.
+    """
+    if profile_id:
+        profile_root = os.path.join(ACTION_DIR, 'profiles', profile_id)
+        return {
+            'notes_dirs': [os.path.join(profile_root, 'notes')],
+            'evidence_dirs': [os.path.join(profile_root, 'evidence')],
+            'reports_dirs': [os.path.join(profile_root, 'reports')],
+            'notes_archive_dirs': [os.path.join(profile_root, 'archive', 'notes')],
+            'evidence_archive_dirs': [os.path.join(profile_root, 'archive', 'evidence')],
+            'reports_archive_dirs': [os.path.join(profile_root, 'archive', 'reports')],
+        }
+    else:
+        # Shared/legacy mode: also include ALL profile dirs so the review
+        # server sees data from every learner profile.
+        dirs = {
+            'notes_dirs': [NOTES_DIR],
+            'evidence_dirs': [EVIDENCE_DIR],
+            'reports_dirs': [REPORTS_DIR],
+            'notes_archive_dirs': [NOTES_ARCHIVE_DIR],
+            'evidence_archive_dirs': [EVIDENCE_ARCHIVE_DIR],
+            'reports_archive_dirs': [REPORTS_ARCHIVE_DIR],
+        }
+        profiles_root = os.path.join(ACTION_DIR, 'profiles')
+        if os.path.isdir(profiles_root):
+            for pid in sorted(os.listdir(profiles_root)):
+                pdir = os.path.join(profiles_root, pid)
+                if os.path.isdir(pdir):
+                    dirs['notes_dirs'].append(os.path.join(pdir, 'notes'))
+                    dirs['evidence_dirs'].append(os.path.join(pdir, 'evidence'))
+                    dirs['reports_dirs'].append(os.path.join(pdir, 'reports'))
+                    dirs['notes_archive_dirs'].append(os.path.join(pdir, 'archive', 'notes'))
+                    dirs['evidence_archive_dirs'].append(os.path.join(pdir, 'archive', 'evidence'))
+                    dirs['reports_archive_dirs'].append(os.path.join(pdir, 'archive', 'reports'))
+        return dirs
 
-    print('Scanning notes...')
+
+def _scan_notes_from_dirs(notes_dirs: list[str], archive_dirs: list[str]) -> list[dict]:
+    """Scan .md notes from a list of directories + archive directories."""
     notes = []
-    if real_learner_configured and os.path.isdir(NOTES_DIR):
-        for f in sorted(glob.glob(os.path.join(NOTES_DIR, '*.md'))):
-            # Skip TPL-generated files — only real learner data
+    seen_paths = set()  # deduplicate by real path
+
+    for nd in notes_dirs:
+        if not os.path.isdir(nd):
+            continue
+        for f in sorted(glob.glob(os.path.join(nd, '*.md'))):
             if os.path.basename(f).startswith('tpl_'):
                 continue
+            real = os.path.realpath(f)
+            if real in seen_paths:
+                continue
+            seen_paths.add(real)
             d = parse_date_from_filename(f)
             if d:
                 note = parse_note(f)
-                note['filepath'] = f  # keep for proof-task scan
+                note['filepath'] = f
                 notes.append(note)
-    notes.sort(key=lambda x: x['date'] or '0000-00-00')
 
-    print(f'  Found {len(notes)} daily notes')
-
-    # Also scan archive dirs for completed/finalized learner work
-    archived_notes = 0
-    if real_learner_configured and os.path.isdir(NOTES_ARCHIVE_DIR):
-        for f in sorted(glob.glob(os.path.join(NOTES_ARCHIVE_DIR, '*.md'))):
-            # Skip TPL-generated files — only real learner data
+    for ad in archive_dirs:
+        if not os.path.isdir(ad):
+            continue
+        for f in sorted(glob.glob(os.path.join(ad, '*.md'))):
             if os.path.basename(f).startswith('tpl_'):
                 continue
+            real = os.path.realpath(f)
+            if real in seen_paths:
+                continue
+            seen_paths.add(real)
             d = parse_date_from_filename(f)
             if d:
                 note = parse_note(f)
                 note['filepath'] = f
                 note['archived'] = True
                 notes.append(note)
-                archived_notes += 1
-    if archived_notes:
-        print(f'  + {archived_notes} archived note(s) from action/archive/notes/')
+
     notes.sort(key=lambda x: x['date'] or '0000-00-00')
+    return notes
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description='MUE Dashboard data builder')
+    parser.add_argument('--profile', type=str, default=None,
+                        help='Profile ID to scope data to (e.g. owner_user). '
+                             'Without this, data from all profiles + shared dirs is included.')
+    args = parser.parse_args()
+
+    profile_id = args.profile
+    profile_dirs = _resolve_profile_dirs(profile_id)
+    real_learner_configured = has_real_learner_identity()
+
+    # ── Scan notes ────────────────────────────────────────────────
+    print('Scanning notes...')
+    notes = _scan_notes_from_dirs(profile_dirs['notes_dirs'], profile_dirs['notes_archive_dirs'])
+    print(f'  Found {len(notes)} daily notes')
+    if profile_id:
+        archived = [n for n in notes if n.get('archived')]
+        if archived:
+            print(f'  + {len(archived)} archived note(s) from profile archive')
 
     summary = compute_summary(notes)
 
@@ -1753,40 +1915,13 @@ def main():
             log('WARNING', 'Could not compute curriculum start date', error=str(exc))
 
     print('Scanning evidence...')
-    evidence = scan_evidence()
-    # Include archived evidence
-    if real_learner_configured and os.path.isdir(EVIDENCE_ARCHIVE_DIR):
-        for root, dirs, fnames in os.walk(EVIDENCE_ARCHIVE_DIR):
-            for f in fnames:
-                if f == '.gitkeep':
-                    continue
-                fp = os.path.join(root, f)
-                rel = os.path.relpath(fp, EVIDENCE_ARCHIVE_DIR)
-                evidence.append({
-                    'path': 'archive/evidence/' + rel,
-                    'size': os.path.getsize(fp),
-                    'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
-                    'archived': True,
-                })
+    evidence = scan_evidence_from_dirs(profile_dirs['evidence_dirs'], profile_dirs['evidence_archive_dirs'])
     evidence.sort(key=lambda x: x['modified'], reverse=True)
     summary['evidence_count'] = len(evidence)
     print(f'  Found {len(evidence)} evidence files')
 
     print('Scanning reports...')
-    reports = scan_reports()
-    # Include archived reports
-    if real_learner_configured and os.path.isdir(REPORTS_ARCHIVE_DIR):
-        pattern = os.path.join(REPORTS_ARCHIVE_DIR, '*.md')
-        for fp in sorted(glob.glob(pattern)):
-            if os.path.basename(fp) == '.gitkeep':
-                continue
-            reports.append({
-                'path': 'archive/reports/' + os.path.basename(fp),
-                'filename': os.path.basename(fp),
-                'size': os.path.getsize(fp),
-                'modified': datetime.fromtimestamp(os.path.getmtime(fp)).isoformat(),
-                'archived': True,
-            })
+    reports = scan_reports_from_dirs(profile_dirs['reports_dirs'], profile_dirs['reports_archive_dirs'])
     print(f'  Found {len(reports)} report files')
 
     print('Scanning all artifacts...')
