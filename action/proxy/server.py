@@ -340,6 +340,7 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
   <nav>{nav_links}</nav>
   <div class="profile-selector">
     {_profile_html}
+    {_logout_html}
     {_admin_html}
     {manage_link}
   </div>
