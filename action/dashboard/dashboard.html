@@ -4177,6 +4177,14 @@ function setProfile(profile) {
   try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
 }
 
+function logoutProfile() {
+  try { localStorage.removeItem(PROFILE_KEY); } catch {}
+  // Also clear admin local profile if present
+  try { localStorage.removeItem(ADMIN_LOCAL_PROFILE_KEY); } catch {}
+  // Reload page to reset state
+  location.reload();
+}
+
 /* ── Server Profile Sync ── */
 async function serverFetchProfiles() {
   if (!REVIEW_SERVER) return {};
@@ -4669,18 +4677,19 @@ function renderSidebarProfile() {
   const editBtn = admin ? '<div class="sp-edit">✏️</div>' : '';
   const badge = admin ? '<span style="font-size:9px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">Admin</span>' : '';
   const tprBtn = admin ? '<button class="theme-btn" onclick="activateTPR()" title="Run automated dashboard tests" style="margin-top:6px;width:100%;font-size:11px;justify-content:center">🧪 Run TPR Tests</button>' : '';
-  const tplBtn = admin ? '<button class="theme-btn" onclick="activateTPL()" title="Generate dummy learner data for data-flow testing" style="margin-top:4px;width:100%;font-size:11px;justify-content:center">📚 Generate TPL Data</button><button class="theme-btn" onclick="deactivateTPL()" title="Remove TPL dummy data and restore clean state" style="margin-top:4px;width:100%;font-size:11px;justify-content:center;background:rgba(220,53,69,.15);color:#ff6b6b">🗑️ Cleanup TPL Data</button>' : '';
+  const tplBtn = admin ? '<button class="theme-btn" onclick="activateTPL()" title="Generate dummy learner data for data-flow testing" style="margin-top:4px;width:100%;font-size:11px;justify_content:center">📚 Generate TPL Data</button><button class="theme-btn" onclick="deactivateTPL()" title="Remove TPL dummy data and restore clean state" style="margin-top:4px;width:100%;font-size:11px;justify-content:center;background:rgba(220,53,69,.15);color:#ff6b6b">🗑️ Cleanup TPL Data</button>' : '';
   const emailBadge = p.email ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="' + escHtml(p.email) + (p.dailySummary ? ' — Daily summary ON' : '') + '">' + (p.dailySummary ? '📬' : '✉️') + '</span>' : '';
   const tzBadge = p.timezone ? '<span style="font-size:9px;color:var(--text-muted);margin-left:4px" title="Daily summary at 06:00 ' + escHtml(p.timezone.replace(/_/g,' ')) + '">🕐 ' + escHtml(p.timezone.split('/').pop().replace(/_/g,' ')) + '</span>' : '';
   const emailLine = p.email
     ? '<div class="sp-email" onclick="event.stopPropagation();openProfileModal(true)" title="Click to edit email">✉️ ' + escHtml(p.email) + '</div>'
     : '<div class="sp-email sp-email-missing" onclick="event.stopPropagation();openProfileModal(true)" title="Add your email in Edit Profile">➕ Add email</div>';
+  const logoutBtn = '<button class="theme-btn" onclick="logoutProfile()" title="Log out of your reviewer profile" style="margin-top:6px;width:100%;font-size:11px;justify-content:center;background:rgba(220,53,69,.15);color:#ff6b6b">🚪 Logout</button>';
   container.innerHTML = '<div class="sidebar-profile" onclick="openProfileModal(true)" title="' + (admin ? 'Admin — click to edit any profile' : 'Click to edit your profile') + '">' +
     '<div class="sp-row"><div class="sp-avatar" style="background:' + mix.gradient + '">' + escHtml(initials) + '</div>' +
     '<div class="sp-info"><div class="sp-name">' + escHtml(p.displayName) + badge + emailBadge + tzBadge + '</div>' +
     '<div class="sp-username">@' + escHtml(p.username) + '</div>' +
     emailLine + '</div>' +
-    editBtn + '</div></div>' + tprBtn + tplBtn;
+    editBtn + '</div></div>' + tprBtn + tplBtn + logoutBtn;
   // Fetch and render activity history for this profile
   fetchProfileActivity(p.username).then(items => {
     const actDiv = document.getElementById('sidebarActivity');

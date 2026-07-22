@@ -311,6 +311,11 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
     </select>
     <span class="profile-badge">{_pname}</span>'''
 
+    # Add logout button when a profile is active (not default)
+    _logout_html = ''
+    if _pid != 'default':
+        _logout_html = '<button class="btn btn-outline btn-sm" onclick="logoutProfile()" style="margin-left:4px;font-size:11px;">🚪 Logout</button>'
+
     # Admin login / status indicator
     if _session_is_admin:
         _admin_html = '<span style="font-size:11px;color:#dc3545;margin-left:4px;">👑 Admin</span>'
@@ -388,6 +393,19 @@ function deleteProfile(profileId) {{
   .then(function(r){{return r.json()}})
   .then(function(r){{
     if(r.status==='ok'){{showToast('🗑️ Profile deleted.','success');setTimeout(function(){{location.reload()}},600);}}
+    else{{showToast('❌ '+r.message,'error');}}
+  }})
+  .catch(function(e){{showToast('❌ '+e,'error');}});
+}}
+
+function logoutProfile() {{
+  fetch('/api/profile/logout', {{
+    method: 'POST',
+    headers: {{'Content-Type': 'application/json'}}
+  }})
+  .then(function(r){{return r.json()}})
+  .then(function(r){{
+    if(r.status==='ok'){{showToast('🚪 Logged out','success');setTimeout(function(){{location.reload()}},600);}}
     else{{showToast('❌ '+r.message,'error');}}
   }})
   .catch(function(e){{showToast('❌ '+e,'error');}});
