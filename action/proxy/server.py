@@ -1023,6 +1023,7 @@ def _page_admin_login(cookie_header: str = '') -> str:
 <div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;padding:12px;margin-bottom:16px;text-align:center;font-size:14px;">
   ✅ Signed in as <strong>{_esc_html(current_admin)}</strong>
   <br><a href="/" style="color:#6366f1;font-size:13px;">← Back to Dashboard</a>
+  <br><button onclick="adminLogout()" class="btn btn-outline btn-sm" style="margin-top:8px;font-size:12px;">🚪 Logout</button>
 </div>'''
 
     body = f'''
@@ -1122,6 +1123,16 @@ function backToStep1() {{
   document.getElementById('step1').style.display = 'block';
   _pendingUsername = '';
   hideError('step2Error');
+}}
+
+async function adminLogout() {{
+  try {{
+    await fetch('/api/profile/logout', {{ method: 'POST' }});
+    window.location.href = '/admin-login';
+  }} catch(e) {{
+    console.error('Logout failed:', e);
+    window.location.href = '/admin-login';
+  }}
 }}
 </script>'''
     return _html_page('Admin Login — MUE Learner', body)
