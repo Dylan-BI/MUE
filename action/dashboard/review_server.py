@@ -171,7 +171,7 @@ ADMIN_USERS = ['jane_doe', 'dylan_bi', 'owner_user', 'secure_user']
 # These reviewer usernames are considered administrative (repo owner).
 # They are hidden from profile lists for non-admin sessions and require
 # password authentication via the admin login page.
-ADMIN_REVIEWER_USERNAMES = {'owner_user', 'secure_user'}
+ADMIN_REVIEWER_USERNAMES = {'owner_user', 'secure_user', 'admin'}
 
 # Admin session tracking (email-confirmation-code based)
 ADMIN_SESSION_COOKIE = 'mue_admin_session'

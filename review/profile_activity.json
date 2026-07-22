@@ -132,5 +132,14 @@
     "metadata": {
       "requester": "t3"
     }
+  },
+  {
+    "username": "test_reviewer",
+    "action": "profile_updated",
+    "detail": "Updated profile as Test Reviewer",
+    "timestamp": "2026-07-22T04:08:27.761716",
+    "metadata": {
+      "requester": "test_reviewer"
+    }
   }
 ]
