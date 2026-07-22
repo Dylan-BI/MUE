@@ -3,7 +3,7 @@
     {
       "reviewId": "rev001",
       "name": "test_reviewer",
-      "rating": "\ud83d\udc4d Pass",
+      "rating": "👍 Pass",
       "text": "Excellent note! The classification is well-justified and the scorecard reflects solid understanding. The codex gate analysis is thorough. One suggestion: add more detail to the \"what remains open\" section.",
       "timestamp": "2026-07-21T08:30:00",
       "version": 1,
@@ -12,7 +12,7 @@
     {
       "reviewId": "rev002",
       "name": "test_reviewer",
-      "rating": "\u26a1 Needs Work",
+      "rating": "⚡ Needs Work",
       "text": "The evidence artifact is missing the dependency order section. Please review the requirements and resubmit with all sections completed.",
       "timestamp": "2026-07-21T09:15:00",
       "version": 1,
@@ -23,7 +23,7 @@
     {
       "reviewId": "rev003",
       "name": "test_reviewer",
-      "rating": "\u274c Rework",
+      "rating": "❌ Rework",
       "text": "Several issues: 1) Business purpose is too brief - needs to connect to broader MUE training objectives. 2) Dependency order is incorrect - validation should precede deployment. 3) Risks identified section is empty. Please address all three points and resubmit.",
       "timestamp": "2026-07-21T10:00:00",
       "version": 1,
