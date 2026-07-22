@@ -912,7 +912,10 @@ def _page_manage_profile() -> str:
     </button>
     <div id="deleteError" style="color:#ef4444;margin-top:12px;display:none;"></div>
   </div>
-  <p style="margin-top:16px;"><a href="/">← Back to Dashboard</a></p>
+  <p style="margin-top:16px;">
+    <a href="/" style="margin-right:12px;">← Back to Dashboard</a>
+    <button class="btn btn-outline btn-sm" onclick="logoutProfile()">🚪 Logout</button>
+</p>
 </div>
 <script>
 function updateProfile() {{
