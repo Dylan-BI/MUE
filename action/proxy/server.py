@@ -311,9 +311,9 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
     </select>
     <span class="profile-badge">{_pname}</span>'''
 
-    # Add logout button when a profile is active (not default)
+    # Add logout button when a profile is active (not default) OR when admin session is active
     _logout_html = ''
-    if _pid != 'default':
+    if _pid != 'default' or _session_is_admin:
         _logout_html = '<button class="btn btn-outline btn-sm" onclick="logoutProfile()" style="margin-left:4px;font-size:11px;">🚪 Logout</button>'
 
     # Admin login / status indicator
