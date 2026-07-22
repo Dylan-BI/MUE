@@ -4142,6 +4142,13 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
 
         # ── Profile logout ─────────────────────────────────────────
         if path == '/api/profile/logout':
+            # Reset active profile to 'default' in profiles.json so fallback doesn't re-login
+            try:
+                from action.proxy.web_interface import _save_profiles as _sp, load_profiles as _lp
+                profiles = _lp()
+                _sp(profiles, active_profile='default')
+            except Exception:
+                pass  # Best effort; cookie clear is the primary mechanism
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             # Clear the profile cookie (Max-Age=0 → immediate expiry)
