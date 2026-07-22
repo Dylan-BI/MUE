@@ -3880,6 +3880,10 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             c = c.strip()
             if c.startswith('mue_profile='):
                 return c[len('mue_profile='):]
+        # Fallback: check for admin session cookie
+        admin_user = _get_admin_from_cookies(cookies)
+        if admin_user:
+            return admin_user
         try:
             from action.proxy.web_interface import get_active_profile_id as _gapi
             return _gapi()
@@ -4119,6 +4123,8 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('Set-Cookie', f'{ADMIN_SESSION_COOKIE}={session_id}; Path=/; Max-Age={ADMIN_SESSION_TTL}; HttpOnly; SameSite=Lax')
+                # Also set the profile cookie so the header shows the admin profile and logout button
+                self.send_header('Set-Cookie', f'mue_profile={username}; Path=/; Max-Age={ADMIN_SESSION_TTL}; SameSite=Lax')
                 body_bytes = json.dumps({'ok': True, 'username': username}).encode('utf-8')
                 self.send_header('Content-Length', str(len(body_bytes)))
                 self.end_headers()
