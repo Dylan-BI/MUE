@@ -39,7 +39,9 @@ Architecture:
 import argparse
 import json
 import os
+import random
 import re
+import secrets
 import smtplib
 import subprocess
 import sys
@@ -124,6 +126,59 @@ def _is_admin_profile(profile_id: str) -> bool:
     return profile_id in ADMIN_PROFILE_IDS
 
 
+# ── Admin email confirmation code auth ──────────────────────────────────────
+ADMIN_SESSION_COOKIE = 'mue_admin_session'
+ADMIN_SESSION_TTL = 86400  # 24 hours
+_admin_sessions = {}  # {session_id: {username, created_at}}
+_admin_sessions_lock = threading.Lock()
+_admin_codes = {}  # {username: {code, expires_at}}
+_admin_codes_lock = threading.Lock()
+ADMIN_CODE_TTL = 600  # 10 minutes
+# ADMIN_VERIFY_EMAIL is set after .env loading below (moved to email config section)
+
+
+def _create_admin_session(username: str) -> str:
+    """Create an admin session and return the session ID."""
+    session_id = secrets.token_hex(24)
+    with _admin_sessions_lock:
+        _admin_sessions[session_id] = {
+            'username': username,
+            'created_at': time.time(),
+        }
+    return session_id
+
+
+def _get_admin_session(session_id: str) -> str | None:
+    """Get the username for a valid admin session, or None if invalid/expired."""
+    if not session_id:
+        return None
+    with _admin_sessions_lock:
+        session = _admin_sessions.get(session_id)
+        if not session:
+            return None
+        if time.time() - session['created_at'] > ADMIN_SESSION_TTL:
+            del _admin_sessions[session_id]
+            return None
+        return session['username']
+
+
+def _get_admin_from_cookies(cookie_header: str) -> str | None:
+    """Extract admin username from a Cookie header string."""
+    for part in cookie_header.split(';'):
+        part = part.strip()
+        if part.startswith(ADMIN_SESSION_COOKIE + '='):
+            sid = part[len(ADMIN_SESSION_COOKIE) + 1:]
+            return _get_admin_session(sid)
+    return None
+
+
+def _esc_html(s):
+    """HTML-escape a string for safe rendering."""
+    if not isinstance(s, str):
+        s = str(s or '')
+    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#x27;')
+
+
 # Load profiles and create per-profile learners
 _profiles_list: list[dict] = []
 _learners: dict[str, WebLearner] = {}
@@ -180,6 +235,7 @@ def _load_env_file(path: Path) -> None:
 _load_env_file(PROXY_DIR / '.env')
 
 # ── Email configuration (from env vars / .env) ───────────────────────────────
+ADMIN_VERIFY_EMAIL = os.environ.get('MUE_ADMIN_VERIFY_EMAIL', 'monteretroion@gmail.com')
 SMTP_HOST = os.environ.get('MUE_SMTP_HOST', '')
 SMTP_PORT = int(os.environ.get('MUE_SMTP_PORT', '587'))
 SMTP_USER = os.environ.get('MUE_SMTP_USER', '')
@@ -926,9 +982,9 @@ function deleteProfile(profileId) {{
     return _html_page('Manage Profile — MUE Learner', body, 'home')
 
 
-def _page_admin_login() -> str:
-    """Render the admin login page — lists admin profiles for authenticated access."""
-    # Find admin profiles that exist in the profiles list
+def _page_admin_login(cookie_header: str = '') -> str:
+    """Render the admin login page — two-step email confirmation code flow."""
+    current_admin = _get_admin_from_cookies(cookie_header)
     admin_profiles = [p for p in _profiles_list if _is_admin_profile(p['id'])]
 
     if not admin_profiles:
@@ -943,59 +999,111 @@ def _page_admin_login() -> str:
 </div>'''
         return _html_page('Admin Login — MUE Learner', body)
 
-    profile_cards = ''
-    for p in admin_profiles:
-        pid = p['id']
-        pname = p.get('name', pid)
-        has_pw = bool(p.get('password_hash'))
-        password_field = f'''
-        <div style="margin-top:8px;">
-          <label style="font-size:12px;color:#6b7280;display:block;">Password</label>
-          <input type="password" id="pw-{pid}" class="form-input" style="width:100%;" placeholder="Enter password" {'required' if has_pw else ''}>
-        </div>''' if has_pw else ''
-        profile_cards += f'''
-<div class="card" style="margin-bottom:12px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <div>
-      <strong style="font-size:16px;">👑 {pname}</strong>
-      <div style="font-size:12px;color:#6b7280;">ID: <code>{pid}</code></div>
-    </div>
-    <button class="btn btn-primary btn-sm" onclick="adminLogin('{pid}')">🔑 Switch to Admin</button>
-  </div>
-  {password_field}
+    logged_in_html = ''
+    if current_admin:
+        logged_in_html = f'''
+<div style="background:#d1fae5;border:1px solid #6ee7b7;border-radius:8px;padding:12px;margin-bottom:16px;text-align:center;font-size:14px;">
+  ✅ Signed in as <strong>{_esc_html(current_admin)}</strong>
+  <br><a href="/" style="color:#6366f1;font-size:13px;">← Back to Dashboard</a>
 </div>'''
 
     body = f'''
 <div style="max-width:480px;margin:40px auto;">
-  <h1>🔑 Admin Access</h1>
-  <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
-    Administrative profiles are hidden from the profile switcher. Use this page to log in to an admin profile.
-    You will need the profile's password if one is set.
+  <h1 style="text-align:center;">🔑 Admin Access</h1>
+  <p style="font-size:13px;color:#6b7280;margin-bottom:16px;text-align:center;">
+    Administrative profiles are hidden from the profile switcher.
+    Sign in with an admin account to access them.
   </p>
-  {profile_cards}
+  {logged_in_html}
+  <div id="loginForm" style="display:{'none' if current_admin else 'block'};">
+    <!-- Step 1: Enter username -->
+    <div id="step1" class="card" style="padding:20px;">
+      <label style="font-size:13px;color:#6b7280;display:block;margin-bottom:6px;">Admin Username</label>
+      <input type="text" id="username" class="form-input" style="width:100%;font-size:16px;" placeholder="e.g. owner_user" autocomplete="off" onkeydown="if(event.key==='Enter')requestCode()">
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="requestCode()" id="requestBtn">📧 Send Confirmation Code</button>
+      <p style="font-size:12px;color:#6b7280;margin-top:8px;text-align:center;">A one-time code will be sent to the admin email.</p>
+      <p class="toast-error" id="step1Error" style="display:none;text-align:center;"></p>
+    </div>
+    <!-- Step 2: Enter confirmation code -->
+    <div id="step2" class="card" style="padding:20px;display:none;">
+      <label style="font-size:13px;color:#6b7280;display:block;margin-bottom:6px;">Confirmation Code</label>
+      <input type="text" id="code" class="form-input" style="width:100%;font-size:24px;text-align:center;letter-spacing:8px;font-weight:700;" placeholder="000000" autocomplete="off" onkeydown="if(event.key==='Enter')verifyCode()">
+      <p style="font-size:12px;color:#6b7280;margin-top:4px;text-align:center;" id="codeSentInfo">A code was sent to the admin email.</p>
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="verifyCode()" id="verifyBtn">🔐 Verify &amp; Sign In</button>
+      <div style="margin-top:8px;text-align:center;">
+        <a onclick="backToStep1()" style="color:#6366f1;font-size:12px;cursor:pointer;text-decoration:underline;">← Use a different username</a>
+      </div>
+      <p class="toast-error" id="step2Error" style="display:none;text-align:center;"></p>
+    </div>
+  </div>
   <div style="margin-top:16px;text-align:center;">
     <a href="/" class="btn btn-outline btn-sm" style="text-decoration:none;">← Back to Home</a>
   </div>
 </div>
 <script>
-function adminLogin(profileId) {{
-  var pw = document.getElementById('pw-' + profileId);
-  var data = {{profile_id: profileId}};
-  if (pw && pw.value) {{ data.password = pw.value; }}
-  fetch('/api/profile/switch', {{
-    method: 'POST',
-    headers: {{'Content-Type': 'application/json'}},
-    body: JSON.stringify(data)
-  }})
-  .then(function(r){{return r.json();}})
-  .then(function(j){{
-    if (j.status === 'ok') {{
+var _pendingUsername = '';
+function showError(id, msg) {{ var el = document.getElementById(id); if(el) {{ el.textContent = msg; el.style.display = 'block'; }} }}
+function hideError(id) {{ var el = document.getElementById(id); if(el) el.style.display = 'none'; }}
+
+async function requestCode() {{
+  var user = document.getElementById('username').value.trim();
+  var btn = document.getElementById('requestBtn');
+  if(!user) {{ showError('step1Error', 'Username is required.'); return; }}
+  hideError('step1Error');
+  btn.disabled = true; btn.textContent = '⏳ Sending…';
+  try {{
+    var resp = await fetch('/api/admin/auth', {{
+      method: 'POST',
+      headers: {{'Content-Type':'application/json'}},
+      body: JSON.stringify({{username: user, action: 'request_code'}})
+    }});
+    var data = await resp.json();
+    if(data.ok) {{
+      _pendingUsername = user;
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      document.getElementById('codeSentInfo').textContent = 'A confirmation code was sent to the registered admin email.';
+      document.getElementById('code').value = '';
+      document.getElementById('code').focus();
+    }} else {{
+      showError('step1Error', data.error || 'Failed to send code.');
+    }}
+  }} catch(e) {{
+    showError('step1Error', 'Connection error: ' + e.message);
+  }}
+  btn.disabled = false; btn.textContent = '📧 Send Confirmation Code';
+}}
+
+async function verifyCode() {{
+  var code = document.getElementById('code').value.trim();
+  var btn = document.getElementById('verifyBtn');
+  if(!code) {{ showError('step2Error', 'Please enter the confirmation code.'); return; }}
+  if(!_pendingUsername) {{ showError('step2Error', 'Session expired. Start again.'); return; }}
+  hideError('step2Error');
+  btn.disabled = true; btn.textContent = '⏳ Verifying…';
+  try {{
+    var resp = await fetch('/api/admin/auth', {{
+      method: 'POST',
+      headers: {{'Content-Type':'application/json'}},
+      body: JSON.stringify({{username: _pendingUsername, code: code, action: 'verify_code'}})
+    }});
+    var data = await resp.json();
+    if(data.ok) {{
       window.location.href = '/';
     }} else {{
-      showToast('❌ ' + (j.message || 'Login failed'), 'error');
+      showError('step2Error', data.error || 'Invalid code.');
     }}
-  }})
-  .catch(function(e){{showToast('❌ '+e,'error');}});
+  }} catch(e) {{
+    showError('step2Error', 'Connection error: ' + e.message);
+  }}
+  btn.disabled = false; btn.textContent = '🔐 Verify &amp; Sign In';
+}}
+
+function backToStep1() {{
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step1').style.display = 'block';
+  _pendingUsername = '';
+  hideError('step2Error');
 }}
 </script>'''
     return _html_page('Admin Login — MUE Learner', body)
@@ -3230,7 +3338,12 @@ def _build_learner_summary_html(summary: dict) -> str:
 
 
 def _get_active_profile_email() -> str:
-    """Get the email address from the active profile, or fall back to env var."""
+    """Get the email address from the active (current session) learner profile.
+
+    Returns the email from the specific learner profile tied to the current
+    session. Returns an empty string if no profile or no email is set, so
+    that any email about reviewer input always goes to the correct learner.
+    """
     try:
         from action.proxy.web_interface import get_profile_by_id as _gpbi3
         pid = _learner.profile_id
@@ -3240,7 +3353,7 @@ def _get_active_profile_email() -> str:
                 return p['email']
     except Exception:
         pass
-    return LEARNER_EMAIL
+    return ''
 
 
 def send_learner_daily_summary():
@@ -3894,7 +4007,15 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
         if path == '/manage':
             return self._send_html(_page_manage_profile())
         if path == '/admin-login':
-            return self._send_html(_page_admin_login())
+            return self._send_html(_page_admin_login(self.headers.get('Cookie', '')))
+        if path == '/api/admin/check':
+            cookie = self.headers.get('Cookie', '')
+            username = _get_admin_from_cookies(cookie)
+            if username:
+                self._send_json(json.dumps({'admin': True, 'username': username}))
+            else:
+                self._send_json(json.dumps({'admin': False, 'username': None}))
+            return
 
         self.send_error(404, 'Not found')
 
@@ -3902,6 +4023,83 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
         self._resolve_learner()
         parsed = urlparse(self.path)
         path = parsed.path.rstrip('/') or '/'
+
+        # ── Admin auth (email confirmation code) ──────────────────
+        if path == '/api/admin/auth':
+            body = self._read_body()
+            if not body:
+                return
+            username = body.get('username', '').strip()
+            action = body.get('action', '').strip()
+            if not username or not action:
+                self._send_json(json.dumps({'ok': False, 'error': 'Username and action required.'}), 400)
+                return
+            if not _is_admin_profile(username):
+                self._send_json(json.dumps({'ok': False, 'error': 'Access denied.'}), 403)
+                print(f'  ⚠️ Admin auth denied: @{username} is not an admin profile')
+                return
+
+            if action == 'request_code':
+                code = ''.join(str(random.randint(0, 9)) for _ in range(6))
+                expires_at = time.time() + ADMIN_CODE_TTL
+                with _admin_codes_lock:
+                    _admin_codes[username] = {'code': code, 'expires_at': expires_at}
+                subject = f'🔐 MUE Admin Login Code — {username}'
+                html_body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+<div style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:24px;color:#fff;text-align:center">
+<h1 style="margin:0;font-size:18px">🔐 Admin Login Code</h1>
+<p style="margin:6px 0 0;opacity:.85;font-size:13px">Username: <strong>{_esc_html(username)}</strong></p>
+</div>
+<div style="padding:24px;text-align:center">
+<p style="font-size:14px;color:#333;margin:0 0 16px">Use this code to sign in to the MUE Learner Dashboard:</p>
+<div style="background:#f8f9fa;border-radius:12px;padding:20px;font-size:36px;font-weight:700;letter-spacing:12px;color:#6c5ce7;font-family:monospace;margin-bottom:16px">{code}</div>
+<p style="font-size:12px;color:#888;margin:0">This code expires in 10 minutes.</p>
+<p style="font-size:11px;color:#aaa;margin:8px 0 0">Sent by MUE Learner Server · {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
+</div>
+</div></body></html>'''
+                ok, err = _send_email(ADMIN_VERIFY_EMAIL, subject, html_body)
+                if ok:
+                    print(f'  📧 Admin login code sent to {ADMIN_VERIFY_EMAIL} for @{username}')
+                    self._send_json(json.dumps({'ok': True, 'message': 'Code sent to admin email.'}))
+                else:
+                    print(f'  ⚠️ Failed to send admin login code: {err}')
+                    self._send_json(json.dumps({'ok': False, 'error': f'Failed to send email: {err}'}), 500)
+                return
+
+            elif action == 'verify_code':
+                code = body.get('code', '').strip()
+                if not code:
+                    self._send_json(json.dumps({'ok': False, 'error': 'Confirmation code required.'}), 400)
+                    return
+                with _admin_codes_lock:
+                    stored = _admin_codes.get(username)
+                    if not stored:
+                        self._send_json(json.dumps({'ok': False, 'error': 'No code requested. Request a new code.'}), 403)
+                        return
+                    if time.time() > stored['expires_at']:
+                        del _admin_codes[username]
+                        self._send_json(json.dumps({'ok': False, 'error': 'Code expired. Request a new code.'}), 403)
+                        return
+                    if stored['code'] != code:
+                        self._send_json(json.dumps({'ok': False, 'error': 'Invalid code.'}), 403)
+                        print(f'  ⚠️ Admin login failed: wrong code for @{username}')
+                        return
+                    del _admin_codes[username]
+                session_id = _create_admin_session(username)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Set-Cookie', f'{ADMIN_SESSION_COOKIE}={session_id}; Path=/; Max-Age={ADMIN_SESSION_TTL}; HttpOnly; SameSite=Lax')
+                body_bytes = json.dumps({'ok': True, 'username': username}).encode('utf-8')
+                self.send_header('Content-Length', str(len(body_bytes)))
+                self.end_headers()
+                self.wfile.write(body_bytes)
+                print(f'  📧 Admin login successful: @{username}')
+                return
+
+            else:
+                self._send_json(json.dumps({'ok': False, 'error': 'Unknown action. Use request_code or verify_code.'}), 400)
+            return
 
         # ── Profile switch ─────────────────────────────────────────
         if path == '/api/profile/switch':
@@ -3912,41 +4110,22 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             profile = _gpbi(pid)
             if profile or pid == 'default':
                 # Admin profile protection:
-                # Switching to an admin profile requires either:
-                #   a) Already logged in as admin, OR
-                #   b) Providing the correct password
+                # Switching to an admin profile requires an active admin email session
+                # (from the /admin-login two-step code flow)
                 current_pid = self._get_profile_id()
                 is_current_admin = _is_admin_session(current_pid)
                 is_target_admin = _is_admin_profile(pid) if pid != 'default' else False
 
                 if is_target_admin and not is_current_admin:
                     # Non-admin session trying to switch to an admin profile
-                    if profile and profile.get('password_hash'):
-                        # Profile has a password — must verify it
-                        if not password:
-                            return self._send_json(json.dumps({
-                                'status': 'error',
-                                'message': 'Admin profile requires a password.'
-                            }))
-                        if not _vp(password, profile['password_hash'], profile['password_salt']):
-                            return self._send_json(json.dumps({
-                                'status': 'error',
-                                'message': 'Incorrect password.'
-                            }))
-                    else:
-                        # Admin profile has no password set — require password field anyway
-                        if not password:
-                            return self._send_json(json.dumps({
-                                'status': 'error',
-                                'message': 'Admin profile requires authentication. Use the Admin Login page.'
-                            }))
-                        # Use password as a simple shared secret for initial admin access
-                        # For now, just require something to be typed (the admin can set a proper password later)
-                        if len(password) < 4:
-                            return self._send_json(json.dumps({
-                                'status': 'error',
-                                'message': 'Admin authentication requires a password of at least 4 characters.'
-                            }))
+                    # Check for admin session cookie as alternative
+                    cookie = self.headers.get('Cookie', '')
+                    admin_username = _get_admin_from_cookies(cookie)
+                    if admin_username != pid:
+                        return self._send_json(json.dumps({
+                            'status': 'error',
+                            'message': 'Admin profile requires email confirmation. Use the Admin Login page.'
+                        }))
                 elif profile and profile.get('password_hash'):
                     # Standard password check for non-admin profiles that have a password
                     if not password:

@@ -165,7 +165,25 @@ _presence_lock = threading.Lock()
 PRESENCE_TTL = 30  # 30s — offline if no heartbeat in 30s
 
 # Profile access control: only these usernames can edit any profile
-ADMIN_USERS = ['jane_doe', 'dylan_bi']
+ADMIN_USERS = ['jane_doe', 'dylan_bi', 'owner_user', 'secure_user']
+
+# ── Admin reviewer access control ──────────────────────────────────────────
+# These reviewer usernames are considered administrative (repo owner).
+# They are hidden from profile lists for non-admin sessions and require
+# password authentication via the admin login page.
+ADMIN_REVIEWER_USERNAMES = {'owner_user', 'secure_user'}
+
+# Admin session tracking (email-confirmation-code based)
+ADMIN_SESSION_COOKIE = 'mue_admin_session'
+ADMIN_SESSION_TTL = 86400  # 24 hours
+_admin_sessions = {}  # {session_id: {username, created_at}}
+_admin_sessions_lock = threading.Lock()
+# Admin email for confirmation codes
+ADMIN_VERIFY_EMAIL = os.environ.get('MUE_ADMIN_VERIFY_EMAIL', 'monteretroion@gmail.com')
+# Admin confirmation codes: {username: {code, expires_at}}
+_admin_codes = {}
+_admin_codes_lock = threading.Lock()
+ADMIN_CODE_TTL = 600  # 10 minutes
 
 # Test Proxy Reviewer — invisible automated testing profile
 TPR_USERNAME = 'tpr_bot'
@@ -218,6 +236,62 @@ def _is_blocked_static(path):
         if pat.endswith('.') and clean.startswith(pat):
             return True
     return False
+
+
+def _hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
+    """Hash a password with PBKDF2-HMAC-SHA256. Returns (hash, salt)."""
+    import hashlib
+    import secrets
+    if salt is None:
+        salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000).hex()
+    return pwd_hash, salt
+
+
+def _verify_password(password: str, stored_hash: str, stored_salt: str) -> bool:
+    """Verify a password against a stored PBKDF2 hash and salt."""
+    return _hash_password(password, stored_salt)[0] == stored_hash
+
+
+def _create_admin_session(username: str) -> str:
+    """Create an admin session and return the session ID."""
+    import secrets
+    session_id = secrets.token_hex(24)
+    with _admin_sessions_lock:
+        _admin_sessions[session_id] = {
+            'username': username,
+            'created_at': time.time(),
+        }
+    return session_id
+
+
+def _get_admin_session(session_id: str) -> str | None:
+    """Get the username for a valid admin session, or None if invalid/expired."""
+    if not session_id:
+        return None
+    with _admin_sessions_lock:
+        session = _admin_sessions.get(session_id)
+        if not session:
+            return None
+        if time.time() - session['created_at'] > ADMIN_SESSION_TTL:
+            del _admin_sessions[session_id]
+            return None
+        return session['username']
+
+
+def _get_admin_from_cookies(cookie_header: str) -> str | None:
+    """Extract admin username from a Cookie header string."""
+    for part in cookie_header.split(';'):
+        part = part.strip()
+        if part.startswith(ADMIN_SESSION_COOKIE + '='):
+            sid = part[len(ADMIN_SESSION_COOKIE) + 1:]
+            return _get_admin_session(sid)
+    return None
+
+
+def _is_admin_username(username: str) -> bool:
+    """Return True if the given username is an administrative reviewer."""
+    return username in ADMIN_REVIEWER_USERNAMES
 
 
 def _esc_html(s):
@@ -1437,6 +1511,247 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         valid = (not SERVER_ACCESS_TOKEN) or (token == SERVER_ACCESS_TOKEN)
         self._send_json(200, {'valid': valid})
 
+    # ── Admin Login ────────────────────────────────────────────────
+
+    def _serve_admin_login_page(self):
+        """GET /admin-login — serve the admin login page with confirmation code flow."""
+        cookie = self.headers.get('Cookie', '')
+        current_admin = _get_admin_from_cookies(cookie)
+        logged_in_html = ''
+        if current_admin:
+            logged_in_html = f'''
+    <div style="background:#d1fae5;border-radius:8px;padding:12px;margin-bottom:16px;text-align:center;">
+      ✅ Signed in as <strong>{_esc_html(current_admin)}</strong>
+      <br><a href="/go" style="color:#6366f1;font-size:13px;">← Back to Dashboard</a>
+    </div>'''
+
+        html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — MUE Review Server</title>
+<style>
+  * {{ box-sizing:border-box;margin:0;padding:0; }}
+  body {{ font-family:system-ui,sans-serif;background:#0f0f1a;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0; }}
+  .card {{ background:#1a1a2e;border-radius:16px;padding:32px;width:420px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.4);border:1px solid rgba(108,92,231,.2); }}
+  h1 {{ color:#e0dfff;font-size:22px;margin-bottom:4px;text-align:center; }}
+  .subtitle {{ color:#6b7280;font-size:13px;margin-bottom:24px;text-align:center; }}
+  label {{ color:#b0b0c0;font-size:13px;display:block;margin-bottom:6px; }}
+  input {{ width:100%;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none;margin-bottom:16px; }}
+  input:focus {{ border-color:#7c73ff; }}
+  button {{ width:100%;padding:12px;background:linear-gradient(135deg,#7c73ff,#a29bfe);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s; }}
+  button:hover {{ transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,115,255,.3); }}
+  button:disabled {{ opacity:.5;cursor:not-allowed;transform:none; }}
+  .error {{ color:#ef4444;font-size:13px;margin-top:12px;display:none;text-align:center; }}
+  .info {{ color:#6b7280;font-size:12px;margin-top:8px;text-align:center; }}
+  .back {{ text-align:center;margin-top:16px; }}
+  .back a {{ color:#6b7280;font-size:13px;text-decoration:none; }}
+  .back a:hover {{ color:#a29bfe; }}
+  .step {{ display:none; }}
+  .step.active {{ display:block; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔐 Admin Login</h1>
+  <p class="subtitle">Sign in with an administrative reviewer account</p>
+  {logged_in_html}
+  <div id="loginForm" style="display:{'none' if current_admin else 'block'};">
+    <!-- Step 1: Enter username -->
+    <div id="step1" class="step{' active' if not current_admin else ''}">
+      <label for="username">Admin Username</label>
+      <input type="text" id="username" placeholder="e.g. owner_user" autocomplete="off" onkeydown="if(event.key==='Enter')requestCode()">
+      <button onclick="requestCode()" id="requestBtn">📧 Send Confirmation Code</button>
+      <div class="info">A one-time code will be sent to the admin email address.</div>
+      <div class="error" id="step1Error"></div>
+    </div>
+    <!-- Step 2: Enter confirmation code -->
+    <div id="step2" class="step">
+      <label for="code">Confirmation Code</label>
+      <input type="text" id="code" placeholder="Enter 6-digit code" autocomplete="off" onkeydown="if(event.key==='Enter')verifyCode()" style="font-size:24px;text-align:center;letter-spacing:8px;font-weight:700;">
+      <div class="info" id="codeSentInfo">A code was sent to the admin email.</div>
+      <button onclick="verifyCode()" id="verifyBtn">🔐 Verify &amp; Sign In</button>
+      <div style="margin-top:8px;text-align:center;">
+        <a onclick="backToStep1()" style="color:#6b7280;font-size:12px;cursor:pointer;text-decoration:underline;">← Use a different username</a>
+      </div>
+      <div class="error" id="step2Error"></div>
+    </div>
+  </div>
+  <div class="back"><a href="/go">← Back to Dashboard</a></div>
+</div>
+<script>
+var _pendingUsername = '';
+function showError(id, msg) {{ var el = document.getElementById(id); if(el) {{ el.textContent = msg; el.style.display = 'block'; }} }}
+function hideError(id) {{ var el = document.getElementById(id); if(el) el.style.display = 'none'; }}
+
+async function requestCode() {{
+  var user = document.getElementById('username').value.trim();
+  var btn = document.getElementById('requestBtn');
+  if(!user) {{ showError('step1Error', 'Username is required.'); return; }}
+  hideError('step1Error');
+  btn.disabled = true; btn.textContent = '⏳ Sending…';
+  try {{
+    var resp = await fetch('/api/admin/auth', {{
+      method: 'POST',
+      headers: {{'Content-Type':'application/json'}},
+      body: JSON.stringify({{username: user, action: 'request_code'}})
+    }});
+    var data = await resp.json();
+    if(data.ok) {{
+      _pendingUsername = user;
+      document.getElementById('step1').classList.remove('active');
+      document.getElementById('step2').classList.add('active');
+      document.getElementById('codeSentInfo').textContent = 'A confirmation code was sent to the registered admin email.';
+      document.getElementById('code').value = '';
+      document.getElementById('code').focus();
+    }} else {{
+      showError('step1Error', data.error || 'Failed to send code.');
+    }}
+  }} catch(e) {{
+    showError('step1Error', 'Connection error: ' + e.message);
+  }}
+  btn.disabled = false; btn.textContent = '📧 Send Confirmation Code';
+}}
+
+async function verifyCode() {{
+  var code = document.getElementById('code').value.trim();
+  var btn = document.getElementById('verifyBtn');
+  if(!code) {{ showError('step2Error', 'Please enter the confirmation code.'); return; }}
+  if(!_pendingUsername) {{ showError('step2Error', 'Session expired. Start again.'); return; }}
+  hideError('step2Error');
+  btn.disabled = true; btn.textContent = '⏳ Verifying…';
+  try {{
+    var resp = await fetch('/api/admin/auth', {{
+      method: 'POST',
+      headers: {{'Content-Type':'application/json'}},
+      body: JSON.stringify({{username: _pendingUsername, code: code, action: 'verify_code'}})
+    }});
+    var data = await resp.json();
+    if(data.ok) {{
+      window.location.href = '/go?admin=1';
+    }} else {{
+      showError('step2Error', data.error || 'Invalid code.');
+    }}
+  }} catch(e) {{
+    showError('step2Error', 'Connection error: ' + e.message);
+  }}
+  btn.disabled = false; btn.textContent = '🔐 Verify &amp; Sign In';
+}}
+
+function backToStep1() {{
+  document.getElementById('step2').classList.remove('active');
+  document.getElementById('step1').classList.add('active');
+  _pendingUsername = '';
+  hideError('step2Error');
+}}
+</script>
+</body>
+</html>'''
+        body = html.encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_admin_auth(self):
+        """POST /api/admin/auth — two-step email confirmation login.
+
+        Step 1: {username, action: 'request_code'}
+          → Sends 6-digit code to admin email, returns {ok: true}
+
+        Step 2: {username, code: '123456', action: 'verify_code'}
+          → Verifies code, sets session cookie, returns {ok: true, username}
+        """
+        body = self._read_body()
+        if not body:
+            return
+        username = body.get('username', '').strip()
+        action = body.get('action', '').strip()
+        if not username or not action:
+            self._send_json(400, {'ok': False, 'error': 'Username and action required.'})
+            return
+        if not _is_admin_username(username):
+            self._send_json(403, {'ok': False, 'error': 'Access denied.'})
+            log('WARNING', f'Admin auth denied: @{username} is not an admin reviewer')
+            return
+
+        if action == 'request_code':
+            # Generate a 6-digit code
+            import random
+            code = ''.join(str(random.randint(0, 9)) for _ in range(6))
+            expires_at = time.time() + ADMIN_CODE_TTL
+            with _admin_codes_lock:
+                _admin_codes[username] = {'code': code, 'expires_at': expires_at}
+            # Send email with code
+            subject = f'🔐 MUE Admin Login Code — {username}'
+            html_body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+<div style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:24px;color:#fff;text-align:center">
+<h1 style="margin:0;font-size:18px">🔐 Admin Login Code</h1>
+<p style="margin:6px 0 0;opacity:.85;font-size:13px">Username: <strong>{_esc_html(username)}</strong></p>
+</div>
+<div style="padding:24px;text-align:center">
+<p style="font-size:14px;color:#333;margin:0 0 16px">Use this code to sign in to the MUE Review Dashboard:</p>
+<div style="background:#f8f9fa;border-radius:12px;padding:20px;font-size:36px;font-weight:700;letter-spacing:12px;color:#6c5ce7;font-family:monospace;margin-bottom:16px">{code}</div>
+<p style="font-size:12px;color:#888;margin:0">This code expires in 10 minutes.</p>
+<p style="font-size:11px;color:#aaa;margin:8px 0 0">Sent by MUE Review Server · {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
+</div>
+</div></body></html>'''
+            ok, err = _send_email(ADMIN_VERIFY_EMAIL, subject, html_body)
+            if ok:
+                log('INFO', f'Admin login code sent to {ADMIN_VERIFY_EMAIL} for @{username}')
+                self._send_json(200, {'ok': True, 'message': 'Code sent to admin email.'})
+            else:
+                log('WARNING', f'Failed to send admin login code: {err}')
+                self._send_json(500, {'ok': False, 'error': f'Failed to send email: {err}'})
+            return
+
+        elif action == 'verify_code':
+            code = body.get('code', '').strip()
+            if not code:
+                self._send_json(400, {'ok': False, 'error': 'Confirmation code required.'})
+                return
+            with _admin_codes_lock:
+                stored = _admin_codes.get(username)
+                if not stored:
+                    self._send_json(403, {'ok': False, 'error': 'No code requested. Request a new code.'})
+                    return
+                if time.time() > stored['expires_at']:
+                    del _admin_codes[username]
+                    self._send_json(403, {'ok': False, 'error': 'Code expired. Request a new code.'})
+                    return
+                if stored['code'] != code:
+                    self._send_json(403, {'ok': False, 'error': 'Invalid code.'})
+                    log('WARNING', f'Admin login failed: wrong code for @{username}')
+                    return
+                # Code verified — clean up and create session
+                del _admin_codes[username]
+            # Create session
+            session_id = _create_admin_session(username)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Set-Cookie', f'{ADMIN_SESSION_COOKIE}={session_id}; Path=/; Max-Age={ADMIN_SESSION_TTL}; HttpOnly; SameSite=Lax')
+            body_bytes = json.dumps({'ok': True, 'username': username}).encode('utf-8')
+            self.send_header('Content-Length', str(len(body_bytes)))
+            self.end_headers()
+            self.wfile.write(body_bytes)
+            log('INFO', f'Admin login successful: @{username}')
+            return
+
+        else:
+            self._send_json(400, {'ok': False, 'error': 'Unknown action. Use request_code or verify_code.'})
+
+    def _handle_admin_check(self):
+        """GET /api/admin/check — return current admin session status."""
+        cookie = self.headers.get('Cookie', '')
+        username = _get_admin_from_cookies(cookie)
+        if username:
+            self._send_json(200, {'admin': True, 'username': username})
+        else:
+            self._send_json(200, {'admin': False, 'username': None})
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
@@ -1454,8 +1769,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(body)
                 return
 
-        # Token check — skip for token-check endpoint, /go redirect, data.json, and CORS preflight
-        if path not in ('/api/check-token', '/go', '/data.json') and not self._check_token(qs):
+        # Token check — skip for token-check endpoint, /go redirect, data.json, admin-login, and CORS preflight
+        if path not in ('/api/check-token', '/go', '/data.json', '/admin-login') and not self._check_token(qs):
             return
 
         if path == '/go':
@@ -1470,6 +1785,9 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header('Location', '/go')
             self.end_headers()
+            return
+        elif path == '/admin-login':
+            self._serve_admin_login_page()
             return
         elif path == '/api/reviews':
             self._handle_get_reviews()
@@ -1489,6 +1807,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_get_file()
         elif path == '/api/check-token':
             self._handle_check_token(qs)
+        elif path == '/api/admin/check':
+            self._handle_admin_check()
         else:
             # Block sensitive files from being served statically
             if _is_blocked_static(path):
@@ -1517,9 +1837,10 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self.wfile.write(body)
             return
 
-        # Token check
-        if not self._check_token(qs):
-            return
+        # Token check — skip for admin auth endpoint
+        if parsed.path not in ('/api/admin/auth', '/admin-login'):
+            if not self._check_token(qs):
+                return
 
         if parsed.path == '/api/reviews':
             self._handle_add_review()
@@ -1537,6 +1858,8 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._handle_log_activity()
         elif parsed.path == '/api/daily-summary':
             self._handle_daily_summary()
+        elif parsed.path == '/api/admin/auth':
+            self._handle_admin_auth()
         elif parsed.path == '/api/tpl/generate':
             self._handle_tpl_generate()
         elif parsed.path == '/api/tpl/cleanup':
@@ -1596,9 +1919,16 @@ class ReviewHandler(SimpleHTTPRequestHandler):
 
     def _handle_get_profiles(self, qs=None):
         """GET /api/profiles — return all reviewer profiles.
+        Admin profiles are hidden unless the request has a valid admin session.
         Test Proxy Learner (TPL) is hidden unless ?include_tpr=1."""
         profiles = load_profiles()
         include_tpr = qs and any(v in ('1', 'true') for v in qs.get('include_tpr', []))
+        # Check for admin session — admin users see all profiles
+        cookie = self.headers.get('Cookie', '')
+        is_admin_req = _get_admin_from_cookies(cookie) is not None
+        if not is_admin_req:
+            # Filter out admin reviewer profiles for non-admin sessions
+            profiles = {k: v for k, v in profiles.items() if not _is_admin_username(k)}
         if not include_tpr:
             profiles = {k: v for k, v in profiles.items() if v.get('username') != TPR_USERNAME}
         self._send_json(200, profiles)
@@ -1617,6 +1947,14 @@ class ReviewHandler(SimpleHTTPRequestHandler):
         requester = body.get('requester', '').strip()
         if not username:
             self._send_json(400, {'error': 'username required'})
+            return
+        # Email is mandatory
+        email = body.get('email', '').strip()
+        if not email:
+            self._send_json(400, {'error': 'email is required'})
+            return
+        if '@' not in email or '.' not in email.split('@')[-1]:
+            self._send_json(400, {'error': 'invalid email address format'})
             return
         # Access control: only owner or admin can save
         profiles = load_profiles()
@@ -1646,16 +1984,33 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             log('WARNING', f'Profile save denied: @{requester} tried to edit @{username}')
             return
 
-        profiles[username] = {
+        # Build profile dict (preserve existing fields)
+        profile_dict = profiles.get(username, {})
+        profile_dict.update({
             'username': username,
             'displayName': display_name or username,
-            'email': body.get('email', '').strip(),
+            'email': email,
             'dailySummary': bool(body.get('dailySummary', False)),
             'timezone': body.get('timezone', '').strip(),
             'role': body.get('role', '').strip() or '',
-            'createdAt': body.get('createdAt', datetime.now().isoformat()),
+            'createdAt': body.get('createdAt', profile_dict.get('createdAt', datetime.now().isoformat())),
             'updatedAt': datetime.now().isoformat()
-        }
+        })
+        # Handle password setting for admin profiles
+        new_password = body.get('password', '').strip()
+        if new_password and (is_admin or _is_admin_username(username)):
+            if len(new_password) < 4:
+                self._send_json(400, {'error': 'Password must be at least 4 characters.'})
+                return
+            pwd_hash, pwd_salt = _hash_password(new_password)
+            profile_dict['password_hash'] = pwd_hash
+            profile_dict['password_salt'] = pwd_salt
+        # Preserve existing password hash/salt if not updating
+        elif 'password_hash' in profile_dict:
+            profile_dict['password_hash'] = profile_dict.get('password_hash', '')
+            profile_dict['password_salt'] = profile_dict.get('password_salt', '')
+
+        profiles[username] = profile_dict
         save_profiles(profiles)
         action = 'profile_created' if is_new else 'profile_updated'
         log_activity(username, action,
@@ -1737,11 +2092,17 @@ class ReviewHandler(SimpleHTTPRequestHandler):
     # ── Activity Log Handlers ────────────────────────────────────────
 
     def _handle_get_activity(self, qs):
-        """GET /api/activity — return activity log, optionally filtered by ?username=xxx."""
+        """GET /api/activity — return activity log, optionally filtered by ?username=xxx.
+        Admin reviewer activities are hidden from non-admin sessions."""
         activities = load_activity()
         username = (qs.get('username', [''])[0]).strip()
         if username:
             activities = [a for a in activities if a.get('username') == username]
+        else:
+            # Filter out admin reviewer activities for non-admin sessions
+            cookie = self.headers.get('Cookie', '')
+            if not _get_admin_from_cookies(cookie):
+                activities = [a for a in activities if not _is_admin_username(a.get('username', ''))]
         # Return newest first, cap at 100
         activities.reverse()
         self._send_json(200, activities[:100])
@@ -1917,8 +2278,12 @@ class ReviewHandler(SimpleHTTPRequestHandler):
             self._send_json(400, {'error': f'Unknown action: {action}'})
 
     def _handle_get_presence(self):
-        """GET /api/presence — return all reviewers with online/offline status."""
+        """GET /api/presence — return all reviewers with online/offline status.
+        Admin reviewer presence is hidden from non-admin sessions."""
         reviewers = _get_all_presence()
+        cookie = self.headers.get('Cookie', '')
+        if not _get_admin_from_cookies(cookie):
+            reviewers = [r for r in reviewers if not _is_admin_username(r['name'])]
         self._send_json(200, reviewers)
 
     def _handle_heartbeat(self):

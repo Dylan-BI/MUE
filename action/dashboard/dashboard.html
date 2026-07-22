@@ -1018,8 +1018,11 @@
 
 <div class="sidebar">
   <div class="sidebar-header">
-    <h1>📊 MUE Review</h1>
+    <h1>📊 MUE Review <span id="adminBadge" style="display:none;font-size:11px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:2px 6px;border-radius:4px;font-weight:600;vertical-align:middle;">👑 Admin</span></h1>
     <span>Third-Party Review Dashboard — track changes, review progress, sync to review/</span>
+    <div id="adminLoginBtn" style="margin-top:8px;display:none;">
+      <a href="/admin-login" style="font-size:11px;color:rgba(255,255,255,.5);text-decoration:none;display:flex;align-items:center;gap:4px;">🔑 Admin Login</a>
+    </div>
   </div>
   <div class="sidebar-level" id="sidebarLevel">
     <div class="sidebar-level-btn active" data-level="1" onclick="setLevel(1)" style="border-color:#4CAF50;background:#4CAF50"><span class="lvl-emoji">🌱</span><span class="lvl-num">L1 · Foundation</span></div>
@@ -1125,8 +1128,9 @@
         </div>
         <div class="pm-admin-signin" id="pmAdminSignin">
           <div class="pm-admin-divider"><span>or</span></div>
-          <button class="pm-admin-signin-btn" onclick="_adminBypass()">🔐 Sign in as Dashboard Admin</button>
-          <div class="pm-admin-signin-hint">Local-only profile — not visible to other reviewers. Used to monitor and verify dashboard operation.</div>
+          <button class="pm-admin-signin-btn" onclick="window.location.href='/admin-login'">🔐 Sign in as Dashboard Admin</button>
+          <div class="pm-admin-signin-hint">Password-protected admin login. Use the local bypass below for testing only.</div>
+          <div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,.2);text-align:center;cursor:pointer" onclick="_adminBypass()">Local-only bypass (no password)</div>
         </div>
       </div>
       <!-- Sign Up Tab: create new profile -->
@@ -1142,10 +1146,10 @@
           <div class="pm-hint">Visible to all reviewers in the sidebar and presence panel</div>
         </div>
         <div class="pm-field" id="pmEmailGroup">
-          <label>Email <span style="color:rgba(255,255,255,.35)">(optional)</span></label>
+          <label>Email <span>*</span></label>
           <div id="pmEmailStatus" class="pm-email-status" style="display:none"></div>
           <input id="pm_email" type="email" placeholder="e.g. jane.doe@gmail.com" autocomplete="email" />
-          <div class="pm-hint" id="pmEmailHint">Receive daily summaries of review activity</div>
+          <div class="pm-hint" id="pmEmailHint">Required — used for login codes and daily summaries</div>
         </div>
         <label class="pm-toggle" for="pm_dailySummary">
           <input type="checkbox" id="pm_dailySummary" />
@@ -1945,6 +1949,8 @@ function renderPresencePanel() {
 
 // Start presence tracking (called on page load)
 async function startPresenceTracking() {
+  // Check server-side admin session (cookie set by /admin-login)
+  await checkServerAdminSession();
   renderSidebarProfile();
   // Fetch server profiles for picker
   await serverFetchProfiles();
@@ -3668,14 +3674,18 @@ function selectRating(aid, idx) {
 
 /* ── Reviewer Profile System ── */
 const PROFILE_KEY = 'mue_reviewer_profile';
-const ADMIN_USERS = ['jane_doe', 'dylan_bi', 'admin'];  // exempt from mandatory profile
+const ADMIN_USERS = ['jane_doe', 'dylan_bi', 'owner_user', 'secure_user', 'admin'];  // exempt from mandatory profile
+const ADMIN_REVIEWER_USERNAMES = new Set(['owner_user', 'secure_user']);  // hidden from non-admin sessions
 const ADMIN_BYPASS_KEY = 'mue_admin_bypass';
 const ADMIN_LOCAL_PROFILE_KEY = 'mue_admin_local_profile';
+const ADMIN_SESSION_COOKIE = 'mue_admin_session';
 const TPR_USERNAME = 'tpr_bot';    // Test Proxy Reviewer — invisible automated tester
 const TPL_USERNAME = 'tpl_bot';    // Test Proxy Learner — generates dummy learner data for data-flow testing
 const HIDDEN_USERNAMES = new Set([TPR_USERNAME, TPL_USERNAME, 'test_reviewer']); // profiles hidden from dashboard UI
 function isHiddenUsername(u) { return HIDDEN_USERNAMES.has(u); }
 let SERVER_PROFILES = {};  // {username: {username, displayName, createdAt, updatedAt}}
+let _serverAdminChecked = false;
+let _serverAdminUsername = null;
 
 function isAdminUser() {
   const p = getProfile();
@@ -3683,7 +3693,27 @@ function isAdminUser() {
   // Also check for local-only admin profile (not synced to server)
   try { const local = localStorage.getItem(ADMIN_LOCAL_PROFILE_KEY); if (local) { const lp = JSON.parse(local); if (lp && ADMIN_USERS.includes(lp.username)) return true; } } catch {}
   try { const b = localStorage.getItem(ADMIN_BYPASS_KEY); if (b && ADMIN_USERS.includes(b)) return true; } catch {}
+  // Check for server-side admin session cookie (set by /admin-login)
+  if (_serverAdminUsername) return true;
   return false;
+}
+
+/** Check server-side admin session status. Call on load + periodically. */
+async function checkServerAdminSession() {
+  if (!REVIEW_SERVER) return;
+  try {
+    const resp = await _serverFetch(REVIEW_SERVER + '/api/admin/check', {signal: AbortSignal.timeout(3000)});
+    if (resp.ok) {
+      const data = await resp.json();
+      _serverAdminChecked = true;
+      if (data.admin && data.username) {
+        _serverAdminUsername = data.username;
+        renderSidebarProfile();
+      } else {
+        _serverAdminUsername = null;
+      }
+    }
+  } catch(e) {}
 }
 
 function getAdminProfile() {
@@ -4176,6 +4206,11 @@ async function serverSaveProfile(profile) {
       body: JSON.stringify(body)
     });
     if (resp.ok) { await serverFetchProfiles(); return true; }
+    if (resp.status === 400) {
+      const err = await resp.json().catch(() => ({}));
+      showToast(err.error || 'Invalid profile data', 'warning', 'Validation Error');
+      return false;
+    }
     if (resp.status === 403) { showToast('Access denied — only the profile owner or an admin can edit this profile', 'warning', 'Restricted'); return false; }
     if (resp.status === 409) {
       const err = await resp.json().catch(() => ({}));
@@ -4552,8 +4587,10 @@ async function saveProfile() {
   // During edit: empty field = keep existing; non-empty = update; field hidden = keep existing
   const existingProfile = getProfile();
   const email = emailFieldVisible ? (emailValue || (existingProfile ? existingProfile.email || '' : '')) : (existingProfile ? existingProfile.email || '' : '');
+  // Email is mandatory for all profiles
+  if (!email) { if (emailInput) { emailInput.style.borderColor = 'var(--danger-hue)'; emailInput.focus(); } showToast('Email address is required', 'warning', 'Required'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { if (emailInput) emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
   const dailySummary = dsInput ? dsInput.checked : false;
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { if (emailInput) emailInput.style.borderColor = 'var(--danger-hue)'; showToast('Please enter a valid email address', 'warning', 'Invalid Email'); return; }
   if (dailySummary && !email) { showToast('Enter an email address to receive daily summaries', 'warning', 'Email Required'); if (emailInput && emailGroup) { emailGroup.style.display = ''; emailInput.focus(); } return; }
   // Client-side uniqueness: check if username is already claimed by another reviewer
   const isEditing = existingProfile && existingProfile.username === username;
@@ -4617,13 +4654,18 @@ function renderSidebarProfile() {
   const container = document.getElementById('sidebarProfile');
   if (!container) return;
   const p = getProfile();
+  // Always update header admin badge/login button regardless of profile state
+  const admin = isAdminUser();
+  const adminBadgeEl = document.getElementById('adminBadge');
+  const adminLoginEl = document.getElementById('adminLoginBtn');
+  if (adminBadgeEl) adminBadgeEl.style.display = admin ? 'inline' : 'none';
+  if (adminLoginEl) adminLoginEl.style.display = admin ? 'none' : 'block';
   if (!p) {
     container.innerHTML = '<div class="sidebar-profile-empty"><button onclick="openProfileModal()">👤 Set Up Reviewer Profile</button></div>';
     return;
   }
   const mix = _reviewerColorMix(p.username || p.displayName);
   const initials = (p.displayName || '?').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const admin = isAdminUser();
   const editBtn = admin ? '<div class="sp-edit">✏️</div>' : '';
   const badge = admin ? '<span style="font-size:9px;background:linear-gradient(135deg,#6c5ce7,#a29bfe);color:#fff;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:600">Admin</span>' : '';
   const tprBtn = admin ? '<button class="theme-btn" onclick="activateTPR()" title="Run automated dashboard tests" style="margin-top:6px;width:100%;font-size:11px;justify-content:center">🧪 Run TPR Tests</button>' : '';
