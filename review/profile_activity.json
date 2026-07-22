@@ -141,5 +141,11 @@
     "metadata": {
       "requester": "test_reviewer"
     }
+  },
+  {
+    "username": "owner_user",
+    "action": "session_started",
+    "detail": "Signed in as Owner User",
+    "timestamp": "2026-07-22T04:32:27.569256"
   }
 ]

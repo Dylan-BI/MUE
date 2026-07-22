@@ -4101,6 +4101,19 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
                 self._send_json(json.dumps({'ok': False, 'error': 'Unknown action. Use request_code or verify_code.'}), 400)
             return
 
+        # ── Profile logout ─────────────────────────────────────────
+        if path == '/api/profile/logout':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            # Clear the profile cookie (Max-Age=0 → immediate expiry)
+            self.send_header('Set-Cookie', 'mue_profile=; Path=/; Max-Age=0')
+            # Also clear the admin session cookie if present
+            self.send_header('Set-Cookie', f'{ADMIN_SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'ok', 'message': 'Logged out'}).encode('utf-8'))
+            print('  🚪 Profile logged out')
+            return
+
         # ── Profile switch ─────────────────────────────────────────
         if path == '/api/profile/switch':
             body = self._read_body()
