@@ -181,6 +181,14 @@
         "/^python -m py_compile \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\proxy\\\\server\\.py\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^Test-Path \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\proxy\\\\server\\.py\"; Get-ChildItem \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\proxy\\\\\" \\| Select-Object Name$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -m py_compile \"vscode-vfs://github/Dylan-BI/MUE/action/proxy/server\\.py\" 2>&1; \\$LASTEXITCODE$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
