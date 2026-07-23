@@ -141,6 +141,14 @@
         "/^python action/proxy/_diag\\.py$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^python action/proxy/server\\.py --test-email monteretroion@gmail\\.com > action/proxy/_test_output\\.txt 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"from pathlib import Path; p = Path\\('action/proxy/server\\.py'\\)\\.resolve\\(\\); print\\(p\\); print\\('Exists:', p\\.exists\\(\\)\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
