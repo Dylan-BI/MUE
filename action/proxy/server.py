@@ -370,11 +370,11 @@ function switchProfile(profileId) {{
   .catch(function(e){{showToast('❌ '+e,'error');}});
 }}
 
-function createProfile(name, startDate, password) {{
+function createProfile(name, startDate, password, email) {{
   fetch('/api/profiles/create', {{
     method: 'POST',
     headers: {{'Content-Type': 'application/json'}},
-    body: JSON.stringify({{name: name, start_date: startDate || null, password: password}})
+    body: JSON.stringify({{name: name, start_date: startDate || null, password: password, email: email || null}})
   }})
   .then(function(r){{return r.json()}})
   .then(function(r){{

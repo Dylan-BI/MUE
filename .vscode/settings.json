@@ -23,6 +23,80 @@
         "/^python -c \"import json; d=json\\.load\\(open\\(r'action\\\\dashboard\\\\data\\.json'\\)\\); print\\(json\\.dumps\\(d\\['summary'\\], indent=2\\)\\); print\\('---'\\); print\\(json\\.dumps\\(d\\['categories'\\], indent=2\\)\\)\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^python --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c echo \"test output\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -Command \"Write-Host 'test output'; Get-Date\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Write-Host 'test output'; Get-Date\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -NoProfile -Command \"Write-Host 'test output'; Get-Date\" 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"echo test output && date /t\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "whoami": true,
+        "/^code --list-workspaces$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^code --list-extensions$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Test-Path \"\\$env:APPDATA\\\\Code\\\\User\\\\settings\\.json\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Test-Path \"\\$env:APPDATA\\\\Code\\\\User\\\\settings\\.json\"; echo \\$\\?$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "C:\\Users\\monte\\.vscode\\litellm-proxy\\start-proxy.ps1": true,
+        "/^& \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\litellm-proxy\\\\\\.venv\\\\Scripts\\\\litellm\\.exe\" --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^& \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\litellm-proxy\\\\\\.venv\\\\Scripts\\\\python\\.exe\" -c \"import litellm; print\\(litellm\\.__version__\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^netstat -ano \\| findstr :8000$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell\\.exe -ExecutionPolicy Bypass -Command \"Set-Location 'C:\\\\Users\\\\monte\\\\\\.vscode\\\\litellm-proxy'; \\.\\\\\\.venv\\\\Scripts\\\\litellm\\.exe --config litellm_config\\.yaml --port 8000\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -ExecutionPolicy Bypass -File C:\\\\Users\\\\monte\\\\\\.vscode\\\\litellm-proxy\\\\start-proxy\\.ps1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^C:; cd C:\\\\Users\\\\monte\\\\\\.vscode\\\\litellm-proxy; \\.\\\\\\.venv\\\\Scripts\\\\python\\.exe -c \"import litellm; print\\(litellm\\.__version__\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^C:; cd C:\\\\Users\\\\monte\\\\\\.vscode\\\\litellm-proxy\\\\\\.venv\\\\Scripts; \\.\\\\python\\.exe --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Get-Process -Name \"litellm\" -ErrorAction SilentlyContinue \\| Format-Table Id, ProcessName, StartTime$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
