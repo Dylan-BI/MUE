@@ -6,6 +6,9 @@ This module centralizes all static data used across the proxy implementation,
 build pipeline, and dashboard to ensure consistency and reduce duplication.
 """
 
+# ── Admin / owner profile IDs (excluded from learner counts) ──────────────
+ADMIN_PROFILE_IDS = {'owner_user', 'secure_user'}
+
 # ── Level framework ────────────────────────────────────────────────────────
 LEVEL_DAYS = 28  # working days per curriculum level
 

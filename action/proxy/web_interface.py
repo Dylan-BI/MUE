@@ -41,6 +41,7 @@ from action.proxy.curriculum import (
 )
 from action.proxy.templates.daily_note import build_note_content, get_scorecard, get_codex_gates
 from action.proxy.sync import sync_to_archive, sync_evidence_to_archive
+from action.proxy.constants import ADMIN_PROFILE_IDS
 
 
 # ── Directory paths ──────────────────────────────────────────────────────────
@@ -143,11 +144,14 @@ def create_profile(name: str, start_date: str | None = None, password: str | Non
     """
     profiles = load_profiles()
 
-    # One-profile-per-user enforcement
-    if len(profiles) > 0:
-        existing_names = ', '.join(p.get('name', '?') for p in profiles)
+    # Filter out admin/owner profiles — they are not learner profiles
+    learner_profiles = [p for p in profiles if p.get('id') not in ADMIN_PROFILE_IDS]
+
+    # One-profile-per-user enforcement (excludes admin profiles)
+    if len(learner_profiles) > 0:
+        existing_names = ', '.join(p.get('name', '?') for p in learner_profiles)
         raise ValueError(
-            f'A profile already exists ({existing_names}). '
+            f'A learner profile already exists ({existing_names}). '
             'Delete it first before creating a new one.'
         )
 

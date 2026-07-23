@@ -61,7 +61,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from action.proxy.web_interface import WebLearner
 from action.proxy.curriculum import CURRICULUM, get_classification, get_primary_track, get_level_for_day
-from action.proxy.constants import PROOF_TASKS, PROOF_TASK_CRITERIA
+from action.proxy.constants import PROOF_TASKS, PROOF_TASK_CRITERIA, ADMIN_PROFILE_IDS
 from action.proxy.feedback import (
     get_feedback_for_learner, get_unread_feedback, mark_seen, mark_all_seen,
     get_qa_thread, add_qa_entry,
@@ -111,7 +111,7 @@ _learner = WebLearner(action_dir=ACTION_DIR, auto_build=True)  # fallback (legac
 # ── Admin profile access control ────────────────────────────────────────────
 # Only these profile IDs are considered administrative (repo owner).
 # They are hidden from the profile switcher for non-admin sessions.
-ADMIN_PROFILE_IDS = {'owner_user', 'secure_user'}
+# ADMIN_PROFILE_IDS is defined in action/proxy/constants.py
 
 
 def _is_admin_session(profile_id: str | None) -> bool:
