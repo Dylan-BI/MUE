@@ -126,6 +126,16 @@ def _is_admin_profile(profile_id: str) -> bool:
     return profile_id in ADMIN_PROFILE_IDS
 
 
+def _has_learner_profiles() -> bool:
+    """Return True if there are any non-admin (learner) profiles."""
+    return any(p.get('id') not in ADMIN_PROFILE_IDS for p in _profiles_list)
+
+
+def _learner_profiles_count() -> int:
+    """Return the count of non-admin (learner) profiles."""
+    return sum(1 for p in _profiles_list if p.get('id') not in ADMIN_PROFILE_IDS)
+
+
 # ── Admin email confirmation code auth ──────────────────────────────────────
 ADMIN_SESSION_COOKIE = 'mue_admin_session'
 ADMIN_SESSION_TTL = 86400  # 24 hours
@@ -296,7 +306,7 @@ def _html_page(title: str, body: str, active_nav: str = '') -> str:
     # Filter profiles: non-admin sessions only see non-admin profiles
     _visible_profiles = [p for p in _profiles_list if _session_is_admin or not _is_admin_profile(p['id'])]
 
-    if not _profiles_list:
+    if not _has_learner_profiles():
         _profile_html = '<a href="/" class="btn btn-sm" style="text-decoration:none;">➕ Create Profile</a>'
     elif len(_visible_profiles) <= 1:
         # Only one profile visible — show name as badge, no switch dropdown
@@ -3973,12 +3983,12 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
 
         # ── Page routes ───────────────────────────────────────────
         if path == '/' or path == '':
-            if not _profiles_list:
+            if not _has_learner_profiles():
                 return self._send_html(_page_welcome())
             return self._send_html(_page_dashboard())
 
-        # If no profiles exist, redirect all non-API/non-static pages to /
-        if not _profiles_list and not path.startswith('/api/') and not path.startswith('/static/'):
+        # If no learner profiles exist, redirect all non-API/non-static pages to /
+        if not _has_learner_profiles() and not path.startswith('/api/') and not path.startswith('/static/'):
             return self._send_redirect('/')
 
         if path == '/curriculum':
