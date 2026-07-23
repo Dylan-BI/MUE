@@ -149,6 +149,38 @@
         "/^python -c \"from pathlib import Path; p = Path\\('action/proxy/server\\.py'\\)\\.resolve\\(\\); print\\(p\\); print\\('Exists:', p\\.exists\\(\\)\\)\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^\\(Get-Item \"\\$PSScriptRoot\\\\\\.\\.\\\\\\.\\.\" -ErrorAction SilentlyContinue\\)\\.FullName; \\$pwd$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Test-Path \"C:\\\\opencode-copilot-chat\\\\MUE\\\\action\\\\proxy\\\\server\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cmd /c \"dir /s /b C:\\\\\\*server\\.py 2>nul \\| findstr /i \"mue\"\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^git rev-parse --show-toplevel$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Set-Content -Path \"C:\\\\opencode-copilot-chat\\\\MUE\\\\action\\\\proxy\\\\_terminal_test\\.txt\" -Value \"hello from terminal\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\proxy\\\\server\\.py\" --test-email monteretroion@gmail\\.com$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"import sys; sys\\.path\\.insert\\(0, r'C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\proxy'\\); import server; ok, err = server\\._send_email\\('monteretroion@gmail\\.com', 'Test', '<h1>Test</h1>'\\); print\\(f'ok=\\{ok\\}, err=\\{err\\}'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -m py_compile \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\proxy\\\\server\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
