@@ -722,19 +722,19 @@ def _page_guide() -> str:
 
 
 def _page_welcome() -> str:
-    """Render the welcome / create-profile page (shown when no profiles exist)."""
+    """Render the create-profile page (shown when no learner profiles exist)."""
     today_str = date.today().isoformat()
     body = f'''
 <div class="welcome-page">
   <div style="max-width:540px;margin:60px auto;text-align:center;">
     <div style="font-size:64px;margin-bottom:16px;">👋</div>
-    <h1>Welcome to the MUE Learning Program</h1>
+    <h1>Create Your Profile</h1>
     <p style="color:#6b7280;font-size:16px;line-height:1.6;">
       This is your personal workspace for the 28-day Business Intelligence
-      curriculum. Before you begin, let's set up your learner profile.
+      curriculum. Before you begin, set up your learner profile below.
     </p>
     <div class="card" style="margin-top:32px;text-align:left;">
-      <h2 style="margin-top:0;">Create Your Profile</h2>
+      <h2 style="margin-top:0;">Profile Details</h2>
       <div class="form-group">
         <label for="nameInput">Your Name <span style="color:#ef4444;">*</span></label>
         <input type="text" id="nameInput" class="form-input"
@@ -776,7 +776,7 @@ def _page_welcome() -> str:
       <div id="createError" style="color:#ef4444;margin-top:12px;display:none;"></div>
     </div>
     <p style="font-size:13px;color:#9ca3af;margin-top:24px;">
-      One profile per user. You can delete your profile later to start fresh.
+      One learner profile per user. You can manage or delete your profile later.
     </p>
   </div>
 </div>
@@ -811,7 +811,7 @@ function createProfile(name, startDate, password, email) {{
   .catch(function(e){{showToast('❌ '+e,'error');}});
 }}
 </script>'''
-    return _html_page('Welcome — MUE Learner', body)
+    return _html_page('Create Profile — MUE Learner', body)
 
 
 def _page_manage_profile() -> str:
