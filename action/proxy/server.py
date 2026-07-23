@@ -7,7 +7,7 @@ Serves the learner's interactive web UI using only Python stdlib.
 Pattern matched to action/dashboard/review_server.py for consistency.
 
 Usage:
-    python action/proxy/server.py [--port 5000] [--host 127.0.0.1]
+    python action/proxy/server.py [--port 5000] [--host 127.0.0.1] [--tunnel]
 
 Pages:
     GET  /                     → Dashboard / home (learner status, today's task)
@@ -4376,6 +4376,179 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Tunnel Support
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _find_tunnel_tool():
+    """Detect available tunnel tool. Returns (tool_name, cmd_list) or None."""
+    import shutil
+    # Try cloudflared first (free, no account needed)
+    cf = shutil.which('cloudflared')
+    if cf:
+        return ('cloudflared', cf)
+    # Try ngrok
+    ng = shutil.which('ngrok')
+    if ng:
+        return ('ngrok', ng)
+    return None
+
+
+def _start_tunnel(port, tool_path, tool_name, max_retries=10, retry_delay=5):
+    """Start a tunnel in a background thread, print public URL when ready.
+
+    Auto-restarts on failure with exponential backoff.
+    Sends email notifications for each new URL and restart.
+
+    Args:
+        port: Local port to tunnel
+        tool_path: Path to tunnel executable
+        tool_name: 'cloudflared' or 'ngrok'
+        max_retries: Maximum restart attempts (0 = infinite)
+        retry_delay: Initial delay between retries (seconds, doubles each retry)
+    """
+    TUNNEL_NOTIFY_EMAIL = os.environ.get('MUE_TUNNEL_NOTIFY_EMAIL', 'monteretroion@gmail.com')
+    attempt = 0
+
+    while True:
+        attempt += 1
+        if max_retries > 0 and attempt > max_retries:
+            print(f'  ❌ Tunnel max retries ({max_retries}) exhausted — giving up')
+            _tunnel_notify_down(TUNNEL_NOTIFY_EMAIL, tool_name, reason='max retries exhausted')
+            break
+
+        if attempt > 1:
+            delay = min(retry_delay * (2 ** (attempt - 2)), 120)  # Exponential backoff, max 2 min
+            print(f'  🔄 Restarting tunnel in {delay}s (attempt {attempt}/{max_retries or "∞"})...')
+            time.sleep(delay)
+
+        if tool_name == 'cloudflared':
+            cmd = [tool_path, 'tunnel', '--url', f'http://localhost:{port}', '--no-autoupdate']
+        elif tool_name == 'ngrok':
+            cmd = [tool_path, 'http', str(port)]
+        else:
+            print(f'  ❌ Unknown tunnel tool: {tool_name}')
+            return
+
+        print(f'  🌐 Starting {tool_name} tunnel (attempt {attempt})...')
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            url_found = False
+            stdout = proc.stdout
+            if not stdout:
+                print(f'  ❌ {tool_name} failed to start')
+                continue
+
+            for line in stdout:
+                line = line.strip()
+                match = re.search(r'(https://[a-zA-Z0-9.-]+\.(?:trycloudflare\.com|ngrok(?:-free)?\.app)[^\s]*)', line)
+                if match and not url_found:
+                    public_url = match.group(1)
+                    url_found = True
+                    print(f'''
+╔══════════════════════════════════════════════════════════╗
+║        🌐 TUNNEL ACTIVE                                  ║
+║                                                          ║
+║  Public URL: {public_url:<42s}║
+║                                                          ║
+║  Share this URL with anyone on the internet.             ║
+║  The tunnel stays open while the server is running.      ║
+╚══════════════════════════════════════════════════════════╝''')
+                    _tunnel_notify_url(TUNNEL_NOTIFY_EMAIL, public_url, tool_name, attempt)
+
+            if not url_found:
+                print(f'  ⚠️ {tool_name} started but URL not captured. Check the terminal.')
+
+            # Monitor tunnel process — wait for it to exit
+            proc.wait()
+            exit_code = proc.returncode
+
+            # Tunnel exited — log and prepare to restart
+            if _scheduler_running:
+                if exit_code == 0:
+                    print(f'  ⚠️ {tool_name} tunnel exited cleanly (code 0)')
+                else:
+                    print(f'  ⚠️ {tool_name} tunnel disconnected (exit code {exit_code})')
+
+                if max_retries > 0 and attempt >= max_retries:
+                    _tunnel_notify_down(TUNNEL_NOTIFY_EMAIL, tool_name,
+                                        reason=f'exit code {exit_code}, max retries reached')
+                else:
+                    print('  🔄 Tunnel will auto-restart in a few seconds...')
+
+        except FileNotFoundError:
+            print(f'  ❌ {tool_name} not found — install it from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
+            _tunnel_notify_down(TUNNEL_NOTIFY_EMAIL, tool_name, reason=f'{tool_name} not found')
+            break
+        except Exception as e:
+            print(f'  ❌ Tunnel error: {e}')
+            if _scheduler_running and (max_retries <= 0 or attempt < max_retries):
+                print('  🔄 Will retry tunnel in a few seconds...')
+                continue
+            else:
+                _tunnel_notify_down(TUNNEL_NOTIFY_EMAIL, tool_name, reason=str(e))
+                break
+
+
+def _tunnel_notify_url(to_addr, public_url, tool_name, attempt=1):
+    """Send email when a new tunnel URL is available."""
+    attempt_info = f' · Attempt {attempt}' if attempt > 1 else ''
+    subject = f'🌐 MUE Learner Tunnel Active — {tool_name}{attempt_info}'
+    body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+    <div style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:24px;color:#fff">
+      <h1 style="margin:0;font-size:18px">🌐 MUE Learner Tunnel Active</h1>
+      <p style="margin:6px 0 0;opacity:.85;font-size:13px">{tool_name} · {datetime.now().strftime("%Y-%m-%d %H:%M")}{attempt_info}</p>
+    </div>
+    <div style="padding:20px 24px">
+      <p style="font-size:14px;color:#333;margin:0 0 16px">A new tunnel URL has been generated for the MUE Learner web interface. Share this:</p>
+      <div style="background:#f8f9fa;border-radius:8px;padding:16px;text-align:center;margin-bottom:16px">
+        <a href="{public_url}" style="font-size:16px;font-weight:600;color:#6c5ce7;text-decoration:none;word-break:break-all">{public_url}</a>
+      </div>
+      {"<p style='font-size:12px;color:#28a745;margin:0 0 8px;text-align:center'>✅ Auto-restarted after disconnection</p>" if attempt > 1 else ""}
+      <p style="font-size:11px;color:#aaa;margin:0;text-align:center">This URL will change if the tunnel is restarted.<br>Sent by MUE Learner Server</p>
+    </div>
+  </div></body></html>'''
+    ok, err = _send_email(to_addr, subject, body)
+    if ok:
+        print(f'  📧 Tunnel notification sent to {to_addr}')
+    else:
+        print(f'  ⚠️ Could not send tunnel email: {err}')
+
+
+def _tunnel_notify_down(to_addr, tool_name, reason='unknown'):
+    """Send email when the tunnel disconnects permanently."""
+    subject = f'⚠️ MUE Learner Tunnel Disconnected — {tool_name}'
+    body = f'''<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;background:#f5f5f5;padding:20px">
+  <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+    <div style="background:linear-gradient(135deg,#dc3545,#e57373);padding:24px;color:#fff">
+      <h1 style="margin:0;font-size:18px">⚠️ Tunnel Disconnected</h1>
+      <p style="margin:6px 0 0;opacity:.85;font-size:13px">{tool_name} · {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
+    </div>
+    <div style="padding:20px 24px">
+      <p style="font-size:14px;color:#333;margin:0 0 16px">The {tool_name} tunnel has stopped and could not auto-restart.</p>
+      <p style="font-size:13px;color:#555;margin:0 0 8px"><strong>Reason:</strong> {reason}</p>
+      <p style="font-size:13px;color:#555;margin:0 0 8px"><strong>To restore access:</strong></p>
+      <ol style="font-size:13px;color:#555;margin:0;padding:0 0 0 20px;line-height:1.8">
+        <li>Restart the learner server with <code>--tunnel</code></li>
+        <li>A new URL will be emailed automatically</li>
+      </ol>
+      <p style="font-size:11px;color:#aaa;margin:16px 0 0;text-align:center">Sent by MUE Learner Server</p>
+    </div>
+  </div></body></html>'''
+    ok, err = _send_email(to_addr, subject, body)
+    if ok:
+        print(f'  📧 Tunnel-down notification sent to {to_addr}')
+    else:
+        print(f'  ⚠️ Could not send tunnel-down email: {err}')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Entry Point
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -4383,12 +4556,24 @@ def main():
     parser = argparse.ArgumentParser(description='MUE Learner Web Interface')
     parser.add_argument('--port', type=int, default=5000, help='Port to serve on (default: 5000)')
     parser.add_argument('--host', type=str, default='127.0.0.1', help='Host to bind (default: 127.0.0.1)')
+    parser.add_argument('--tunnel', action='store_true', help='Expose server to the internet via cloudflared or ngrok tunnel')
     args = parser.parse_args()
 
     # Start email scheduler
     start_email_scheduler()
 
     server = HTTPServer((args.host, args.port), LearnerHTTPHandler)
+
+    # Start tunnel if requested
+    if args.tunnel:
+        tunnel_info = _find_tunnel_tool()
+        if tunnel_info:
+            tunnel_thread = threading.Thread(target=_start_tunnel, args=(args.port, tunnel_info[1], tunnel_info[0]), daemon=True)
+            tunnel_thread.start()
+        else:
+            print('  ⚠️ --tunnel requested but no tunnel tool found.')
+            print('  ⚠️ Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/')
+            print('  ⚠️ Or install ngrok:     https://ngrok.com/download')
     profile_count = len(_profiles_list)
     if _profiles_list:
         profile_names = ', '.join(p.get('name', p['id']) for p in _profiles_list)
