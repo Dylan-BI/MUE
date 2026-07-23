@@ -129,6 +129,18 @@
         "/^python -X utf8 -c \"\\$c = open\\('action/proxy/server\\.py', encoding='utf-8'\\)\\.read\\(\\); compile\\(\\$c, 'server\\.py', 'exec'\\); print\\('Compiles OK'\\)\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^python -c \"\nimport sys, os\nsys\\.path\\.insert\\(0, 'action/proxy'\\)\nos\\.chdir\\('action/proxy'\\)\n# Load \\.env\nfrom pathlib import Path\nfor line in open\\('\\.env'\\):\n    line = line\\.strip\\(\\)\n    if line and not line\\.startswith\\('#'\\) and '=' in line:\n        k, v = line\\.split\\('=', 1\\)\n        if k not in os\\.environ:\n            os\\.environ\\[k\\] = v\n# Now test\nfrom server import _send_email\nok, err = _send_email\\('monteretroion@gmail\\.com', 'MUE Learner Test', '<h1>Test</h1><p>If you see this, SMTP works\\.</p>'\\)\nprint\\(f'OK: \\{ok\\}, ERR: \\{err\\}'\\)\n\"\n$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python action/proxy/server\\.py --test-email monteretroion@gmail\\.com$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python action/proxy/_diag\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"

@@ -8,6 +8,7 @@ Pattern matched to action/dashboard/review_server.py for consistency.
 
 Usage:
     python action/proxy/server.py [--port 5000] [--host 127.0.0.1] [--tunnel]
+    python action/proxy/server.py --test-email you@example.com
 
 Pages:
     GET  /                     → Dashboard / home (learner status, today's task)
@@ -4446,6 +4447,9 @@ def _start_tunnel(port, tool_path, tool_name, max_retries=10, retry_delay=5):
 
             for line in stdout:
                 line = line.strip()
+                if not line:
+                    continue
+                print(f'  [tunnel] {line}')  # Debug: show raw tunnel output
                 match = re.search(r'(https://[a-zA-Z0-9.-]+\.(?:trycloudflare\.com|ngrok(?:-free)?\.app)[^\s]*)', line)
                 if match and not url_found:
                     public_url = match.group(1)
@@ -4459,6 +4463,7 @@ def _start_tunnel(port, tool_path, tool_name, max_retries=10, retry_delay=5):
 ║  Share this URL with anyone on the internet.             ║
 ║  The tunnel stays open while the server is running.      ║
 ╚══════════════════════════════════════════════════════════╝''')
+                    print(f'  📧 Sending notification to {TUNNEL_NOTIFY_EMAIL}...')
                     _tunnel_notify_url(TUNNEL_NOTIFY_EMAIL, public_url, tool_name, attempt)
 
             if not url_found:
@@ -4557,7 +4562,21 @@ def main():
     parser.add_argument('--port', type=int, default=5000, help='Port to serve on (default: 5000)')
     parser.add_argument('--host', type=str, default='127.0.0.1', help='Host to bind (default: 127.0.0.1)')
     parser.add_argument('--tunnel', action='store_true', help='Expose server to the internet via cloudflared or ngrok tunnel')
+    parser.add_argument('--test-email', default='', help='Send a test email to the given address and exit')
     args = parser.parse_args()
+
+    # --test-email mode: send a test message and exit
+    if args.test_email:
+        ok, err = _send_email(
+            args.test_email,
+            'MUE Learner — Test Email',
+            '<h1>Test Email</h1><p>If you receive this, SMTP is working correctly from the MUE Learner server.</p>'
+        )
+        if ok:
+            print(f'  ✅ Test email sent to {args.test_email}')
+        else:
+            print(f'  ❌ Test email failed: {err}')
+        return
 
     # Start email scheduler
     start_email_scheduler()
@@ -4566,6 +4585,24 @@ def main():
 
     # Start tunnel if requested
     if args.tunnel:
+        # Verify SMTP is configured before starting tunnel
+        if not SMTP_HOST:
+            print('  ⚠️ SMTP not configured — tunnel email notifications will not be sent.')
+            print('  ⚠️  Set MUE_SMTP_HOST (or configure in .env) to receive tunnel URLs via email.')
+        else:
+            print(f'  📧 SMTP: {SMTP_HOST}:{SMTP_PORT} (from: {SMTP_FROM})')
+            # Send a quick test to confirm SMTP works
+            ok, err = _send_email(
+                ADMIN_VERIFY_EMAIL,
+                'MUE Learner — Tunnel Mode Active',
+                '<h1>Tunnel Mode Active</h1><p>SMTP is working. You will receive an email with the public tunnel URL when it is ready.</p>'
+            )
+            if ok:
+                print(f'  ✅ SMTP test email sent — you should receive it shortly.')
+            else:
+                print(f'  ⚠️ SMTP test email failed: {err}')
+                print(f'  ⚠️  Tunnel notifications will be disabled.')
+
         tunnel_info = _find_tunnel_tool()
         if tunnel_info:
             tunnel_thread = threading.Thread(target=_start_tunnel, args=(args.port, tunnel_info[1], tunnel_info[0]), daemon=True)
