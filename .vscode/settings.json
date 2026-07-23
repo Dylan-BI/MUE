@@ -189,6 +189,14 @@
         "/^python -m py_compile \"vscode-vfs://github/Dylan-BI/MUE/action/proxy/server\\.py\" 2>&1; \\$LASTEXITCODE$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^Test-Path \"c:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\dashboard\\\\review_server\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Get-Item \"c:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\dashboard\\\\review_server\\.py\" \\| Select-Object Length, LastWriteTime$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
