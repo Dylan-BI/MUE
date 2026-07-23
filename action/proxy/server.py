@@ -3987,6 +3987,19 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
                 return self._send_html(_page_welcome())
             return self._send_html(_page_dashboard())
 
+        # Admin-login bypasses the "no learner profiles" redirect so it is
+        # always reachable (e.g. when only admin/owner profiles exist).
+        if path == '/admin-login':
+            return self._send_html(_page_admin_login(self.headers.get('Cookie', '')))
+        if path == '/api/admin/check':
+            cookie = self.headers.get('Cookie', '')
+            username = _get_admin_from_cookies(cookie)
+            if username:
+                self._send_json(json.dumps({'admin': True, 'username': username}))
+            else:
+                self._send_json(json.dumps({'admin': False, 'username': None}))
+            return
+
         # If no learner profiles exist, redirect all non-API/non-static pages to /
         if not _has_learner_profiles() and not path.startswith('/api/') and not path.startswith('/static/'):
             return self._send_redirect('/')
@@ -4053,16 +4066,6 @@ class LearnerHTTPHandler(SimpleHTTPRequestHandler):
             return self._send_html(_page_progress())
         if path == '/manage':
             return self._send_html(_page_manage_profile())
-        if path == '/admin-login':
-            return self._send_html(_page_admin_login(self.headers.get('Cookie', '')))
-        if path == '/api/admin/check':
-            cookie = self.headers.get('Cookie', '')
-            username = _get_admin_from_cookies(cookie)
-            if username:
-                self._send_json(json.dumps({'admin': True, 'username': username}))
-            else:
-                self._send_json(json.dumps({'admin': False, 'username': None}))
-            return
 
         self.send_error(404, 'Not found')
 

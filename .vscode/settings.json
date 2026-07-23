@@ -97,6 +97,38 @@
         "/^Get-Process -Name \"litellm\" -ErrorAction SilentlyContinue \\| Format-Table Id, ProcessName, StartTime$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd vscode-vfs://github/Dylan-BI/MUE/action/proxy ; python -c \"import py_compile; py_compile\\.compile\\('server\\.py', doraise=True\\); print\\('Syntax OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"import ast; ast\\.parse\\(open\\('action/proxy/server\\.py', encoding='utf-8'\\)\\.read\\(\\)\\); print\\('Syntax OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python action/proxy/server\\.py --help 2>&1 ; python -c \"compile\\(open\\('action/proxy/server\\.py'\\)\\.read\\(\\), 'server\\.py', 'exec'\\); print\\('OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -m py_compile action/proxy/server\\.py 2>&1; echo \"exit code: \\$\\?\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"compile\\(open\\('action/proxy/server\\.py','rb'\\)\\.read\\(\\),'server\\.py','exec'\\);print\\('Syntax OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd vscode-vfs://github/Dylan-BI/MUE/action/proxy ; python server\\.py --port 5000 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -c \"\nimport sys\nsys\\.path\\.insert\\(0, 'action/proxy'\\)\nfrom server import LearnerHTTPHandler\n# The key test: check that the routing order is correct\n# by reading the source and verifying\nsrc = open\\('action/proxy/server\\.py', 'r'\\)\\.read\\(\\)\n\n# Check /admin-login appears before the redirect rule\nadmin_login_pos = src\\.find\\(\\\\\"/admin-login\\\\\"\\)\nredirect_pos = src\\.find\\(\\\\\"redirect all non-API/non-static pages to /\\\\\"\\)\nprint\\(f'/admin-login found at position: \\{admin_login_pos\\}'\\)\nprint\\(f'Redirect rule found at position: \\{redirect_pos\\}'\\)\nprint\\(f'admin-login BEFORE redirect: \\{admin_login_pos < redirect_pos\\}'\\)\n\n# Check /api/admin/check appears before the redirect rule\nadmin_check_pos = src\\.find\\(\\\\\"/api/admin/check\\\\\"\\)\nprint\\(f'/api/admin/check found at position: \\{admin_check_pos\\}'\\)\nprint\\(f'admin/check BEFORE redirect: \\{admin_check_pos < redirect_pos\\}'\\)\n\n# Verify the old duplicate is gone - should find /manage but NOT /admin-login near the end\nlast_admin_login = src\\.rfind\\('/admin-login'\\)\nlast_manage = src\\.rfind\\('/manage'\\)\nprint\\(f'Last /admin-login: \\{last_admin_login\\}'\\)\nprint\\(f'Last /manage: \\{last_manage\\}'\\)\n# /admin-login should only appear once now, before the redirect\ncount_admin_login = src\\.count\\('/admin-login'\\)\nprint\\(f'Total occurrences of /admin-login in file: \\{count_admin_login\\}'\\)\n# It appears in _html_page \\(header link\\) \\+ do_GET \\(route\\) = 2\n# If count is 2, that's correct\\. If 3\\+, there's still a duplicate route\\.\nprint\\('Fix verified!' if admin_login_pos < redirect_pos else 'Fix FAILED!'\\)\n\"\n$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python -X utf8 -c \"\\$c = open\\('action/proxy/server\\.py', encoding='utf-8'\\)\\.read\\(\\); compile\\(\\$c, 'server\\.py', 'exec'\\); print\\('Compiles OK'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
