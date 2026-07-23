@@ -2806,7 +2806,7 @@ def main():
     if args.tunnel:
         tunnel_info = _find_tunnel_tool()
         if tunnel_info:
-            tunnel_thread = threading.Thread(target=_start_tunnel, args=(args.port, tunnel_info[1], tunnel_info[0]), daemon=True)
+            tunnel_thread = threading.Thread(target=_start_tunnel, args=(args.port, tunnel_info[1], tunnel_info[0], 0, 5), daemon=True)
             tunnel_thread.start()
         else:
             log('WARNING', '--tunnel requested but no tunnel tool found.')
