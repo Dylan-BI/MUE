@@ -197,7 +197,29 @@
         "/^Get-Item \"c:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\action\\\\dashboard\\\\review_server\\.py\" \\| Select-Object Length, LastWriteTime$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "/^python review/scripts/sync-from-action\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\review\\\\scripts\\\\sync-from-action\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\review\\\\scripts\\\\sync-from-action\\.py\" 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^Test-Path \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\review\\\\scripts\\\\sync-from-action\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "C:/Users/monte/anaconda3/Scripts/conda.exe": true,
+        "/^python \"C:\\\\Users\\\\monte\\\\\\.vscode\\\\BCL-Education\\\\MUE\\\\review\\\\scripts\\\\sync-from-action\\.py\" --dry-run$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "python.exe": true
     },
     "python-envs.defaultEnvManager": "ms-python.python:system"
 }
